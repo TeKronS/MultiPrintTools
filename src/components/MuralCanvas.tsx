@@ -41,7 +41,6 @@ export function MuralCanvas({
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
 
   const paper = PAPER_DIMENSIONS[paperSize] || PAPER_DIMENSIONS['Letter'];
-  const baseScale = 1.0; 
 
   const dimensions = useMemo(() => {
     const printableW = paper.width - (margins * 20);
@@ -95,7 +94,7 @@ export function MuralCanvas({
       const scaleH = availableH / contentH;
       const fitScale = Math.min(scaleW, scaleH);
       
-      setZoom(Math.min(fitScale * 0.9, 3.0));
+      setZoom(Math.min(fitScale * 0.95, 3.0));
       setOffset({ x: 0, y: 0 });
     };
 
@@ -105,11 +104,12 @@ export function MuralCanvas({
 
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
-      if (e.ctrlKey || e.metaKey) {
-        e.preventDefault();
-        setZoom(prev => Math.min(Math.max(0.05, prev - e.deltaY * 0.001), 10));
-      }
+      e.preventDefault();
+      // Zoom directo con el scroll
+      const delta = e.deltaY;
+      setZoom(prev => Math.min(Math.max(0.05, prev - delta * 0.001), 10));
     };
+    
     const current = containerRef.current;
     current?.addEventListener("wheel", handleWheel, { passive: false });
     return () => current?.removeEventListener("wheel", handleWheel);
@@ -144,13 +144,12 @@ export function MuralCanvas({
       onMouseLeave={() => setIsDragging(false)}
     >
       <div 
-        className="relative origin-center pointer-events-auto transition-transform duration-200"
+        className="relative origin-center pointer-events-auto"
         style={{ 
           transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
-          transition: isDragging ? 'none' : 'transform 0.2s cubic-bezier(0.2, 0, 0, 1)',
+          transition: isDragging ? 'none' : 'transform 0.1s ease-out',
         }}
       >
-        {/* Main Canvas Container */}
         <div 
           className="relative bg-white shadow-[0_30px_90px_-20px_rgba(0,0,0,0.3)] border border-border/50 overflow-hidden flex items-center justify-center"
           style={{ 
@@ -158,7 +157,6 @@ export function MuralCanvas({
             height: `${dimensions.totalH}px`
           }}
         >
-          {/* Image Layer */}
           <div className="relative" style={{ width: `${dimensions.drawW}px`, height: `${dimensions.drawH}px` }}>
             <img 
               src={imageUrl} 
@@ -168,7 +166,6 @@ export function MuralCanvas({
             />
           </div>
           
-          {/* Technical Grid Overlay */}
           <div className="absolute inset-0 grid pointer-events-none" 
                style={{ 
                  gridTemplateRows: `repeat(${rows}, 1fr)`,
@@ -210,11 +207,10 @@ export function MuralCanvas({
         </div>
       </div>
 
-      {/* Floating UI Controls */}
       <div className="absolute bottom-6 left-6 flex items-center gap-4 bg-white/95 backdrop-blur-md px-5 py-3 rounded-2xl border border-border shadow-xl animate-fade-in z-50">
         <div className="flex flex-col">
           <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1.5">Control de Vista</span>
-          <span className="text-[10px] font-bold text-foreground">CTRL + Scroll: Zoom • Click + Arrastrar: Mover</span>
+          <span className="text-[10px] font-bold text-foreground">Scroll: Zoom • Click + Arrastrar: Mover</span>
         </div>
         <Separator orientation="vertical" className="h-8" />
         <div className="flex flex-col">
