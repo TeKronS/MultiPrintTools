@@ -42,7 +42,7 @@ export function MuralCanvas({
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
 
   const paper = PAPER_DIMENSIONS[paperSize] || PAPER_DIMENSIONS['Letter'];
-  const baseScale = 1.0; // Reduced base scale for more stable rendering of large grids
+  const baseScale = 1.0; 
 
   const dimensions = useMemo(() => {
     const printableW = paper.width - (margins * 20);
@@ -77,7 +77,7 @@ export function MuralCanvas({
     };
   }, [paper, rows, cols, overlap, margins, imageWidth, imageHeight]);
 
-  // Handle "Fit to Screen" on layout change
+  // Centrado y ajuste de zoom automático cuando cambian las dimensiones
   useEffect(() => {
     if (!containerRef.current || !imageUrl) return;
     
@@ -85,7 +85,7 @@ export function MuralCanvas({
       const container = containerRef.current;
       if (!container) return;
 
-      const padding = 80; // More padding to ensure visibility
+      const padding = 60; 
       const availableW = container.clientWidth - padding;
       const availableH = container.clientHeight - padding;
       
@@ -96,21 +96,19 @@ export function MuralCanvas({
       const scaleH = availableH / contentH;
       const fitScale = Math.min(scaleW, scaleH);
       
-      // Use a slightly smaller fitScale to avoid edges touching
-      setZoom(fitScale * 0.98);
+      setZoom(Math.min(fitScale * 0.95, 2.0)); // Zoom máximo de 2.0 para evitar pixelado excesivo
       setOffset({ x: 0, y: 0 });
     };
 
-    // Small delay to ensure container size is final
     const timer = setTimeout(updateZoomToFit, 50);
     return () => clearTimeout(timer);
-  }, [dimensions, imageUrl, rows, cols, paperSize]);
+  }, [dimensions.totalW, dimensions.totalH, imageUrl, paperSize]);
 
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
-      if (e.ctrlKey) {
+      if (e.ctrlKey || e.metaKey) {
         e.preventDefault();
-        setZoom(prev => Math.min(Math.max(0.01, prev - e.deltaY * 0.001), 10));
+        setZoom(prev => Math.min(Math.max(0.05, prev - e.deltaY * 0.001), 10));
       }
     };
     const current = containerRef.current;
@@ -138,7 +136,7 @@ export function MuralCanvas({
     <div 
       ref={containerRef}
       className={cn(
-        "relative flex-1 bg-[#f0f2f5] overflow-hidden flex items-center justify-center select-none border border-border/40 rounded-2xl shadow-inner",
+        "relative flex-1 bg-[#f0f2f5] overflow-hidden select-none border border-border/40 rounded-2xl shadow-inner",
         isDragging ? "cursor-grabbing" : "cursor-grab"
       )}
       onMouseDown={handleMouseDown}
@@ -146,76 +144,78 @@ export function MuralCanvas({
       onMouseUp={() => setIsDragging(false)}
       onMouseLeave={() => setIsDragging(false)}
     >
-      <div 
-        className="relative flex items-center justify-center pointer-events-none"
-        style={{ 
-          transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
-          transition: isDragging ? 'none' : 'transform 0.2s cubic-bezier(0.2, 0, 0, 1)',
-          transformOrigin: 'center'
-        }}
-      >
-        {/* Total Canvas representing the sheets area */}
+      {/* Anchor point at the exact center of the container */}
+      <div className="absolute top-1/2 left-1/2 w-0 h-0 flex items-center justify-center">
         <div 
-          className="relative bg-white shadow-[0_30px_60px_-15px_rgba(0,0,0,0.2)] border border-border/50 overflow-hidden flex items-center justify-center pointer-events-auto"
+          className="relative origin-center pointer-events-auto"
           style={{ 
-            width: `${dimensions.totalW * baseScale}px`, 
-            height: `${dimensions.totalH * baseScale}px` 
+            transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
+            transition: isDragging ? 'none' : 'transform 0.2s cubic-bezier(0.2, 0, 0, 1)',
           }}
         >
-          {/* Real Image placement */}
-          <div className="relative" style={{ width: `${dimensions.drawW * baseScale}px`, height: `${dimensions.drawH * baseScale}px` }}>
-            <img 
-              src={imageUrl} 
-              alt="Mural" 
-              className="w-full h-full object-cover block shadow-sm" 
-              draggable={false}
-            />
-          </div>
-          
-          {/* Grid Overlay showing the physical paper sheets */}
-          <div className="absolute inset-0 grid pointer-events-none" 
-               style={{ 
-                 gridTemplateRows: `repeat(${rows}, 1fr)`,
-                 gridTemplateColumns: `repeat(${cols}, 1fr)` 
-               }}>
-            {Array.from({ length: rows * cols }).map((_, i) => {
-              const r = Math.floor(i / cols);
-              const c = i % cols;
-              return (
-                <div key={i} className={cn(
-                  "relative", 
-                  showGuides ? "border-[2px] border-primary/30" : "border-0"
-                )}>
-                  {showGuides && (
-                    <>
-                      {/* Printable Area guides (Margins) */}
-                      <div className="absolute inset-0 border-black/10" 
-                           style={{ borderWidth: `${margins * baseScale * 10}px` }} />
-                           
-                      <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-md px-2 py-1 rounded-md border border-primary/20 shadow-sm z-20">
-                        <span className="text-[12px] font-black font-mono text-primary leading-none tracking-tighter">{r+1}-{c+1}</span>
-                      </div>
-                      
-                      {/* Overlap Shading */}
-                      {c < cols - 1 && (
-                        <div className="absolute right-0 top-0 bottom-0 bg-accent/15 border-r-2 border-dashed border-accent/40" 
-                             style={{ width: `${overlap * baseScale * 10}px` }}>
-                          <div className="absolute top-2 right-2 text-[8px] font-black text-accent uppercase tracking-wider bg-white/80 px-1 rounded">Solape</div>
+          {/* Main Canvas Container */}
+          <div 
+            className="relative bg-white shadow-[0_30px_90px_-20px_rgba(0,0,0,0.3)] border border-border/50 overflow-hidden flex items-center justify-center"
+            style={{ 
+              width: `${dimensions.totalW * baseScale}px`, 
+              height: `${dimensions.totalH * baseScale}px`,
+              transform: 'translate(-50%, -50%)' // Shift back to center the content on the anchor
+            }}
+          >
+            {/* Image Layer */}
+            <div className="relative" style={{ width: `${dimensions.drawW * baseScale}px`, height: `${dimensions.drawH * baseScale}px` }}>
+              <img 
+                src={imageUrl} 
+                alt="Mural" 
+                className="w-full h-full object-cover block" 
+                draggable={false}
+              />
+            </div>
+            
+            {/* Technical Grid Overlay */}
+            <div className="absolute inset-0 grid pointer-events-none" 
+                 style={{ 
+                   gridTemplateRows: `repeat(${rows}, 1fr)`,
+                   gridTemplateColumns: `repeat(${cols}, 1fr)` 
+                 }}>
+              {Array.from({ length: rows * cols }).map((_, i) => {
+                const r = Math.floor(i / cols);
+                const c = i % cols;
+                return (
+                  <div key={i} className={cn(
+                    "relative", 
+                    showGuides ? "border-[2px] border-primary/40" : "border-0"
+                  )}>
+                    {showGuides && (
+                      <>
+                        <div className="absolute inset-0 border-black/5" 
+                             style={{ borderWidth: `${margins * baseScale * 10}px` }} />
+                             
+                        <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-md px-2 py-1 rounded-md border border-primary/20 shadow-sm z-20">
+                          <span className="text-[11px] font-black font-mono text-primary leading-none tracking-tighter">{r+1}-{c+1}</span>
                         </div>
-                      )}
-                      {r < rows - 1 && (
-                        <div className="absolute bottom-0 left-0 right-0 bg-accent/15 border-b-2 border-dashed border-accent/40" 
-                             style={{ height: `${overlap * baseScale * 10}px` }} />
-                      )}
-                    </>
-                  )}
-                </div>
-              );
-            })}
+                        
+                        {c < cols - 1 && (
+                          <div className="absolute right-0 top-0 bottom-0 bg-accent/10 border-r-2 border-dashed border-accent/30" 
+                               style={{ width: `${overlap * baseScale * 10}px` }}>
+                            <div className="absolute top-2 right-2 text-[8px] font-black text-accent uppercase tracking-wider bg-white/80 px-1 rounded shadow-sm">Solape</div>
+                          </div>
+                        )}
+                        {r < rows - 1 && (
+                          <div className="absolute bottom-0 left-0 right-0 bg-accent/10 border-b-2 border-dashed border-accent/30" 
+                               style={{ height: `${overlap * baseScale * 10}px` }} />
+                        )}
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
 
+      {/* Floating UI Controls */}
       <div className="absolute bottom-6 left-6 flex items-center gap-4 bg-white/95 backdrop-blur-md px-5 py-3 rounded-2xl border border-border shadow-xl animate-fade-in z-50">
         <div className="flex flex-col">
           <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1.5">Control de Vista</span>
