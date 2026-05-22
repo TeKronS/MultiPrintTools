@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -52,7 +51,7 @@ export default function MuralisEditor() {
   const [cols, setCols] = useState(2);
   const [overlap, setOverlap] = useState(1.5); // cm standard
   const [margins, setMargins] = useState(1); // cm
-  const [paperSize, setPaperSize] = useState('A4');
+  const [paperSize, setPaperSize] = useState('Letter');
   const [showGuides, setShowGuides] = useState(true);
   const [view, setView] = useState<'editor' | 'preview'>('editor');
   const [isExporting, setIsExporting] = useState(false);
