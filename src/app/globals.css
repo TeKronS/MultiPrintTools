@@ -5,7 +5,7 @@
 
 @layer base {
   :root {
-    --background: 0 0% 98%;
+    --background: 0 0% 100%;
     --foreground: 240 10% 3.9%;
     --card: 0 0% 100%;
     --card-foreground: 240 10% 3.9%;
@@ -13,16 +13,16 @@
     --popover-foreground: 240 10% 3.9%;
     --primary: 142 76% 36%;
     --primary-foreground: 355 100% 97%;
-    --secondary: 240 4.8% 95.9%;
+    --secondary: 240 4.8% 97.5%;
     --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
+    --muted: 240 4.8% 96%;
     --muted-foreground: 240 3.8% 46.1%;
     --accent: 142 70% 45%;
     --accent-foreground: 240 5.9% 10%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 85%;
-    --input: 240 5.9% 85%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
     --ring: 142 76% 36%;
     --chart-1: 142 76% 36%;
     --chart-2: 173 58% 39%;
@@ -45,7 +45,7 @@
   }
 }
 
-/* Custom scrollbar for creative suite feel */
+/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;

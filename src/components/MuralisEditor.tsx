@@ -48,7 +48,7 @@ export default function MuralisEditor() {
   const [image, setImage] = useState<{ url: string; file: File } | null>(null);
   const [rows, setRows] = useState(3);
   const [cols, setCols] = useState(4);
-  const [overlap, setOverlap] = useState(1.5); // cm standard as requested
+  const [overlap, setOverlap] = useState(1.5); // cm standard
   const [margins, setMargins] = useState(1); // cm
   const [paperSize, setPaperSize] = useState('A4');
   const [showGuides, setShowGuides] = useState(true);
@@ -86,74 +86,71 @@ export default function MuralisEditor() {
       const ctx = canvas.getContext('2d');
       if (!ctx) throw new Error("Could not initialize canvas");
 
-      // Printable area taking margins into account
-      const effectivePaperW = paper.width - (margins * 20);
-      const effectivePaperH = paper.height - (margins * 20);
+      // Printable area (mm)
+      const printableW = paper.width - (margins * 20);
+      const printableH = paper.height - (margins * 20);
+      const overlapMm = overlap * 10;
 
-      const sw = img.width / cols;
-      const sh = img.height / rows;
+      // Calculate total mural physical size to determine scaling
+      // The total width of the image will correspond to:
+      // totalW_mm = cols * printableW - (cols - 1) * overlapMm
+      const totalW_mm = cols * printableW - (cols - 1) * overlapMm;
+      const totalH_mm = rows * printableH - (rows - 1) * overlapMm;
 
-      // Pixel to mm conversion ratio
-      const pxPerMmW = sw / effectivePaperW;
-      const pxPerMmH = sh / effectivePaperH;
-
-      const overlapPxW = overlap * 10 * pxPerMmW;
-      const overlapPxH = overlap * 10 * pxPerMmH;
+      // Aspect ratio correction: we match the image to the grid
+      const pxPerMm = img.width / totalW_mm;
 
       for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
           if (r > 0 || c > 0) pdf.addPage();
 
-          // Calculations with overlap
-          const sx = Math.max(0, (c * sw) - (c > 0 ? overlapPxW : 0));
-          const sy = Math.max(0, (r * sh) - (r > 0 ? overlapPxH : 0));
-          
-          let curSw = sw + (c > 0 ? overlapPxW : 0) + (c < cols - 1 ? overlapPxW : 0);
-          let curSh = sh + (r > 0 ? overlapPxH : 0) + (r < rows - 1 ? overlapPxH : 0);
+          // Pixel coordinates for current slice
+          // Each sheet starts at c * (printableW - overlapMm)
+          const sx = c * (printableW - overlapMm) * pxPerMm;
+          const sy = r * (printableH - overlapMm) * pxPerMm;
+          const sw = printableW * pxPerMm;
+          const sh = printableH * pxPerMm;
 
-          const finalSw = Math.min(curSw, img.width - sx);
-          const finalSh = Math.min(curSh, img.height - sy);
-
-          canvas.width = finalSw;
-          canvas.height = finalSh;
-          ctx.drawImage(img, sx, sy, finalSw, finalSh, 0, 0, finalSw, finalSh);
+          canvas.width = sw;
+          canvas.height = sh;
+          ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
 
           const sliceData = canvas.toDataURL('image/jpeg', 0.95);
           
-          // Center content in effective area
-          pdf.addImage(sliceData, 'JPEG', margins * 10, margins * 10, effectivePaperW, effectivePaperH);
+          // Add image to PDF centered in margins
+          pdf.addImage(sliceData, 'JPEG', margins * 10, margins * 10, printableW, printableH);
 
-          // Draw overlap markers
-          pdf.setDrawColor(200, 200, 200);
+          // Draw overlap technical guides (faint lines)
+          pdf.setDrawColor(220, 220, 220);
           pdf.setLineDashPattern([2, 1], 0);
           
           if (c < cols - 1) {
-             const overlapLineX = (margins * 10) + effectivePaperW - (overlap * 10);
-             pdf.line(overlapLineX, margins * 10, overlapLineX, margins * 10 + effectivePaperH);
+             const guideX = (margins * 10) + printableW - overlapMm;
+             pdf.line(guideX, margins * 10, guideX, margins * 10 + printableH);
           }
           if (r < rows - 1) {
-            const overlapLineY = (margins * 10) + effectivePaperH - (overlap * 10);
-            pdf.line(margins * 10, overlapLineY, margins * 10 + effectivePaperW, overlapLineY);
+            const guideY = (margins * 10) + printableH - overlapMm;
+            pdf.line(margins * 10, guideY, margins * 10 + printableW, guideY);
           }
 
-          // Metadata
+          // Metadata footer
           pdf.setFontSize(7);
-          pdf.setTextColor(150);
-          pdf.text(`PANEL ${r + 1}-${c + 1} | SOLAPE: ${overlap}cm | MARGEN: ${margins}cm | MURALIS`, 5, paper.height - 5);
+          pdf.setTextColor(180);
+          pdf.text(`PANEL ${r + 1}-${c + 1} | SOLAPE: ${overlap}cm | MARGEN: ${margins}cm | MURALIS`, 10, paper.height - 7);
         }
       }
 
       pdf.save(`muralis-${Date.now()}.pdf`);
       toast({
         title: lang === 'es' ? "PDF Generado" : "PDF Generated",
-        description: lang === 'es' ? "Documento listo para imprimir localmente." : "Document ready for local printing.",
+        description: lang === 'es' ? "Contenido sincronizado para impresión local." : "Content synchronized for local printing.",
       });
     } catch (error) {
       console.error(error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: lang === 'es' ? "Error en el procesamiento local." : "Local processing error.",
+        description: lang === 'es' ? "Error en el procesamiento del PDF." : "Error processing PDF.",
       });
     } finally {
       setIsExporting(false);
@@ -161,7 +158,7 @@ export default function MuralisEditor() {
   };
 
   return (
-    <div className="flex flex-col h-screen w-full font-body bg-[#fcfcfc] text-foreground">
+    <div className="flex flex-col h-screen w-full font-body bg-[#fafafa] text-foreground">
       {/* Top Navbar */}
       <header className="h-16 border-b border-border bg-white flex items-center justify-between px-6 z-50 shadow-sm">
         <div className="flex items-center gap-6">
@@ -203,7 +200,7 @@ export default function MuralisEditor() {
             disabled={!image || isExporting}
           >
             {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-5 w-5" />}
-            {isExporting ? (lang === 'es' ? "GENERANDO..." : "GENERATING...") : t.export}
+            {isExporting ? (lang === 'es' ? "PROCESANDO..." : "PROCESSING...") : t.export}
           </Button>
         </div>
       </header>
@@ -211,7 +208,7 @@ export default function MuralisEditor() {
       {/* Main Layout */}
       <main className="flex-1 flex overflow-hidden">
         {/* Central Canvas Area */}
-        <section className="flex-1 relative bg-[#f8f9fa] overflow-hidden flex items-center justify-center">
+        <section className="flex-1 relative bg-[#f4f4f5] overflow-hidden flex items-center justify-center">
           {!image ? (
             <div className="max-w-lg w-full p-8 animate-fade-in">
               <ImageUploader onImageUpload={handleImageUpload} language={lang} t={t} />
@@ -238,7 +235,7 @@ export default function MuralisEditor() {
         </section>
 
         {/* Right Adjustment Panel */}
-        <aside className="w-85 border-l border-border bg-white overflow-y-auto custom-scrollbar shadow-xl z-40">
+        <aside className="w-85 border-l border-border bg-white overflow-y-auto custom-scrollbar shadow-2xl z-40">
           <div className="p-8 space-y-10">
             <div className="flex items-center justify-between">
               <h2 className="text-[11px] font-headline font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
@@ -250,7 +247,6 @@ export default function MuralisEditor() {
             </div>
 
             <div className="space-y-8">
-              {/* Grid Dimensions */}
               <div className="space-y-5">
                 <div className="flex justify-between items-end">
                   <Label className="text-[11px] font-black uppercase text-muted-foreground">{t.rows}</Label>
@@ -262,7 +258,6 @@ export default function MuralisEditor() {
                   min={1} 
                   max={15} 
                   step={1} 
-                  className="py-2"
                 />
               </div>
 
@@ -277,21 +272,19 @@ export default function MuralisEditor() {
                   min={1} 
                   max={15} 
                   step={1} 
-                  className="py-2"
                 />
               </div>
 
-              <Separator className="bg-border/60" />
+              <Separator />
 
-              {/* Physical Adjustments */}
               <div className="space-y-5">
                 <div className="flex justify-between items-center">
                   <Label className="text-[11px] font-black uppercase text-muted-foreground">{t.paperSize}</Label>
                   <Info className="h-3 w-3 text-muted-foreground/60" />
                 </div>
                 <Select value={paperSize} onValueChange={setPaperSize}>
-                  <SelectTrigger className="bg-white border-border h-11 text-xs font-bold rounded-xl shadow-sm">
-                    <SelectValue placeholder="Seleccionar" />
+                  <SelectTrigger className="bg-white border-border h-11 text-xs font-bold rounded-xl">
+                    <SelectValue placeholder="Papel" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="A4" className="font-bold">A4 (210 x 297 mm)</SelectItem>
@@ -315,7 +308,6 @@ export default function MuralisEditor() {
                   min={0} 
                   max={5} 
                   step={0.1} 
-                  className="py-2"
                 />
               </div>
 
@@ -332,7 +324,6 @@ export default function MuralisEditor() {
                   min={0} 
                   max={3} 
                   step={0.5} 
-                  className="py-2"
                 />
               </div>
 
@@ -350,37 +341,25 @@ export default function MuralisEditor() {
               </div>
             </div>
 
-            {/* Panel Stats Card */}
-            <div className="p-6 bg-primary/5 border border-primary/10 rounded-2xl space-y-4">
-              <h3 className="text-[10px] font-headline font-black text-primary uppercase tracking-[0.2em]">{t.totalPanels}</h3>
+            <div className="p-6 bg-primary/5 border border-primary/10 rounded-2xl space-y-2">
+              <h3 className="text-[10px] font-black text-primary uppercase tracking-widest">{t.totalPanels}</h3>
               <div className="flex items-baseline gap-2">
-                <span className="text-6xl font-headline font-black text-primary leading-none">{rows * cols}</span>
-                <span className="text-xs text-muted-foreground font-black uppercase">Hojas</span>
+                <span className="text-5xl font-black text-primary leading-none">{rows * cols}</span>
+                <span className="text-xs text-muted-foreground font-black uppercase">Unidades</span>
               </div>
-              <p className="text-[10px] leading-relaxed text-muted-foreground font-medium">
-                {lang === 'es' ? 'Cada hoja física representará un panel con ' : 'Each physical sheet represents a panel with '} 
-                <span className="text-primary font-bold">{overlap}cm de unión.</span>
-              </p>
             </div>
-          </div>
-
-          <div className="p-8 mt-auto">
-             <Button variant="outline" className="w-full border-primary/20 text-primary hover:bg-primary hover:text-white font-black uppercase text-xs tracking-widest h-14 rounded-2xl transition-all shadow-sm" onClick={() => setImage(null)}>
-              {t.reset}
-            </Button>
           </div>
         </aside>
       </main>
 
-      {/* Bottom Status Bar */}
-      <footer className="h-10 border-t border-border bg-white px-6 flex items-center justify-between text-[10px] text-muted-foreground font-mono uppercase tracking-[0.1em] z-50">
+      <footer className="h-10 border-t border-border bg-white px-6 flex items-center justify-between text-[10px] text-muted-foreground font-mono uppercase tracking-widest z-50">
         <div className="flex gap-6">
-          <span className="flex items-center gap-2 font-black text-primary"><Settings className="h-3 w-3" /> MURALIS CORE V4.2</span>
-          <span className="flex items-center gap-2 opacity-60"><Grid3X3 className="h-3 w-3" /> Local Processing Engine</span>
+          <span className="flex items-center gap-2 font-black text-primary"><Settings className="h-3 w-3" /> MURALIS ENGINE</span>
+          <span className="opacity-60">Local Processing Active</span>
         </div>
         <div className="flex gap-6">
           <span className="font-black text-accent">{paperSize} FORMAT</span>
-          <span className="text-primary font-black">SYSTEM STATUS: NOMINAL</span>
+          <span className="text-primary font-black">STABLE</span>
         </div>
       </footer>
     </div>

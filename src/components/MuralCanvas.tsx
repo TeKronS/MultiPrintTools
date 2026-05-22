@@ -79,8 +79,8 @@ export function MuralCanvas({
           transition: isDragging ? 'none' : 'transform 0.1s ease-out'
         }}
       >
-        {/* Simulación del área total del mural sobre la pared */}
-        <div className="relative shadow-[0_30px_60px_-15px_rgba(0,0,0,0.15)] bg-white border border-white">
+        {/* Main Canvas Container */}
+        <div className="relative shadow-2xl bg-white border-2 border-white rounded-sm overflow-hidden">
           <img 
             src={imageUrl} 
             alt="Mural asset" 
@@ -88,7 +88,7 @@ export function MuralCanvas({
             draggable={false}
           />
           
-          {/* Grid Overlay Dinámico con líneas más visibles */}
+          {/* Enhanced Grid Overlay */}
           <div className="absolute inset-0 grid pointer-events-none" 
                style={{ 
                  gridTemplateRows: `repeat(${rows}, 1fr)`,
@@ -103,44 +103,45 @@ export function MuralCanvas({
                   key={i} 
                   className={cn(
                     "relative",
-                    showGuides ? "border border-primary/60 ring-1 ring-primary/10" : "border-0"
+                    showGuides ? "border-[2px] border-primary/80" : "border-0"
                   )}
                 >
                   {showGuides && (
                     <>
-                      {/* Identificador de panel */}
-                      <div className="absolute top-2 left-2 z-30">
-                        <span className="text-[10px] font-black font-mono text-primary bg-white/95 px-2 py-0.5 rounded-md shadow-sm border border-primary/30 backdrop-blur-sm">
+                      {/* Panel ID Tag */}
+                      <div className="absolute top-3 left-3 z-30">
+                        <span className="text-xs font-black font-mono text-primary bg-white px-2 py-1 rounded shadow-md border border-primary/20">
                           {rowIdx + 1}-{colIdx + 1}
                         </span>
                       </div>
                       
-                      {/* Visualización de Márgenes (Blanco opaco para simular papel sobrante) */}
+                      {/* Paper Margins Simulation */}
                       <div 
-                        className="absolute inset-0 border-white/80 pointer-events-none z-10"
-                        style={{ borderWidth: `${margins * 4}px` }}
+                        className="absolute inset-0 border-white/90 pointer-events-none z-10"
+                        style={{ borderWidth: `${margins * 6}px` }}
                       />
 
-                      {/* Visualización de Solapamiento (Overlap) */}
-                      {/* Derecha */}
+                      {/* Technical Overlap Visualization */}
+                      {/* Right Side Overlap */}
                       {colIdx < cols - 1 && (
                         <div 
-                          className="absolute right-0 top-0 bottom-0 bg-accent/30 border-r border-dashed border-accent/60 z-20 overflow-hidden"
-                          style={{ width: `${overlap * 10}px`, maxWidth: '30%' }}
+                          className="absolute right-0 top-0 bottom-0 bg-accent/40 border-r-2 border-dashed border-accent/80 z-20"
+                          style={{ width: `${overlap * 15}px`, maxWidth: '40%' }}
                         >
                           <div className="h-full w-full flex items-center justify-center">
-                             <div className="rotate-90 text-[7px] font-black text-accent tracking-widest whitespace-nowrap opacity-90">SOLAPE</div>
+                             <div className="rotate-90 text-[8px] font-black text-accent tracking-[0.3em] uppercase opacity-90">Solape</div>
                           </div>
                         </div>
                       )}
-                      {/* Abajo */}
+                      
+                      {/* Bottom Side Overlap */}
                       {rowIdx < rows - 1 && (
                         <div 
-                          className="absolute bottom-0 left-0 right-0 bg-accent/30 border-b border-dashed border-accent/60 z-20 overflow-hidden"
-                          style={{ height: `${overlap * 10}px`, maxHeight: '30%' }}
+                          className="absolute bottom-0 left-0 right-0 bg-accent/40 border-b-2 border-dashed border-accent/80 z-20"
+                          style={{ height: `${overlap * 15}px`, maxHeight: '40%' }}
                         >
                            <div className="h-full w-full flex items-center justify-center">
-                             <div className="text-[7px] font-black text-accent tracking-widest opacity-90 uppercase">Solapamiento inferior</div>
+                             <div className="text-[8px] font-black text-accent tracking-[0.3em] uppercase opacity-90">Unión inferior</div>
                           </div>
                         </div>
                       )}
@@ -153,23 +154,23 @@ export function MuralCanvas({
         </div>
       </div>
 
-      {/* Floating UI Context */}
-      <div className="absolute top-6 left-6 flex flex-col gap-2 pointer-events-none">
-        <div className="bg-white/80 backdrop-blur-xl px-4 py-2 rounded-2xl border border-white/50 shadow-xl flex items-center gap-4">
+      {/* Floating Info */}
+      <div className="absolute top-6 left-6 pointer-events-none">
+        <div className="bg-white/95 backdrop-blur-md px-5 py-3 rounded-2xl border border-border shadow-2xl flex items-center gap-6">
           <div className="flex flex-col">
-            <span className="text-[9px] font-black text-muted-foreground/60 uppercase tracking-widest">Papel</span>
-            <span className="text-xs font-black text-primary">{paperSize}</span>
+            <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Formato</span>
+            <span className="text-sm font-black text-primary">{paperSize}</span>
           </div>
-          <div className="h-6 w-px bg-primary/10" />
+          <div className="h-8 w-px bg-border" />
           <div className="flex flex-col">
-            <span className="text-[9px] font-black text-muted-foreground/60 uppercase tracking-widest">Paneles</span>
-            <span className="text-xs font-black text-primary">{rows}x{cols} ({rows * cols})</span>
+            <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Configuración</span>
+            <span className="text-sm font-black text-primary">{rows}x{cols}</span>
           </div>
         </div>
       </div>
 
-      <div className="absolute bottom-6 right-6 bg-white/80 backdrop-blur-xl px-4 py-2 rounded-xl border border-white/50 shadow-xl text-[10px] font-black font-mono text-primary/70">
-        Nivel de Zoom: {Math.round(zoom * 100)}%
+      <div className="absolute bottom-6 right-6 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-xl border border-border shadow-lg text-[10px] font-black font-mono text-primary/80">
+        Control + Scroll para Zoom ({Math.round(zoom * 100)}%)
       </div>
     </div>
   );
