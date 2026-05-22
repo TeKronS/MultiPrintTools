@@ -42,7 +42,7 @@ export function MuralCanvas({
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
 
   const paper = PAPER_DIMENSIONS[paperSize] || PAPER_DIMENSIONS['Letter'];
-  const baseScale = 1.5; // Base pixel per mm for initial size
+  const baseScale = 1.0; // Reduced base scale for more stable rendering of large grids
 
   const dimensions = useMemo(() => {
     const printableW = paper.width - (margins * 20);
@@ -79,29 +79,38 @@ export function MuralCanvas({
 
   // Handle "Fit to Screen" on layout change
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || !imageUrl) return;
     
-    const container = containerRef.current;
-    const padding = 60;
-    const availableW = container.clientWidth - padding;
-    const availableH = container.clientHeight - padding;
-    
-    const contentW = dimensions.totalW * baseScale;
-    const contentH = dimensions.totalH * baseScale;
-    
-    const scaleW = availableW / contentW;
-    const scaleH = availableH / contentH;
-    const fitScale = Math.min(scaleW, scaleH, 1);
-    
-    setZoom(fitScale * 0.95);
-    setOffset({ x: 0, y: 0 });
-  }, [dimensions, imageUrl]);
+    const updateZoomToFit = () => {
+      const container = containerRef.current;
+      if (!container) return;
+
+      const padding = 80; // More padding to ensure visibility
+      const availableW = container.clientWidth - padding;
+      const availableH = container.clientHeight - padding;
+      
+      const contentW = dimensions.totalW * baseScale;
+      const contentH = dimensions.totalH * baseScale;
+      
+      const scaleW = availableW / contentW;
+      const scaleH = availableH / contentH;
+      const fitScale = Math.min(scaleW, scaleH);
+      
+      // Use a slightly smaller fitScale to avoid edges touching
+      setZoom(fitScale * 0.98);
+      setOffset({ x: 0, y: 0 });
+    };
+
+    // Small delay to ensure container size is final
+    const timer = setTimeout(updateZoomToFit, 50);
+    return () => clearTimeout(timer);
+  }, [dimensions, imageUrl, rows, cols, paperSize]);
 
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
       if (e.ctrlKey) {
         e.preventDefault();
-        setZoom(prev => Math.min(Math.max(0.05, prev - e.deltaY * 0.001), 10));
+        setZoom(prev => Math.min(Math.max(0.01, prev - e.deltaY * 0.001), 10));
       }
     };
     const current = containerRef.current;
@@ -138,16 +147,16 @@ export function MuralCanvas({
       onMouseLeave={() => setIsDragging(false)}
     >
       <div 
-        className="relative will-change-transform flex items-center justify-center"
+        className="relative flex items-center justify-center pointer-events-none"
         style={{ 
           transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
-          transition: isDragging ? 'none' : 'transform 0.15s cubic-bezier(0.2, 0, 0, 1)',
+          transition: isDragging ? 'none' : 'transform 0.2s cubic-bezier(0.2, 0, 0, 1)',
           transformOrigin: 'center'
         }}
       >
         {/* Total Canvas representing the sheets area */}
         <div 
-          className="relative bg-white shadow-[0_30px_60px_-15px_rgba(0,0,0,0.2)] border border-border/50 overflow-hidden flex items-center justify-center"
+          className="relative bg-white shadow-[0_30px_60px_-15px_rgba(0,0,0,0.2)] border border-border/50 overflow-hidden flex items-center justify-center pointer-events-auto"
           style={{ 
             width: `${dimensions.totalW * baseScale}px`, 
             height: `${dimensions.totalH * baseScale}px` 
