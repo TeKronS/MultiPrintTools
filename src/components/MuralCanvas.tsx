@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -88,7 +87,7 @@ export function MuralCanvas({
             draggable={false}
           />
           
-          {/* Enhanced Grid Overlay */}
+          {/* Real-time Grid Overlay */}
           <div className="absolute inset-0 grid pointer-events-none" 
                style={{ 
                  gridTemplateRows: `repeat(${rows}, 1fr)`,
@@ -115,33 +114,32 @@ export function MuralCanvas({
                         </span>
                       </div>
                       
-                      {/* Paper Margins Simulation */}
+                      {/* Visual representation of margins */}
                       <div 
-                        className="absolute inset-0 border-white/90 pointer-events-none z-10"
-                        style={{ borderWidth: `${margins * 6}px` }}
+                        className="absolute inset-0 border-black/5 opacity-10 pointer-events-none z-10"
+                        style={{ borderWidth: `${margins * 4}px` }}
                       />
 
-                      {/* Technical Overlap Visualization */}
-                      {/* Right Side Overlap */}
+                      {/* Overlap Visualization (Right) */}
                       {colIdx < cols - 1 && (
                         <div 
-                          className="absolute right-0 top-0 bottom-0 bg-accent/40 border-r-2 border-dashed border-accent/80 z-20"
-                          style={{ width: `${overlap * 15}px`, maxWidth: '40%' }}
+                          className="absolute right-0 top-0 bottom-0 bg-accent/20 border-r-2 border-dashed border-accent/40 z-20"
+                          style={{ width: `${overlap * 10}px`, maxWidth: '30%' }}
                         >
                           <div className="h-full w-full flex items-center justify-center">
-                             <div className="rotate-90 text-[8px] font-black text-accent tracking-[0.3em] uppercase opacity-90">Solape</div>
+                             <div className="rotate-90 text-[7px] font-black text-accent tracking-[0.2em] uppercase opacity-70">Solape</div>
                           </div>
                         </div>
                       )}
                       
-                      {/* Bottom Side Overlap */}
+                      {/* Overlap Visualization (Bottom) */}
                       {rowIdx < rows - 1 && (
                         <div 
-                          className="absolute bottom-0 left-0 right-0 bg-accent/40 border-b-2 border-dashed border-accent/80 z-20"
-                          style={{ height: `${overlap * 15}px`, maxHeight: '40%' }}
+                          className="absolute bottom-0 left-0 right-0 bg-accent/20 border-b-2 border-dashed border-accent/40 z-20"
+                          style={{ height: `${overlap * 10}px`, maxHeight: '30%' }}
                         >
                            <div className="h-full w-full flex items-center justify-center">
-                             <div className="text-[8px] font-black text-accent tracking-[0.3em] uppercase opacity-90">Unión inferior</div>
+                             <div className="text-[7px] font-black text-accent tracking-[0.2em] uppercase opacity-70">Solape</div>
                           </div>
                         </div>
                       )}
@@ -170,7 +168,7 @@ export function MuralCanvas({
       </div>
 
       <div className="absolute bottom-6 right-6 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-xl border border-border shadow-lg text-[10px] font-black font-mono text-primary/80">
-        Control + Scroll para Zoom ({Math.round(zoom * 100)}%)
+        Control + Scroll: Zoom ({Math.round(zoom * 100)}%) | Arrastrar para mover
       </div>
     </div>
   );

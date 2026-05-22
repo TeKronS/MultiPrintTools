@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -9,7 +8,6 @@ import { MuralCanvas } from "./MuralCanvas";
 import { MockupPreview } from "./MockupPreview";
 import { 
   Settings2, 
-  Grid3X3, 
   Layout, 
   FileDown, 
   Undo2, 
@@ -70,8 +68,9 @@ export default function MuralisEditor() {
       const img = new Image();
       img.src = image.url;
       
-      await new Promise((resolve) => {
+      await new Promise((resolve, reject) => {
         img.onload = resolve;
+        img.onerror = reject;
       });
 
       const paper = PAPER_DIMENSIONS[paperSize];
@@ -86,71 +85,80 @@ export default function MuralisEditor() {
       const ctx = canvas.getContext('2d');
       if (!ctx) throw new Error("Could not initialize canvas");
 
-      // Printable area (mm)
+      // Printable area per sheet (mm)
       const printableW = paper.width - (margins * 20);
       const printableH = paper.height - (margins * 20);
       const overlapMm = overlap * 10;
 
       // Calculate total mural physical size to determine scaling
-      // The total width of the image will correspond to:
-      // totalW_mm = cols * printableW - (cols - 1) * overlapMm
-      const totalW_mm = cols * printableW - (cols - 1) * overlapMm;
-      const totalH_mm = rows * printableH - (rows - 1) * overlapMm;
+      // Each sheet contributes (printableW - overlap) except the last one.
+      const totalW_mm = (cols * printableW) - ((cols - 1) * overlapMm);
+      const totalH_mm = (rows * printableH) - ((rows - 1) * overlapMm);
 
-      // Aspect ratio correction: we match the image to the grid
-      const pxPerMm = img.width / totalW_mm;
+      // Mapping image to physical space (pixels per mm)
+      // This ensures the image stretches perfectly over the grid without gaps.
+      const pxPerMmX = img.width / totalW_mm;
+      const pxPerMmY = img.height / totalH_mm;
 
       for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
           if (r > 0 || c > 0) pdf.addPage();
 
-          // Pixel coordinates for current slice
-          // Each sheet starts at c * (printableW - overlapMm)
-          const sx = c * (printableW - overlapMm) * pxPerMm;
-          const sy = r * (printableH - overlapMm) * pxPerMm;
-          const sw = printableW * pxPerMm;
-          const sh = printableH * pxPerMm;
+          // Pixel coordinates for current slice in the source image
+          // Each sheet starts at: index * (step)
+          const sx = c * (printableW - overlapMm) * pxPerMmX;
+          const sy = r * (printableH - overlapMm) * pxPerMmY;
+          const sw = printableW * pxPerMmX;
+          const sh = printableH * pxPerMmY;
 
           canvas.width = sw;
           canvas.height = sh;
+          
+          // Background to white to avoid transparent/black edges
+          ctx.fillStyle = "white";
+          ctx.fillRect(0, 0, sw, sh);
+          
+          // Draw the slice
           ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
 
-          const sliceData = canvas.toDataURL('image/jpeg', 0.95);
+          const sliceData = canvas.toDataURL('image/jpeg', 0.9);
           
           // Add image to PDF centered in margins
           pdf.addImage(sliceData, 'JPEG', margins * 10, margins * 10, printableW, printableH);
 
-          // Draw overlap technical guides (faint lines)
-          pdf.setDrawColor(220, 220, 220);
-          pdf.setLineDashPattern([2, 1], 0);
+          // Technical guides for assembly
+          pdf.setDrawColor(200, 200, 200);
+          pdf.setLineDashPattern([2, 2], 0);
           
+          // Right guide
           if (c < cols - 1) {
-             const guideX = (margins * 10) + printableW - overlapMm;
+             const guideX = (margins * 10) + (printableW - overlapMm);
              pdf.line(guideX, margins * 10, guideX, margins * 10 + printableH);
           }
+          // Bottom guide
           if (r < rows - 1) {
-            const guideY = (margins * 10) + printableH - overlapMm;
+            const guideY = (margins * 10) + (printableH - overlapMm);
             pdf.line(margins * 10, guideY, margins * 10 + printableW, guideY);
           }
 
           // Metadata footer
           pdf.setFontSize(7);
-          pdf.setTextColor(180);
-          pdf.text(`PANEL ${r + 1}-${c + 1} | SOLAPE: ${overlap}cm | MARGEN: ${margins}cm | MURALIS`, 10, paper.height - 7);
+          pdf.setTextColor(150);
+          pdf.text(`PANEL ${r + 1}-${c + 1} | MURALIS | PAPEL: ${paperSize} | SOLAPE: ${overlap}cm`, margins * 10, paper.height - (margins * 5));
         }
       }
 
       pdf.save(`muralis-${Date.now()}.pdf`);
       toast({
-        title: lang === 'es' ? "PDF Generado" : "PDF Generated",
-        description: lang === 'es' ? "Contenido sincronizado para impresión local." : "Content synchronized for local printing.",
+        title: lang === 'es' ? "¡Mural listo!" : "Mural ready!",
+        description: lang === 'es' ? "El PDF se ha generado correctamente." : "PDF has been generated successfully.",
       });
     } catch (error) {
       console.error(error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: lang === 'es' ? "Error en el procesamiento del PDF." : "Error processing PDF.",
+        description: lang === 'es' ? "Ocurrió un error al procesar la imagen." : "An error occurred while processing the image.",
       });
     } finally {
       setIsExporting(false);
@@ -355,7 +363,7 @@ export default function MuralisEditor() {
       <footer className="h-10 border-t border-border bg-white px-6 flex items-center justify-between text-[10px] text-muted-foreground font-mono uppercase tracking-widest z-50">
         <div className="flex gap-6">
           <span className="flex items-center gap-2 font-black text-primary"><Settings className="h-3 w-3" /> MURALIS ENGINE</span>
-          <span className="opacity-60">Local Processing Active</span>
+          <span className="opacity-60">Procesamiento Local Activo</span>
         </div>
         <div className="flex gap-6">
           <span className="font-black text-accent">{paperSize} FORMAT</span>
