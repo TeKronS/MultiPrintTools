@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useRef, useState, useMemo } from "react";
@@ -77,7 +76,7 @@ export function MuralCanvas({
     };
   }, [paper, rows, cols, overlap, margins, imageWidth, imageHeight]);
 
-  // Centrado y ajuste de zoom automático cuando cambian las dimensiones
+  // Centrado automático al cambiar dimensiones
   useEffect(() => {
     if (!containerRef.current || !imageUrl) return;
     
@@ -89,14 +88,14 @@ export function MuralCanvas({
       const availableW = container.clientWidth - padding;
       const availableH = container.clientHeight - padding;
       
-      const contentW = dimensions.totalW * baseScale;
-      const contentH = dimensions.totalH * baseScale;
+      const contentW = dimensions.totalW;
+      const contentH = dimensions.totalH;
       
       const scaleW = availableW / contentW;
       const scaleH = availableH / contentH;
       const fitScale = Math.min(scaleW, scaleH);
       
-      setZoom(Math.min(fitScale * 0.95, 2.0)); // Zoom máximo de 2.0 para evitar pixelado excesivo
+      setZoom(Math.min(fitScale * 0.9, 3.0));
       setOffset({ x: 0, y: 0 });
     };
 
@@ -136,7 +135,7 @@ export function MuralCanvas({
     <div 
       ref={containerRef}
       className={cn(
-        "relative flex-1 bg-[#f0f2f5] overflow-hidden select-none border border-border/40 rounded-2xl shadow-inner",
+        "relative flex-1 h-full bg-[#f0f2f5] overflow-hidden select-none border border-border/40 rounded-2xl shadow-inner flex items-center justify-center",
         isDragging ? "cursor-grabbing" : "cursor-grab"
       )}
       onMouseDown={handleMouseDown}
@@ -144,73 +143,69 @@ export function MuralCanvas({
       onMouseUp={() => setIsDragging(false)}
       onMouseLeave={() => setIsDragging(false)}
     >
-      {/* Anchor point at the exact center of the container */}
-      <div className="absolute top-1/2 left-1/2 w-0 h-0 flex items-center justify-center">
+      <div 
+        className="relative origin-center pointer-events-auto transition-transform duration-200"
+        style={{ 
+          transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
+          transition: isDragging ? 'none' : 'transform 0.2s cubic-bezier(0.2, 0, 0, 1)',
+        }}
+      >
+        {/* Main Canvas Container */}
         <div 
-          className="relative origin-center pointer-events-auto"
+          className="relative bg-white shadow-[0_30px_90px_-20px_rgba(0,0,0,0.3)] border border-border/50 overflow-hidden flex items-center justify-center"
           style={{ 
-            transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
-            transition: isDragging ? 'none' : 'transform 0.2s cubic-bezier(0.2, 0, 0, 1)',
+            width: `${dimensions.totalW}px`, 
+            height: `${dimensions.totalH}px`
           }}
         >
-          {/* Main Canvas Container */}
-          <div 
-            className="relative bg-white shadow-[0_30px_90px_-20px_rgba(0,0,0,0.3)] border border-border/50 overflow-hidden flex items-center justify-center"
-            style={{ 
-              width: `${dimensions.totalW * baseScale}px`, 
-              height: `${dimensions.totalH * baseScale}px`,
-              transform: 'translate(-50%, -50%)' // Shift back to center the content on the anchor
-            }}
-          >
-            {/* Image Layer */}
-            <div className="relative" style={{ width: `${dimensions.drawW * baseScale}px`, height: `${dimensions.drawH * baseScale}px` }}>
-              <img 
-                src={imageUrl} 
-                alt="Mural" 
-                className="w-full h-full object-cover block" 
-                draggable={false}
-              />
-            </div>
-            
-            {/* Technical Grid Overlay */}
-            <div className="absolute inset-0 grid pointer-events-none" 
-                 style={{ 
-                   gridTemplateRows: `repeat(${rows}, 1fr)`,
-                   gridTemplateColumns: `repeat(${cols}, 1fr)` 
-                 }}>
-              {Array.from({ length: rows * cols }).map((_, i) => {
-                const r = Math.floor(i / cols);
-                const c = i % cols;
-                return (
-                  <div key={i} className={cn(
-                    "relative", 
-                    showGuides ? "border-[2px] border-primary/40" : "border-0"
-                  )}>
-                    {showGuides && (
-                      <>
-                        <div className="absolute inset-0 border-black/5" 
-                             style={{ borderWidth: `${margins * baseScale * 10}px` }} />
-                             
-                        <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-md px-2 py-1 rounded-md border border-primary/20 shadow-sm z-20">
-                          <span className="text-[11px] font-black font-mono text-primary leading-none tracking-tighter">{r+1}-{c+1}</span>
+          {/* Image Layer */}
+          <div className="relative" style={{ width: `${dimensions.drawW}px`, height: `${dimensions.drawH}px` }}>
+            <img 
+              src={imageUrl} 
+              alt="Mural" 
+              className="w-full h-full object-cover block" 
+              draggable={false}
+            />
+          </div>
+          
+          {/* Technical Grid Overlay */}
+          <div className="absolute inset-0 grid pointer-events-none" 
+               style={{ 
+                 gridTemplateRows: `repeat(${rows}, 1fr)`,
+                 gridTemplateColumns: `repeat(${cols}, 1fr)` 
+               }}>
+            {Array.from({ length: rows * cols }).map((_, i) => {
+              const r = Math.floor(i / cols);
+              const c = i % cols;
+              return (
+                <div key={i} className={cn(
+                  "relative", 
+                  showGuides ? "border-[2px] border-primary/40" : "border-0"
+                )}>
+                  {showGuides && (
+                    <>
+                      <div className="absolute inset-0 border-black/5" 
+                           style={{ borderWidth: `${margins * 10}px` }} />
+                           
+                      <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-md px-2 py-1 rounded-md border border-primary/20 shadow-sm z-20">
+                        <span className="text-[11px] font-black font-mono text-primary leading-none tracking-tighter">{r+1}-{c+1}</span>
+                      </div>
+                      
+                      {c < cols - 1 && (
+                        <div className="absolute right-0 top-0 bottom-0 bg-accent/10 border-r-2 border-dashed border-accent/30" 
+                             style={{ width: `${overlap * 10}px` }}>
+                          <div className="absolute top-2 right-2 text-[8px] font-black text-accent uppercase tracking-wider bg-white/80 px-1 rounded shadow-sm">Solape</div>
                         </div>
-                        
-                        {c < cols - 1 && (
-                          <div className="absolute right-0 top-0 bottom-0 bg-accent/10 border-r-2 border-dashed border-accent/30" 
-                               style={{ width: `${overlap * baseScale * 10}px` }}>
-                            <div className="absolute top-2 right-2 text-[8px] font-black text-accent uppercase tracking-wider bg-white/80 px-1 rounded shadow-sm">Solape</div>
-                          </div>
-                        )}
-                        {r < rows - 1 && (
-                          <div className="absolute bottom-0 left-0 right-0 bg-accent/10 border-b-2 border-dashed border-accent/30" 
-                               style={{ height: `${overlap * baseScale * 10}px` }} />
-                        )}
-                      </>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+                      )}
+                      {r < rows - 1 && (
+                        <div className="absolute bottom-0 left-0 right-0 bg-accent/10 border-b-2 border-dashed border-accent/30" 
+                             style={{ height: `${overlap * 10}px` }} />
+                      )}
+                    </>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
