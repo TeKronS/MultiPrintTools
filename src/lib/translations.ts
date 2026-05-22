@@ -1,4 +1,3 @@
-
 export type Language = 'en' | 'es';
 
 export const translations = {
@@ -12,6 +11,8 @@ export const translations = {
     paperSize: 'Paper Size',
     overlap: 'Overlap (cm)',
     margins: 'Margins (cm)',
+    marginsVertical: 'Vertical Margins (cm)',
+    marginsHorizontal: 'Horizontal Margins (cm)',
     export: 'Export PDF',
     preview: 'Mockup Preview',
     editor: 'Canvas Editor',
@@ -41,6 +42,8 @@ export const translations = {
     paperSize: 'Tamaño de Papel',
     overlap: 'Solapamiento (cm)',
     margins: 'Márgenes (cm)',
+    marginsVertical: 'Márgenes Verticales (cm)',
+    marginsHorizontal: 'Márgenes Horizontales (cm)',
     export: 'Exportar PDF',
     preview: 'Vista Previa de Maqueta',
     editor: 'Editor de Lienzo',

@@ -49,7 +49,8 @@ export default function MuralisEditor() {
   const [rows, setRows] = useState(2);
   const [cols, setCols] = useState(2);
   const [overlap, setOverlap] = useState(1.5); 
-  const [margins, setMargins] = useState(1); 
+  const [marginV, setMarginV] = useState(1); 
+  const [marginH, setMarginH] = useState(1); 
   const [paperSize, setPaperSize] = useState('Letter');
   const [showGuides, setShowGuides] = useState(true);
   const [view, setView] = useState<'editor' | 'preview'>('editor');
@@ -65,8 +66,8 @@ export default function MuralisEditor() {
 
   const calculateAutoGrid = useCallback((imgW: number, imgH: number, targetRows?: number, targetCols?: number) => {
     const paper = PAPER_DIMENSIONS[paperSize];
-    const printableW = paper.width - (margins * 20);
-    const printableH = paper.height - (margins * 20);
+    const printableW = paper.width - (marginH * 20);
+    const printableH = paper.height - (marginV * 20);
     const overlapMm = overlap * 10;
     const imgAspect = imgW / imgH;
     const effectiveSheetW = printableW - overlapMm;
@@ -92,13 +93,13 @@ export default function MuralisEditor() {
       setCols(initialCols);
       setRows(initialRows);
     }
-  }, [paperSize, margins, overlap]);
+  }, [paperSize, marginV, marginH, overlap]);
 
   const physicalInfo = useMemo(() => {
     if (!image) return null;
     const paper = PAPER_DIMENSIONS[paperSize];
-    const printableW = paper.width - (margins * 20);
-    const printableH = paper.height - (margins * 20);
+    const printableW = paper.width - (marginH * 20);
+    const printableH = paper.height - (marginV * 20);
     const overlapMm = overlap * 10;
     const effectiveW = printableW - overlapMm;
     const effectiveH = printableH - overlapMm;
@@ -128,7 +129,7 @@ export default function MuralisEditor() {
       printableW: (printableW / 10).toFixed(1),
       printableH: (printableH / 10).toFixed(1)
     };
-  }, [image, rows, cols, overlap, margins, paperSize]);
+  }, [image, rows, cols, overlap, marginV, marginH, paperSize]);
 
   const handleImageUpload = (file: File, url: string) => {
     const img = new Image();
@@ -154,8 +155,8 @@ export default function MuralisEditor() {
         format: paper.format as any
       });
 
-      const printableW = paper.width - (margins * 20);
-      const printableH = paper.height - (margins * 20);
+      const printableW = paper.width - (marginH * 20);
+      const printableH = paper.height - (marginV * 20);
       const overlapMm = overlap * 10;
       const effectiveSheetW = printableW - overlapMm;
       const effectiveSheetH = printableH - overlapMm;
@@ -207,22 +208,22 @@ export default function MuralisEditor() {
             ctx.fillStyle = "white";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
-            pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', (margins * 10) + drawInSheetX_mm, (margins * 10) + drawInSheetY_mm, drawInSheetW_mm, drawInSheetH_mm);
+            pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', (marginH * 10) + drawInSheetX_mm, (marginV * 10) + drawInSheetY_mm, drawInSheetW_mm, drawInSheetH_mm);
           }
 
           pdf.setDrawColor(220);
           pdf.setLineDashPattern([2, 2], 0);
           if (c < cols - 1) {
-            const gx = (margins * 10) + (printableW - overlapMm);
-            pdf.line(gx, margins * 10, gx, margins * 10 + printableH);
+            const gx = (marginH * 10) + (printableW - overlapMm);
+            pdf.line(gx, marginV * 10, gx, marginV * 10 + printableH);
           }
           if (r < rows - 1) {
-            const gy = (margins * 10) + (printableH - overlapMm);
-            pdf.line(margins * 10, gy, margins * 10 + printableW, gy);
+            const gy = (marginV * 10) + (printableH - overlapMm);
+            pdf.line(marginH * 10, gy, marginH * 10 + printableW, gy);
           }
           pdf.setFontSize(7);
           pdf.setTextColor(180);
-          pdf.text(`MURALIS | PANEL ${r+1}-${c+1} | ${paperSize} | SOLAPE ${overlap}cm`, margins * 10, paper.height - (margins * 5));
+          pdf.text(`MURALIS | PANEL ${r+1}-${c+1} | ${paperSize} | SOLAPE ${overlap}cm`, marginH * 10, paper.height - (marginV * 5));
         }
       }
       pdf.save(`muralis-grid-${Date.now()}.pdf`);
@@ -276,7 +277,18 @@ export default function MuralisEditor() {
           ) : (
             <div className="w-full h-full p-4 md:p-8">
               {view === 'editor' ? (
-                <MuralCanvas imageUrl={image.url} rows={rows} cols={cols} overlap={overlap} margins={margins} paperSize={paperSize} showGuides={showGuides} imageWidth={image.width} imageHeight={image.height} />
+                <MuralCanvas 
+                  imageUrl={image.url} 
+                  rows={rows} 
+                  cols={cols} 
+                  overlap={overlap} 
+                  marginV={marginV} 
+                  marginH={marginH}
+                  paperSize={paperSize} 
+                  showGuides={showGuides} 
+                  imageWidth={image.width} 
+                  imageHeight={image.height} 
+                />
               ) : (
                 <MockupPreview imageUrl={image.url} rows={rows} cols={cols} />
               )}
@@ -344,10 +356,18 @@ export default function MuralisEditor() {
 
               <div className="space-y-4">
                 <div className="flex justify-between">
-                  <Label className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-2"><Maximize className="h-3 w-3" /> {t.margins}</Label>
-                  <span className="text-xs font-black text-primary">{margins} cm</span>
+                  <Label className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-2"><Maximize className="h-3 w-3" /> {t.marginsVertical}</Label>
+                  <span className="text-xs font-black text-primary">{marginV} cm</span>
                 </div>
-                <Slider value={[margins]} onValueChange={(v) => setMargins(v[0])} min={0} max={5} step={0.5} />
+                <Slider value={[marginV]} onValueChange={(v) => setMarginV(v[0])} min={0} max={5} step={0.5} />
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex justify-between">
+                  <Label className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-2"><Maximize className="h-3 w-3" /> {t.marginsHorizontal}</Label>
+                  <span className="text-xs font-black text-primary">{marginH} cm</span>
+                </div>
+                <Slider value={[marginH]} onValueChange={(v) => setMarginH(v[0])} min={0} max={5} step={0.5} />
               </div>
 
               <div className="flex items-center justify-between pt-2">

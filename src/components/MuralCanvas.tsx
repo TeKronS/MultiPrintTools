@@ -9,7 +9,8 @@ interface MuralCanvasProps {
   rows: number;
   cols: number;
   overlap: number;
-  margins: number;
+  marginV: number;
+  marginH: number;
   paperSize: string;
   showGuides: boolean;
   imageWidth?: number;
@@ -28,7 +29,8 @@ export function MuralCanvas({
   rows, 
   cols, 
   overlap, 
-  margins, 
+  marginV, 
+  marginH,
   paperSize, 
   showGuides,
   imageWidth = 1,
@@ -43,8 +45,8 @@ export function MuralCanvas({
   const paper = PAPER_DIMENSIONS[paperSize] || PAPER_DIMENSIONS['Letter'];
 
   const dimensions = useMemo(() => {
-    const printableW = paper.width - (margins * 20);
-    const printableH = paper.height - (margins * 20);
+    const printableW = paper.width - (marginH * 20);
+    const printableH = paper.height - (marginV * 20);
     const overlapMm = overlap * 10;
     
     const effectiveW = printableW - overlapMm;
@@ -73,9 +75,8 @@ export function MuralCanvas({
       printableW,
       printableH
     };
-  }, [paper, rows, cols, overlap, margins, imageWidth, imageHeight]);
+  }, [paper, rows, cols, overlap, marginV, marginH, imageWidth, imageHeight]);
 
-  // Centrado automático al cambiar dimensiones
   useEffect(() => {
     if (!containerRef.current || !imageUrl) return;
     
@@ -83,7 +84,7 @@ export function MuralCanvas({
       const container = containerRef.current;
       if (!container) return;
 
-      const padding = 60; 
+      const padding = 80; 
       const availableW = container.clientWidth - padding;
       const availableH = container.clientHeight - padding;
       
@@ -98,21 +99,20 @@ export function MuralCanvas({
       setOffset({ x: 0, y: 0 });
     };
 
-    const timer = setTimeout(updateZoomToFit, 50);
+    const timer = setTimeout(updateZoomToFit, 100);
     return () => clearTimeout(timer);
   }, [dimensions.totalW, dimensions.totalH, imageUrl, paperSize]);
 
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
+      if (!containerRef.current?.contains(e.target as Node)) return;
       e.preventDefault();
-      // Zoom directo con el scroll
       const delta = e.deltaY;
       setZoom(prev => Math.min(Math.max(0.05, prev - delta * 0.001), 10));
     };
     
-    const current = containerRef.current;
-    current?.addEventListener("wheel", handleWheel, { passive: false });
-    return () => current?.removeEventListener("wheel", handleWheel);
+    window.addEventListener("wheel", handleWheel, { passive: false });
+    return () => window.removeEventListener("wheel", handleWheel);
   }, []);
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -181,8 +181,14 @@ export function MuralCanvas({
                 )}>
                   {showGuides && (
                     <>
+                      {/* Visualización de márgenes asimétricos */}
                       <div className="absolute inset-0 border-black/5" 
-                           style={{ borderWidth: `${margins * 10}px` }} />
+                           style={{ 
+                             borderTopWidth: `${marginV * 10}px`,
+                             borderBottomWidth: `${marginV * 10}px`,
+                             borderLeftWidth: `${marginH * 10}px`,
+                             borderRightWidth: `${marginH * 10}px`
+                           }} />
                            
                       <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-md px-2 py-1 rounded-md border border-primary/20 shadow-sm z-20">
                         <span className="text-[11px] font-black font-mono text-primary leading-none tracking-tighter">{r+1}-{c+1}</span>
