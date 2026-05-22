@@ -85,19 +85,17 @@ export default function MuralisEditor() {
       const ctx = canvas.getContext('2d');
       if (!ctx) throw new Error("Could not initialize canvas");
 
-      // Dimensions of the printable area
-      const printW = paper.width - (margins * 20);
-      const printH = paper.height - (margins * 20);
+      // Printable area taking margins into account
+      const effectivePaperW = paper.width - (margins * 20);
+      const effectivePaperH = paper.height - (margins * 20);
 
-      // Core slice size on the original image
       const sw = img.width / cols;
       const sh = img.height / rows;
 
-      // Ratio of pixels to mm in the final print (per panel)
-      const pxPerMmW = sw / printW;
-      const pxPerMmH = sh / printH;
+      // Pixel to mm conversion ratio
+      const pxPerMmW = sw / effectivePaperW;
+      const pxPerMmH = sh / effectivePaperH;
 
-      // Overlap in pixels
       const overlapPxW = overlap * 10 * pxPerMmW;
       const overlapPxH = overlap * 10 * pxPerMmH;
 
@@ -105,15 +103,13 @@ export default function MuralisEditor() {
         for (let c = 0; c < cols; c++) {
           if (r > 0 || c > 0) pdf.addPage();
 
-          // Source coordinates including bleed for overlap
+          // Calculations with overlap
           const sx = Math.max(0, (c * sw) - (c > 0 ? overlapPxW : 0));
           const sy = Math.max(0, (r * sh) - (r > 0 ? overlapPxH : 0));
           
-          // Source dimensions including extra area for overlap
           let curSw = sw + (c > 0 ? overlapPxW : 0) + (c < cols - 1 ? overlapPxW : 0);
           let curSh = sh + (r > 0 ? overlapPxH : 0) + (r < rows - 1 ? overlapPxH : 0);
 
-          // Final constraints
           const finalSw = Math.min(curSw, img.width - sx);
           const finalSh = Math.min(curSh, img.height - sy);
 
@@ -123,40 +119,40 @@ export default function MuralisEditor() {
 
           const sliceData = canvas.toDataURL('image/jpeg', 0.95);
           
-          // Draw image centered in the printable area
-          pdf.addImage(sliceData, 'JPEG', margins * 10, margins * 10, printW, printH);
+          // Center content in effective area
+          pdf.addImage(sliceData, 'JPEG', margins * 10, margins * 10, effectivePaperW, effectivePaperH);
 
-          // Draw Cut/Overlap Guides
-          pdf.setDrawColor(200, 200, 200);
-          pdf.setLineDashPattern([2, 2], 0);
+          // Draw overlap markers
+          pdf.setDrawColor(220, 220, 220);
+          pdf.setLineDashPattern([2, 1], 0);
           
-          // Vertical guide (left side if not first column)
-          if (c > 0) {
-            pdf.line(margins * 10 + (overlap * 10), margins * 10, margins * 10 + (overlap * 10), margins * 10 + printH);
+          if (c < cols - 1) {
+             const overlapLineX = (margins * 10) + effectivePaperW - (overlap * 10);
+             pdf.line(overlapLineX, margins * 10, overlapLineX, margins * 10 + effectivePaperH);
           }
-          // Horizontal guide (top side if not first row)
-          if (r > 0) {
-            pdf.line(margins * 10, margins * 10 + (overlap * 10), margins * 10 + printW, margins * 10 + (overlap * 10));
+          if (r < rows - 1) {
+            const overlapLineY = (margins * 10) + effectivePaperH - (overlap * 10);
+            pdf.line(margins * 10, overlapLineY, margins * 10 + effectivePaperW, overlapLineY);
           }
 
-          // Meta info
-          pdf.setFontSize(8);
-          pdf.setTextColor(150);
-          pdf.text(`PANEL: ${r + 1}-${c + 1} | SOLAPE: ${overlap}cm | MURALIS.`, 10, paper.height - 5);
+          // Metadata
+          pdf.setFontSize(7);
+          pdf.setTextColor(180);
+          pdf.text(`PANEL ${r + 1}-${c + 1} | SOLAPE: ${overlap}cm | MARGEN: ${margins}cm | MURALIS`, 5, paper.height - 5);
         }
       }
 
       pdf.save(`muralis-${Date.now()}.pdf`);
       toast({
-        title: lang === 'es' ? "¡Éxito!" : "Success!",
-        description: lang === 'es' ? "PDF generado con solapamiento corregido." : "PDF generated with corrected overlap.",
+        title: lang === 'es' ? "PDF Generado" : "PDF Generated",
+        description: lang === 'es' ? "Documento listo para imprimir localmente." : "Document ready for local printing.",
       });
     } catch (error) {
       console.error(error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: lang === 'es' ? "Error en la generación local." : "Local generation error.",
+        description: lang === 'es' ? "Error en el procesamiento local." : "Local processing error.",
       });
     } finally {
       setIsExporting(false);
@@ -164,25 +160,25 @@ export default function MuralisEditor() {
   };
 
   return (
-    <div className="flex flex-col h-screen w-full font-body bg-[#fafafa] text-foreground">
+    <div className="flex flex-col h-screen w-full font-body bg-[#fcfcfc] text-foreground">
       {/* Top Navbar */}
-      <header className="h-14 border-b border-border bg-white/80 backdrop-blur-md flex items-center justify-between px-6 z-50 shadow-sm">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center shadow-lg shadow-primary/20">
-              <Layers className="text-white h-5 w-5" />
+      <header className="h-16 border-b border-border bg-white flex items-center justify-between px-6 z-50 shadow-sm">
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/10">
+              <Layers className="text-white h-6 w-6" />
             </div>
-            <h1 className="text-xl font-headline font-black tracking-tighter text-primary">
+            <h1 className="text-2xl font-headline font-black tracking-tighter text-primary">
               MURALIS<span className="text-accent">.</span>
             </h1>
           </div>
-          <Separator orientation="vertical" className="h-6" />
-          <div className="flex bg-muted/50 p-1 rounded-lg">
+          <Separator orientation="vertical" className="h-8" />
+          <div className="flex bg-muted/50 p-1 rounded-xl">
             <Button 
               variant={view === 'editor' ? 'secondary' : 'ghost'} 
               size="sm" 
               onClick={() => setView('editor')}
-              className="gap-2 font-semibold h-8"
+              className="gap-2 font-bold h-9 rounded-lg"
             >
               <Layout className="h-4 w-4" /> {t.editor}
             </Button>
@@ -190,7 +186,7 @@ export default function MuralisEditor() {
               variant={view === 'preview' ? 'secondary' : 'ghost'} 
               size="sm" 
               onClick={() => setView('preview')}
-              className="gap-2 font-semibold h-8"
+              className="gap-2 font-bold h-9 rounded-lg"
             >
               <Eye className="h-4 w-4" /> {t.preview}
             </Button>
@@ -201,12 +197,12 @@ export default function MuralisEditor() {
           <LanguageSelector language={lang} setLanguage={setLang} />
           <Button 
             variant="default" 
-            className="bg-primary hover:bg-primary/90 text-white font-bold gap-2 px-6 shadow-xl shadow-primary/20 transition-all hover:scale-105" 
+            className="bg-primary hover:bg-primary/90 text-white font-black gap-2 h-11 px-8 shadow-xl shadow-primary/10 transition-all active:scale-95" 
             onClick={handleExport}
             disabled={!image || isExporting}
           >
-            {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
-            {isExporting ? (lang === 'es' ? "Generando..." : "Generating...") : t.export}
+            {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-5 w-5" />}
+            {isExporting ? (lang === 'es' ? "GENERANDO..." : "GENERATING...") : t.export}
           </Button>
         </div>
       </header>
@@ -214,48 +210,50 @@ export default function MuralisEditor() {
       {/* Main Layout */}
       <main className="flex-1 flex overflow-hidden">
         {/* Central Canvas Area */}
-        <section className="flex-1 relative bg-[#f0f0f0] overflow-hidden flex items-center justify-center">
+        <section className="flex-1 relative bg-[#f8f9fa] overflow-hidden flex items-center justify-center">
           {!image ? (
-            <div className="max-w-md w-full p-6 animate-fade-in">
+            <div className="max-w-lg w-full p-8 animate-fade-in">
               <ImageUploader onImageUpload={handleImageUpload} language={lang} t={t} />
             </div>
           ) : (
-            <>
+            <div className="w-full h-full p-4 md:p-8">
               {view === 'editor' ? (
                 <MuralCanvas 
                   imageUrl={image.url} 
                   rows={rows} 
                   cols={cols} 
                   overlap={overlap} 
+                  margins={margins}
+                  paperSize={paperSize}
                   showGuides={showGuides} 
                 />
               ) : (
-                <div className="w-full h-full p-12 animate-scale-in">
+                <div className="w-full h-full animate-scale-in">
                   <MockupPreview imageUrl={image.url} rows={rows} cols={cols} />
                 </div>
               )}
-            </>
+            </div>
           )}
         </section>
 
         {/* Right Adjustment Panel */}
-        <aside className="w-80 border-l border-border bg-white overflow-y-auto custom-scrollbar shadow-2xl z-40">
-          <div className="p-6 space-y-8">
+        <aside className="w-85 border-l border-border bg-white overflow-y-auto custom-scrollbar shadow-xl z-40">
+          <div className="p-8 space-y-10">
             <div className="flex items-center justify-between">
-              <h2 className="text-xs font-headline font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+              <h2 className="text-[11px] font-headline font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
                 <Settings2 className="h-4 w-4 text-primary" /> {t.gridSettings}
               </h2>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => setImage(null)}>
+              <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive" onClick={() => setImage(null)}>
                 <Undo2 className="h-4 w-4" />
               </Button>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-8">
               {/* Grid Dimensions */}
-              <div className="space-y-4">
+              <div className="space-y-5">
                 <div className="flex justify-between items-end">
-                  <Label className="text-xs font-bold uppercase text-muted-foreground">{t.rows}</Label>
-                  <span className="text-xs font-mono text-primary font-bold">{rows}</span>
+                  <Label className="text-[11px] font-black uppercase text-muted-foreground">{t.rows}</Label>
+                  <span className="text-sm font-mono text-primary font-black bg-primary/5 px-2 py-0.5 rounded">{rows}</span>
                 </div>
                 <Slider 
                   value={[rows]} 
@@ -263,13 +261,14 @@ export default function MuralisEditor() {
                   min={1} 
                   max={15} 
                   step={1} 
+                  className="py-2"
                 />
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-5">
                 <div className="flex justify-between items-end">
-                  <Label className="text-xs font-bold uppercase text-muted-foreground">{t.columns}</Label>
-                  <span className="text-xs font-mono text-primary font-bold">{cols}</span>
+                  <Label className="text-[11px] font-black uppercase text-muted-foreground">{t.columns}</Label>
+                  <span className="text-sm font-mono text-primary font-black bg-primary/5 px-2 py-0.5 rounded">{cols}</span>
                 </div>
                 <Slider 
                   value={[cols]} 
@@ -277,36 +276,37 @@ export default function MuralisEditor() {
                   min={1} 
                   max={15} 
                   step={1} 
+                  className="py-2"
                 />
               </div>
 
-              <Separator className="bg-border/50" />
+              <Separator className="bg-border/60" />
 
               {/* Physical Adjustments */}
-              <div className="space-y-4">
+              <div className="space-y-5">
                 <div className="flex justify-between items-center">
-                  <Label className="text-xs font-bold uppercase text-muted-foreground">{t.paperSize}</Label>
-                  <Info className="h-3 w-3 text-muted-foreground" />
+                  <Label className="text-[11px] font-black uppercase text-muted-foreground">{t.paperSize}</Label>
+                  <Info className="h-3 w-3 text-muted-foreground/60" />
                 </div>
                 <Select value={paperSize} onValueChange={setPaperSize}>
-                  <SelectTrigger className="bg-white border-border h-9 text-xs">
+                  <SelectTrigger className="bg-white border-border h-11 text-xs font-bold rounded-xl shadow-sm">
                     <SelectValue placeholder="Seleccionar" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="A4">A4 (210 x 297 mm)</SelectItem>
-                    <SelectItem value="A3">A3 (297 x 420 mm)</SelectItem>
-                    <SelectItem value="Letter">Carta (8.5 x 11 in)</SelectItem>
-                    <SelectItem value="Legal">Oficio (8.5 x 14 in)</SelectItem>
+                    <SelectItem value="A4" className="font-bold">A4 (210 x 297 mm)</SelectItem>
+                    <SelectItem value="A3" className="font-bold">A3 (297 x 420 mm)</SelectItem>
+                    <SelectItem value="Letter" className="font-bold">Carta (8.5 x 11 in)</SelectItem>
+                    <SelectItem value="Legal" className="font-bold">Oficio (8.5 x 14 in)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-5">
                 <div className="flex justify-between items-end">
-                  <Label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
-                    <Scissors className="h-3 w-3" /> {t.overlap}
+                  <Label className="text-[11px] font-black uppercase text-muted-foreground flex items-center gap-2">
+                    <Scissors className="h-4 w-4 text-accent" /> {t.overlap}
                   </Label>
-                  <span className="text-xs font-mono text-accent font-bold">{overlap} cm</span>
+                  <span className="text-sm font-mono text-accent font-black bg-accent/5 px-2 py-0.5 rounded">{overlap} cm</span>
                 </div>
                 <Slider 
                   value={[overlap]} 
@@ -314,18 +314,16 @@ export default function MuralisEditor() {
                   min={0} 
                   max={5} 
                   step={0.1} 
+                  className="py-2"
                 />
-                <p className="text-[10px] text-muted-foreground italic">
-                  * Área extra para unir los paneles.
-                </p>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-5">
                 <div className="flex justify-between items-end">
-                  <Label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
-                    <Maximize className="h-3 w-3" /> {t.margins}
+                  <Label className="text-[11px] font-black uppercase text-muted-foreground flex items-center gap-2">
+                    <Maximize className="h-4 w-4 text-primary" /> {t.margins}
                   </Label>
-                  <span className="text-xs font-mono text-primary font-bold">{margins} cm</span>
+                  <span className="text-sm font-mono text-primary font-black bg-primary/5 px-2 py-0.5 rounded">{margins} cm</span>
                 </div>
                 <Slider 
                   value={[margins]} 
@@ -333,12 +331,13 @@ export default function MuralisEditor() {
                   min={0} 
                   max={3} 
                   step={0.5} 
+                  className="py-2"
                 />
               </div>
 
-              <div className="pt-2 space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-bold uppercase text-muted-foreground cursor-pointer" htmlFor="guides-switch">
+              <div className="pt-4 space-y-5">
+                <div className="flex items-center justify-between bg-muted/30 p-4 rounded-xl border border-border/50">
+                  <Label className="text-[11px] font-black uppercase text-muted-foreground cursor-pointer" htmlFor="guides-switch">
                     {t.guides}
                   </Label>
                   <Switch 
@@ -351,21 +350,21 @@ export default function MuralisEditor() {
             </div>
 
             {/* Panel Stats Card */}
-            <div className="p-4 bg-primary/5 border border-primary/10 rounded-xl space-y-3">
-              <h3 className="text-[10px] font-headline font-bold text-primary uppercase tracking-widest">{t.totalPanels}</h3>
+            <div className="p-6 bg-primary/5 border border-primary/10 rounded-2xl space-y-4">
+              <h3 className="text-[10px] font-headline font-black text-primary uppercase tracking-[0.2em]">{t.totalPanels}</h3>
               <div className="flex items-baseline gap-2">
-                <span className="text-5xl font-headline font-black text-primary">{rows * cols}</span>
-                <span className="text-xs text-muted-foreground font-mono">hojas</span>
+                <span className="text-6xl font-headline font-black text-primary leading-none">{rows * cols}</span>
+                <span className="text-xs text-muted-foreground font-black uppercase">Hojas</span>
               </div>
-              <p className="text-[10px] leading-relaxed text-muted-foreground">
-                {lang === 'es' ? 'Cada panel incluye un solapamiento de ' : 'Each panel includes an overlap of '} 
-                <span className="text-primary font-bold">{overlap}cm</span>
+              <p className="text-[10px] leading-relaxed text-muted-foreground font-medium">
+                {lang === 'es' ? 'Cada hoja física representará un panel con ' : 'Each physical sheet represents a panel with '} 
+                <span className="text-primary font-bold">{overlap}cm de unión.</span>
               </p>
             </div>
           </div>
 
-          <div className="p-6 mt-auto">
-             <Button variant="outline" className="w-full border-primary/20 text-primary hover:bg-primary hover:text-white font-bold uppercase text-xs tracking-widest py-6 rounded-xl transition-all" onClick={() => setImage(null)}>
+          <div className="p-8 mt-auto">
+             <Button variant="outline" className="w-full border-primary/20 text-primary hover:bg-primary hover:text-white font-black uppercase text-xs tracking-widest h-14 rounded-2xl transition-all shadow-sm" onClick={() => setImage(null)}>
               {t.reset}
             </Button>
           </div>
@@ -373,14 +372,14 @@ export default function MuralisEditor() {
       </main>
 
       {/* Bottom Status Bar */}
-      <footer className="h-8 border-t border-border bg-white px-4 flex items-center justify-between text-[10px] text-muted-foreground font-mono uppercase tracking-widest z-50">
-        <div className="flex gap-4">
-          <span className="flex items-center gap-1 font-semibold text-primary"><Settings className="h-3 w-3" /> MURALIS ENGINE V3.0</span>
-          <span className="flex items-center gap-1 opacity-50"><Grid3X3 className="h-3 w-3" /> Modo Local / Privado</span>
+      <footer className="h-10 border-t border-border bg-white px-6 flex items-center justify-between text-[10px] text-muted-foreground font-mono uppercase tracking-[0.1em] z-50">
+        <div className="flex gap-6">
+          <span className="flex items-center gap-2 font-black text-primary"><Settings className="h-3 w-3" /> MURALIS CORE V4.2</span>
+          <span className="flex items-center gap-2 opacity-60"><Grid3X3 className="h-3 w-3" /> Local Processing Engine</span>
         </div>
-        <div className="flex gap-4">
-          <span>{paperSize} @ 300 DPI</span>
-          <span className="text-primary font-bold">PROCESADO LOCAL: OK</span>
+        <div className="flex gap-6">
+          <span className="font-black text-accent">{paperSize} FORMAT</span>
+          <span className="text-primary font-black">SYSTEM STATUS: NOMINAL</span>
         </div>
       </footer>
     </div>
