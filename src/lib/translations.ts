@@ -30,7 +30,26 @@ export const translations = {
     finalMeasures: 'Final Dimensions',
     blankSpace: 'Blank Space',
     totalArea: 'Total Area',
-    panelArea: 'Print Area/Panel'
+    panelArea: 'Print Area/Panel',
+    // Home translations
+    heroBadge: 'Professional Reprography Suite',
+    heroTitlePrefix: 'Digital tools for ',
+    heroTitleSuffix: 'printing experts.',
+    heroDesc: 'Optimize your workflow with our collection of utilities specifically designed for copy centers and graphic arts.',
+    support: 'Support',
+    footerRights: '© 2024 ReproHub - Tools for the real world.',
+    newTools: 'New tools every month',
+    openApp: 'Open Application',
+    muralisTitle: 'Muralis',
+    muralisDesc: 'Grid generator for giant murals. Split any image into printable sheets with technical overlaps.',
+    pdfMasterTitle: 'PDF Master',
+    pdfMasterDesc: 'Merge, split and optimize PDF files for mass printing. Includes automatic numbering.',
+    resizerTitle: 'Resizer Pro',
+    resizerDesc: 'Resize images to specific DPI for large formats without losing visual quality.',
+    costoTitle: 'Costo Print',
+    costoDesc: 'Advanced quote calculator based on ink coverage, paper type and machine time.',
+    comingSoon: 'Coming Soon',
+    popular: 'Popular'
   },
   es: {
     title: 'MURALIS',
@@ -61,6 +80,25 @@ export const translations = {
     finalMeasures: 'Medidas Finales',
     blankSpace: 'Espacio en Blanco',
     totalArea: 'Área Total',
-    panelArea: 'Área Impresión/Panel'
+    panelArea: 'Área Impresión/Panel',
+    // Home translations
+    heroBadge: 'Suite Profesional de Reprografía',
+    heroTitlePrefix: 'Herramientas digitales para ',
+    heroTitleSuffix: 'expertos en impresión.',
+    heroDesc: 'Optimiza tu flujo de trabajo con nuestra colección de utilidades diseñadas específicamente para centros de copiado y artes gráficas.',
+    support: 'Soporte',
+    footerRights: '© 2024 ReproHub - Herramientas para el mundo real.',
+    newTools: 'Nuevas herramientas cada mes',
+    openApp: 'Abrir Aplicación',
+    muralisTitle: 'Muralis',
+    muralisDesc: 'Generador de cuadrículas para murales gigantes. Divide cualquier imagen en hojas imprimibles con solapes técnicos.',
+    pdfMasterTitle: 'PDF Master',
+    pdfMasterDesc: 'Combina, separa y optimiza archivos PDF para impresión masiva. Incluye numeración automática.',
+    resizerTitle: 'Resizer Pro',
+    resizerDesc: 'Cambia el tamaño de imágenes a DPI específico para gigantografías sin pérdida de calidad visual.',
+    costoTitle: 'Costo Print',
+    costoDesc: 'Calculadora avanzada de presupuestos basada en cobertura de tinta, tipo de papel y tiempo de máquina.',
+    comingSoon: 'Próximamente',
+    popular: 'Popular'
   }
 };

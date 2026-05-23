@@ -1,4 +1,6 @@
+"use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { 
   Layers, 
@@ -9,45 +11,50 @@ import {
   ArrowRight,
   Sparkles
 } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-
-const tools = [
-  {
-    title: "Muralis",
-    description: "Generador de cuadrículas para murales gigantes. Divide cualquier imagen en hojas imprimibles con solapes técnicos.",
-    icon: <Layers className="h-8 w-8 text-primary" />,
-    href: "/muralis",
-    status: "active",
-    badge: "Popular"
-  },
-  {
-    title: "PDF Master",
-    description: "Combina, separa y optimiza archivos PDF para impresión masiva. Incluye numeración automática.",
-    icon: <FileStack className="h-8 w-8 text-blue-500" />,
-    href: "#",
-    status: "coming-soon",
-    badge: "Próximamente"
-  },
-  {
-    title: "Resizer Pro",
-    description: "Cambia el tamaño de imágenes a DPI específico para gigantografías sin pérdida de calidad visual.",
-    icon: <ImageIcon className="h-8 w-8 text-orange-500" />,
-    href: "#",
-    status: "coming-soon",
-    badge: "Próximamente"
-  },
-  {
-    title: "Costo Print",
-    description: "Calculadora avanzada de presupuestos basada en cobertura de tinta, tipo de papel y tiempo de máquina.",
-    icon: <Calculator className="h-8 w-8 text-emerald-500" />,
-    href: "#",
-    status: "coming-soon",
-    badge: "Próximamente"
-  }
-];
+import { LanguageSelector } from "@/components/LanguageSelector";
+import { Language, translations } from "@/lib/translations";
 
 export default function Home() {
+  const [lang, setLang] = useState<Language>('es');
+  const t = translations[lang];
+
+  const tools = [
+    {
+      title: t.muralisTitle,
+      description: t.muralisDesc,
+      icon: <Layers className="h-8 w-8 text-primary" />,
+      href: "/muralis",
+      status: "active",
+      badge: t.popular
+    },
+    {
+      title: t.pdfMasterTitle,
+      description: t.pdfMasterDesc,
+      icon: <FileStack className="h-8 w-8 text-blue-500" />,
+      href: "#",
+      status: "coming-soon",
+      badge: t.comingSoon
+    },
+    {
+      title: t.resizerTitle,
+      description: t.resizerDesc,
+      icon: <ImageIcon className="h-8 w-8 text-orange-500" />,
+      href: "#",
+      status: "coming-soon",
+      badge: t.comingSoon
+    },
+    {
+      title: t.costoTitle,
+      description: t.costoDesc,
+      icon: <Calculator className="h-8 w-8 text-emerald-500" />,
+      href: "#",
+      status: "coming-soon",
+      badge: t.comingSoon
+    }
+  ];
+
   return (
     <div className="min-h-screen bg-white font-body">
       {/* Navbar Minimalista */}
@@ -56,12 +63,15 @@ export default function Home() {
           <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
             <Printer className="text-white h-6 w-6" />
           </div>
-          <span className="text-2xl font-headline font-black tracking-tighter text-foreground">
+          <span className="text-2xl font-headline font-black tracking-tighter text-foreground uppercase">
             REPRO<span className="text-primary">HUB</span>
           </span>
         </div>
         <div className="flex items-center gap-6">
-          <Link href="#" className="text-sm font-bold text-muted-foreground hover:text-primary transition-colors">Soporte</Link>
+          <LanguageSelector language={lang} setLanguage={setLang} />
+          <Link href="#" className="text-sm font-bold text-muted-foreground hover:text-primary transition-colors">
+            {t.support}
+          </Link>
         </div>
       </header>
 
@@ -69,13 +79,13 @@ export default function Home() {
         {/* Hero Section */}
         <div className="max-w-3xl mb-16 space-y-4">
           <Badge variant="secondary" className="px-3 py-1 text-xs font-black uppercase tracking-widest bg-primary/10 text-primary border-none">
-            Suite Profesional de Reprografía
+            {t.heroBadge}
           </Badge>
           <h1 className="text-5xl md:text-6xl font-headline font-black tracking-tighter leading-[0.9] text-foreground">
-            Herramientas digitales para <span className="text-primary">expertos en impresión.</span>
+            {t.heroTitlePrefix}<span className="text-primary">{t.heroTitleSuffix}</span>
           </h1>
           <p className="text-xl text-muted-foreground font-medium leading-relaxed max-w-2xl">
-            Optimiza tu flujo de trabajo con nuestra colección de utilidades diseñadas específicamente para centros de copiado y artes gráficas.
+            {t.heroDesc}
           </p>
         </div>
 
@@ -113,7 +123,7 @@ export default function Home() {
                 </CardHeader>
                 {tool.status === 'active' && (
                   <div className="absolute bottom-4 right-8 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span className="text-xs font-black text-primary uppercase tracking-widest">Abrir Aplicación</span>
+                    <span className="text-xs font-black text-primary uppercase tracking-widest">{t.openApp}</span>
                   </div>
                 )}
               </Card>
@@ -123,10 +133,10 @@ export default function Home() {
 
         {/* Footer info */}
         <div className="mt-24 pt-8 border-t border-border flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-muted-foreground font-medium">© 2024 ReproHub - Herramientas para el mundo real.</p>
+          <p className="text-sm text-muted-foreground font-medium">{t.footerRights}</p>
           <div className="flex items-center gap-2 text-primary">
             <Sparkles className="h-4 w-4" />
-            <span className="text-sm font-black uppercase tracking-widest">Nuevas herramientas cada mes</span>
+            <span className="text-sm font-black uppercase tracking-widest">{t.newTools}</span>
           </div>
         </div>
       </main>
