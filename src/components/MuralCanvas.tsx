@@ -21,10 +21,10 @@ const PAPER_DIMENSIONS: Record<string, { width: number; height: number }> = {
   'Carta': { width: 215.9, height: 279.4 },
   'A4': { width: 210, height: 297 },
   'A3': { width: 297, height: 420 },
-  'Oficio (Legal)': { width: 215.9, height: 355.6 },
-  'Folio': { width: 215.9, height: 330.2 },
-  'Oficio': { width: 216, height: 340 },
-  'Extra Oficio': { width: 216, height: 380 }
+  'Oficio (Legal 35.5cm)': { width: 215.9, height: 355.6 },
+  'Folio (33cm)': { width: 215.9, height: 330.2 },
+  'Oficio (34cm)': { width: 216, height: 340 },
+  'Extra Oficio (38cm)': { width: 216, height: 380 }
 };
 
 export function MuralCanvas({ 
