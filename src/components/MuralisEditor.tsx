@@ -174,15 +174,12 @@ export default function MuralisEditor() {
       let finalW_mm, finalH_mm;
       let offsetX_mm = 0, offsetY_mm = 0;
 
-      if (imgAspect > gridAspect) {
-        finalW_mm = totalGridW;
-        finalH_mm = totalGridW / imgAspect;
-        offsetY_mm = (totalGridH - finalH_mm) / 2;
-      } else {
-        finalH_mm = totalGridH;
-        finalW_mm = totalGridH * imgAspect;
-        offsetX_mm = (totalGridW - finalW_mm) / 2;
-      }
+      // Usar un factor de escala uniforme para evitar estiramientos
+      const scale = Math.min(totalGridW / img.width, totalGridH / img.height);
+      finalW_mm = img.width * scale;
+      finalH_mm = img.height * scale;
+      offsetX_mm = (totalGridW - finalW_mm) / 2;
+      offsetY_mm = (totalGridH - finalH_mm) / 2;
 
       const pxPerMm = img.width / finalW_mm;
       const canvas = document.createElement('canvas');
@@ -192,19 +189,20 @@ export default function MuralisEditor() {
       for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
           if (r > 0 || c > 0) pdf.addPage();
+          
           const sheetLeft_mm = c * effectiveSheetW;
           const sheetTop_mm = r * effectiveSheetH;
-          const imgLeft_mm = offsetX_mm;
-          const imgTop_mm = offsetY_mm;
-          const drawInSheetX_mm = Math.max(0, imgLeft_mm - sheetLeft_mm);
-          const drawInSheetY_mm = Math.max(0, imgTop_mm - sheetTop_mm);
-          const drawInSheetW_mm = Math.min(printableW - drawInSheetX_mm, finalW_mm - Math.max(0, sheetLeft_mm - imgLeft_mm));
-          const drawInSheetH_mm = Math.min(printableH - drawInSheetY_mm, finalH_mm - Math.max(0, sheetTop_mm - imgTop_mm));
+          
+          const drawInSheetX_mm = Math.max(0, offsetX_mm - sheetLeft_mm);
+          const drawInSheetY_mm = Math.max(0, offsetY_mm - sheetTop_mm);
+          
+          const visibleW_mm = Math.min(effectiveSheetW + overlapMm - drawInSheetX_mm, finalW_mm - Math.max(0, sheetLeft_mm - offsetX_mm));
+          const visibleH_mm = Math.min(effectiveSheetH + overlapMm - drawInSheetY_mm, finalH_mm - Math.max(0, sheetTop_mm - offsetY_mm));
 
-          const sx = Math.max(0, (sheetLeft_mm - imgLeft_mm) * pxPerMm);
-          const sy = Math.max(0, (sheetTop_mm - imgTop_mm) * pxPerMm);
-          const sw = drawInSheetW_mm * pxPerMm;
-          const sh = drawInSheetH_mm * pxPerMm;
+          const sx = Math.max(0, (sheetLeft_mm - offsetX_mm) * pxPerMm);
+          const sy = Math.max(0, (sheetTop_mm - offsetY_mm) * pxPerMm);
+          const sw = visibleW_mm * pxPerMm;
+          const sh = visibleH_mm * pxPerMm;
 
           if (sw > 0 && sh > 0) {
             canvas.width = Math.max(1, sw);
@@ -212,7 +210,7 @@ export default function MuralisEditor() {
             ctx.fillStyle = "white";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
-            pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', (marginH * 10) + drawInSheetX_mm, (marginV * 10) + drawInSheetY_mm, drawInSheetW_mm, drawInSheetH_mm);
+            pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', (marginH * 10) + drawInSheetX_mm, (marginV * 10) + drawInSheetY_mm, visibleW_mm, visibleH_mm);
           }
 
           pdf.setDrawColor(220);
@@ -375,7 +373,7 @@ export default function MuralisEditor() {
 
               <div className="space-y-4">
                 <Label className="text-[10px] font-black uppercase text-muted-foreground">{t.paperSize}</Label>
-                <Select value={paperSize} onValueChange={(v) => { setPaperSize(v); if(image) calculateAutoGrid(image.width, image.height); }}>
+                <Select value={paperSize} onValueChange={(v) => setPaperSize(v)}>
                   <SelectTrigger className="h-10 rounded-lg text-xs font-bold"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {Object.keys(PAPER_DIMENSIONS).map(key => <SelectItem key={key} value={key} className="text-xs font-bold">{key}</SelectItem>)}
