@@ -48,7 +48,7 @@ const PAPER_DIMENSIONS: Record<string, { width: number; height: number; format: 
   'Carta': { width: 215.9, height: 279.4, format: 'letter' },
   'A4': { width: 210, height: 297, format: 'a4' },
   'A3': { width: 297, height: 420, format: 'a3' },
-  'Oficio (Legal 35.5cm)': { width: 215.9, height: 355.6, format: 'legal' },
+  'Oficio (Legal 35.5cm)': { width: 215.9, height: 35.6, format: 'legal' },
   'Folio (33cm)': { width: 215.9, height: 330.2, format: 'folio' },
   'Oficio (34cm)': { width: 216, height: 340, format: 'oficio' },
   'Extra Oficio (38cm)': { width: 216, height: 380, format: 'extra-oficio' }
@@ -226,7 +226,7 @@ export default function MuralisEditor() {
           }
           pdf.setFontSize(7);
           pdf.setTextColor(180);
-          pdf.text(`MURALIS | PANEL ${r+1}-${c+1} | ${paperSize} | SOLAPE ${overlap}cm`, marginH * 10, paper.height - (marginV * 5));
+          pdf.text(`REPROHUB | MURALIS | PANEL ${r+1}-${c+1} | ${paperSize}`, marginH * 10, paper.height - (marginV * 5));
         }
       }
       pdf.save(`muralis-grid-${Date.now()}.pdf`);
@@ -467,11 +467,11 @@ export default function MuralisEditor() {
                   <Settings2 className="h-6 w-6" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-[85%] sm:w-[400px] p-0 bg-white/40 backdrop-blur-2xl border-l-white/20">
+              <SheetContent side="right" className="w-[85%] sm:w-[400px] p-0 bg-white/5 backdrop-blur-3xl border-l-white/10">
                 <div className="h-full overflow-y-auto pt-10 scrollbar-hide">
-                  <div className="px-6 pb-4 md:hidden flex bg-primary/10 py-4 mb-4 items-center justify-between border-b border-white/20">
+                  <div className="px-6 pb-4 md:hidden flex bg-primary/10 py-4 mb-4 items-center justify-between border-b border-white/5">
                     <span className="text-[10px] font-black uppercase tracking-widest text-primary">Modo de Vista</span>
-                    <div className="flex bg-white/50 p-1 rounded-xl shadow-inner border border-white/30">
+                    <div className="flex bg-white/30 p-1 rounded-xl shadow-inner border border-white/10">
                       <Button 
                         variant={view === 'editor' ? 'secondary' : 'ghost'} 
                         size="sm" 
