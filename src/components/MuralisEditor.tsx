@@ -363,8 +363,8 @@ export default function MuralisEditor() {
   if (!mounted) return null;
 
   return (
-    <div className="flex flex-col h-screen w-full font-body bg-white text-foreground">
-      <header className="h-14 md:h-16 border-b border-border bg-white flex items-center justify-between px-4 md:px-6 z-50 shadow-sm">
+    <div className="flex flex-col h-svh w-full font-body bg-white text-foreground overflow-hidden">
+      <header className="h-14 md:h-16 border-b border-border bg-white flex items-center justify-between px-4 md:px-6 z-50 shadow-sm shrink-0">
         <div className="flex items-center gap-2 md:gap-6">
           <Link href="/">
             <Button variant="ghost" size="sm" className="gap-2 font-bold text-muted-foreground hover:text-primary px-2">
@@ -503,54 +503,54 @@ export default function MuralisEditor() {
         <aside className="hidden lg:block w-80 border-l border-border bg-white overflow-y-auto shadow-xl z-10">
           <SettingsContent />
         </aside>
-
-        {/* Botón flotante y panel totalmente transparente para Móvil/Tablet */}
-        {image && (
-          <div className="lg:hidden absolute bottom-6 right-6 z-50">
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button size="icon" className="h-14 w-14 rounded-full shadow-2xl bg-primary text-white hover:bg-primary/90 transition-transform active:scale-95 border-4 border-white">
-                  <Settings2 className="h-6 w-6" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-[85%] sm:w-[400px] p-0 bg-transparent backdrop-blur-none border-l border-white/50 shadow-2xl">
-                <SheetHeader className="sr-only">
-                  <SheetTitle>{t.gridSettings}</SheetTitle>
-                  <SheetDescription>Panel de ajustes para la cuadrícula del mural</SheetDescription>
-                </SheetHeader>
-                <div className="h-full overflow-y-auto pt-10 scrollbar-hide">
-                  <div className="px-6 pb-4 md:hidden flex bg-white/20 py-4 mb-4 items-center justify-between border-b border-white/30">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-primary bg-white/90 px-2 py-0.5 rounded shadow-md border border-primary/20">Vista</span>
-                    <div className="flex bg-white/40 p-1.5 rounded-xl shadow-lg border border-white/30 backdrop-blur-md">
-                      <Button 
-                        onClick={() => setView('editor')} 
-                        className={cn(
-                          "gap-2 font-bold h-9 rounded-lg text-xs shadow-sm transition-all flex-1",
-                          view === 'editor' ? "bg-primary text-white border-primary" : "bg-white/60 text-muted-foreground hover:bg-white border-transparent"
-                        )}
-                        variant={view === 'editor' ? 'default' : 'ghost'}
-                      >
-                        {t.editor}
-                      </Button>
-                      <Button 
-                        onClick={() => setView('preview')} 
-                        className={cn(
-                          "gap-2 font-bold h-9 rounded-lg text-xs shadow-sm transition-all flex-1",
-                          view === 'preview' ? "bg-primary text-white border-primary" : "bg-white/60 text-muted-foreground hover:bg-white border-transparent"
-                        )}
-                        variant={view === 'preview' ? 'default' : 'ghost'}
-                      >
-                        {t.preview}
-                      </Button>
-                    </div>
-                  </div>
-                  <SettingsContent />
-                </div>
-              </SheetContent>
-            </Sheet>
-          </div>
-        )}
       </main>
+
+      {/* Botón flotante y panel totalmente transparente para Móvil/Tablet (Posicionamiento FIJO para asegurar visibilidad) */}
+      {image && (
+        <div className="lg:hidden fixed bottom-6 right-6 z-[60]">
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button size="icon" className="h-14 w-14 rounded-full shadow-2xl bg-primary text-white hover:bg-primary/90 transition-transform active:scale-95 border-4 border-white">
+                <Settings2 className="h-6 w-6" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[85%] sm:w-[400px] p-0 bg-white/10 backdrop-blur-none border-l border-white/50 shadow-2xl">
+              <SheetHeader className="sr-only">
+                <SheetTitle>{t.gridSettings}</SheetTitle>
+                <SheetDescription>Panel de ajustes para la cuadrícula del mural</SheetDescription>
+              </SheetHeader>
+              <div className="h-full overflow-y-auto pt-10 scrollbar-hide">
+                <div className="px-6 pb-4 md:hidden flex bg-white/20 py-4 mb-4 items-center justify-between border-b border-white/30">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-primary bg-white/90 px-2 py-0.5 rounded shadow-md border border-primary/20">Vista</span>
+                  <div className="flex bg-white/40 p-1.5 rounded-xl shadow-lg border border-white/30 backdrop-blur-md">
+                    <Button 
+                      onClick={() => setView('editor')} 
+                      className={cn(
+                        "gap-2 font-bold h-9 rounded-lg text-xs shadow-sm transition-all flex-1",
+                        view === 'editor' ? "bg-primary text-white border-primary" : "bg-white/60 text-muted-foreground hover:bg-white border-transparent"
+                      )}
+                      variant={view === 'editor' ? 'default' : 'ghost'}
+                    >
+                      {t.editor}
+                    </Button>
+                    <Button 
+                      onClick={() => setView('preview')} 
+                      className={cn(
+                        "gap-2 font-bold h-9 rounded-lg text-xs shadow-sm transition-all flex-1",
+                        view === 'preview' ? "bg-primary text-white border-primary" : "bg-white/60 text-muted-foreground hover:bg-white border-transparent"
+                      )}
+                      variant={view === 'preview' ? 'default' : 'ghost'}
+                    >
+                      {t.preview}
+                    </Button>
+                  </div>
+                </div>
+                <SettingsContent />
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
+      )}
     </div>
   );
 }
