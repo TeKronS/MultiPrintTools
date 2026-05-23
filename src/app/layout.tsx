@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   title: 'ReproHub | Herramientas Profesionales de Reprografía',
   description: 'Suite de herramientas digitales para expertos en impresión y artes gráficas.',
   icons: {
-    icon: '/favicon.ico',
+    icon: '/icono.png',
   },
 };
 

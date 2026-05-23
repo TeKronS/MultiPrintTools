@@ -1,7 +1,7 @@
-
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import Image from "next/image";
 import { Language, translations } from "@/lib/translations";
 import { LanguageSelector } from "./LanguageSelector";
 import { ImageUploader } from "./ImageUploader";
@@ -20,8 +20,7 @@ import {
   Image as ImageIcon,
   Ruler,
   Maximize2,
-  ChevronLeft,
-  X
+  ChevronLeft
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -47,6 +46,7 @@ import { jsPDF } from "jspdf";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import logo from "@/app/icono.png";
 
 const PAPER_DIMENSIONS: Record<string, { width: number; height: number; format: string }> = {
   'Carta': { width: 215.9, height: 279.4, format: 'letter' },
@@ -160,7 +160,7 @@ export default function MuralisEditor() {
     if (!image) return;
     setIsExporting(true);
     try {
-      const img = new Image();
+      const img = new window.Image();
       img.src = image.url;
       await new Promise((resolve) => img.onload = resolve);
 
@@ -373,8 +373,13 @@ export default function MuralisEditor() {
             </Button>
           </Link>
           <div className="flex items-center gap-2 md:gap-3">
-            <div className="w-6 h-6 md:w-8 md:h-8 bg-primary rounded-lg flex items-center justify-center shadow-sm">
-              <Layers className="text-white h-3 w-3 md:h-4 md:w-4" />
+            <div className="w-6 h-6 md:w-8 md:h-8 relative overflow-hidden rounded-lg shadow-sm bg-white border border-border/10">
+              <Image 
+                src={logo} 
+                alt="ReproHub Logo" 
+                fill 
+                className="object-contain p-1"
+              />
             </div>
             <h1 className="text-lg md:text-xl font-headline font-black tracking-tighter text-primary">
               MURALIS<span className="text-accent">.</span>
@@ -505,7 +510,7 @@ export default function MuralisEditor() {
         </aside>
       </main>
 
-      {/* Botón flotante y panel totalmente transparente para Móvil/Tablet (Posicionamiento FIJO para asegurar visibilidad) */}
+      {/* Botón flotante y panel totalmente transparente para Móvil/Tablet */}
       {image && (
         <div className="lg:hidden fixed bottom-6 right-6 z-[60]">
           <Sheet>

@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { 
   Layers, 
   FileStack, 
   Image as ImageIcon, 
   Calculator, 
-  Printer, 
   ArrowRight,
   Sparkles
 } from "lucide-react";
@@ -15,6 +15,7 @@ import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/ca
 import { Badge } from "@/components/ui/badge";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { Language, translations } from "@/lib/translations";
+import logo from "./icono.png";
 
 export default function Home() {
   const [lang, setLang] = useState<Language>('es');
@@ -60,8 +61,13 @@ export default function Home() {
       {/* Navbar Minimalista */}
       <header className="h-20 border-b border-border flex items-center justify-between px-8 bg-white/80 backdrop-blur-md sticky top-0 z-50">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
-            <Printer className="text-white h-6 w-6" />
+          <div className="w-10 h-10 relative overflow-hidden rounded-xl shadow-lg shadow-primary/20 bg-white border border-border/10">
+            <Image 
+              src={logo} 
+              alt="ReproHub Logo" 
+              fill 
+              className="object-contain p-1.5"
+            />
           </div>
           <span className="text-2xl font-headline font-black tracking-tighter text-foreground uppercase">
             REPRO<span className="text-primary">HUB</span>
