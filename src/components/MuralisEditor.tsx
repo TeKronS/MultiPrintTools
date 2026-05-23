@@ -473,16 +473,16 @@ export default function MuralisEditor() {
                   <Settings2 className="h-6 w-6" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-[85%] sm:w-[400px] p-0 bg-transparent backdrop-blur-none border-l border-white/30 shadow-none">
+              <SheetContent side="right" className="w-[85%] sm:w-[400px] p-0 bg-transparent backdrop-blur-none border-l border-white/50 shadow-2xl">
                 <div className="h-full overflow-y-auto pt-10 scrollbar-hide">
-                  <div className="px-6 pb-4 md:hidden flex bg-white/10 py-4 mb-4 items-center justify-between border-b border-white/20">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-primary bg-white/80 px-2 py-0.5 rounded shadow-sm">Vista</span>
-                    <div className="flex bg-white/20 p-1 rounded-xl shadow-inner border border-white/10">
+                  <div className="px-6 pb-4 md:hidden flex bg-white/20 py-4 mb-4 items-center justify-between border-b border-white/30">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-primary bg-white/90 px-2 py-0.5 rounded shadow-md border border-primary/20">Vista</span>
+                    <div className="flex bg-white/30 p-1 rounded-xl shadow-lg border border-white/40">
                       <Button 
                         variant={view === 'editor' ? 'secondary' : 'ghost'} 
                         size="sm" 
                         onClick={() => setView('editor')} 
-                        className="gap-2 font-bold h-7 rounded-lg text-[10px] bg-white/80"
+                        className="gap-2 font-bold h-7 rounded-lg text-[10px] bg-white/90 shadow-sm"
                       >
                         {t.editor}
                       </Button>
@@ -490,7 +490,7 @@ export default function MuralisEditor() {
                         variant={view === 'preview' ? 'secondary' : 'ghost'} 
                         size="sm" 
                         onClick={() => setView('preview')} 
-                        className="gap-2 font-bold h-7 rounded-lg text-[10px] bg-white/80"
+                        className="gap-2 font-bold h-7 rounded-lg text-[10px] bg-white/90 shadow-sm"
                       >
                         {t.preview}
                       </Button>
