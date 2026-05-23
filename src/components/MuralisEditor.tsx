@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
@@ -467,7 +468,7 @@ export default function MuralisEditor() {
                   <Settings2 className="h-6 w-6" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-[85%] sm:w-[400px] p-0 bg-white/5 backdrop-blur-3xl border-l-white/10">
+              <SheetContent side="right" className="w-[85%] sm:w-[400px] p-0 bg-white/10 backdrop-blur-xl border-l-white/10">
                 <div className="h-full overflow-y-auto pt-10 scrollbar-hide">
                   <div className="px-6 pb-4 md:hidden flex bg-primary/10 py-4 mb-4 items-center justify-between border-b border-white/5">
                     <span className="text-[10px] font-black uppercase tracking-widest text-primary">Modo de Vista</span>
