@@ -148,7 +148,7 @@ export default function MuralisEditor() {
   }, [image, rows, cols, overlap, marginV, marginH, paperSize]);
 
   const handleImageUpload = (file: File, url: string) => {
-    const img = new Image();
+    const img = new window.Image();
     img.src = url;
     img.onload = () => {
       setImage({ file, url, width: img.width, height: img.height });
@@ -378,7 +378,7 @@ export default function MuralisEditor() {
                 src={logo} 
                 alt="ReproHub Logo" 
                 fill 
-                className="object-contain p-1"
+                className="object-contain"
               />
             </div>
             <h1 className="text-lg md:text-xl font-headline font-black tracking-tighter text-primary">

@@ -66,7 +66,7 @@ export default function Home() {
               src={logo} 
               alt="ReproHub Logo" 
               fill 
-              className="object-contain p-1.5"
+              className="object-contain"
             />
           </div>
           <span className="text-2xl font-headline font-black tracking-tighter text-foreground uppercase">
