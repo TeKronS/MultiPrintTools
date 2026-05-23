@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
@@ -283,10 +284,10 @@ export default function MuralisEditor() {
                   <div className="bg-white/80 backdrop-blur-xl border border-primary/20 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.1)] px-8 py-3 rounded-2xl flex items-center justify-between pointer-events-auto animate-fade-in">
                     <div className="flex items-center gap-6">
                       <div className="flex flex-col">
-                        <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">{t.finalMeasures}</span>
+                        <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">{lang === 'es' ? 'DIMENSIONES IMAGEN' : 'IMAGE DIMENSIONS'}</span>
                         <div className="flex items-center gap-2">
                           <Maximize2 className="h-3.5 w-3.5 text-primary" />
-                          <span className="text-base font-black text-foreground">{physicalInfo.totalW} x {physicalInfo.totalH} cm</span>
+                          <span className="text-base font-black text-foreground">{physicalInfo.imgW} x {physicalInfo.imgH} cm</span>
                         </div>
                       </div>
                       <Separator orientation="vertical" className="h-8 opacity-50" />
@@ -419,8 +420,8 @@ export default function MuralisEditor() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <span className="text-[8px] font-bold text-muted-foreground uppercase block">{t.totalArea}</span>
-                    <span className="text-sm font-black text-primary">{physicalInfo.totalW} x {physicalInfo.totalH} cm</span>
+                    <span className="text-[8px] font-bold text-muted-foreground uppercase block">{lang === 'es' ? 'Imagen' : 'Image'}</span>
+                    <span className="text-sm font-black text-primary">{physicalInfo.imgW} x {physicalInfo.imgH} cm</span>
                   </div>
                   <div>
                     <span className="text-[8px] font-bold text-muted-foreground uppercase block">{t.panelArea}</span>
@@ -433,6 +434,10 @@ export default function MuralisEditor() {
                   <span className={cn("text-xs font-black", Number(physicalInfo.blankW) > 0 || Number(physicalInfo.blankH) > 0 ? "text-accent" : "text-muted-foreground")}>
                     +{physicalInfo.blankW}w / +{physicalInfo.blankH}h cm
                   </span>
+                </div>
+                <div className="pt-1">
+                   <span className="text-[8px] font-bold text-muted-foreground uppercase block mb-1">{t.totalArea} (Papel)</span>
+                   <span className="text-[11px] font-bold text-muted-foreground">{physicalInfo.totalW} x {physicalInfo.totalH} cm</span>
                 </div>
               </div>
             )}
