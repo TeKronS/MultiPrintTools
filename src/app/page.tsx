@@ -61,7 +61,6 @@ export default function Home() {
           </span>
         </div>
         <div className="flex items-center gap-6">
-          <Link href="#" className="text-sm font-bold text-muted-foreground hover:text-primary transition-colors">Manuales</Link>
           <Link href="#" className="text-sm font-bold text-muted-foreground hover:text-primary transition-colors">Soporte</Link>
         </div>
       </header>
