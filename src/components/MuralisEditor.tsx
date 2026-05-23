@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
@@ -18,7 +19,8 @@ import {
   Link2,
   Image as ImageIcon,
   Ruler,
-  Maximize2
+  Maximize2,
+  ChevronLeft
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -35,6 +37,7 @@ import { Separator } from "@/components/ui/separator";
 import { jsPDF } from "jspdf";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 const PAPER_DIMENSIONS: Record<string, { width: number; height: number; format: string }> = {
   'Carta': { width: 215.9, height: 279.4, format: 'letter' },
@@ -168,18 +171,11 @@ export default function MuralisEditor() {
       const totalGridW = (cols * effectiveSheetW) + overlapMm;
       const totalGridH = (rows * effectiveSheetH) + overlapMm;
 
-      const imgAspect = img.width / img.height;
-      const gridAspect = totalGridW / totalGridH;
-
-      let finalW_mm, finalH_mm;
-      let offsetX_mm = 0, offsetY_mm = 0;
-
-      // Usar un factor de escala uniforme para evitar estiramientos
       const scale = Math.min(totalGridW / img.width, totalGridH / img.height);
-      finalW_mm = img.width * scale;
-      finalH_mm = img.height * scale;
-      offsetX_mm = (totalGridW - finalW_mm) / 2;
-      offsetY_mm = (totalGridH - finalH_mm) / 2;
+      const finalW_mm = img.width * scale;
+      const finalH_mm = img.height * scale;
+      const offsetX_mm = (totalGridW - finalW_mm) / 2;
+      const offsetY_mm = (totalGridH - finalH_mm) / 2;
 
       const pxPerMm = img.width / finalW_mm;
       const canvas = document.createElement('canvas');
@@ -243,28 +239,33 @@ export default function MuralisEditor() {
     <div className="flex flex-col h-screen w-full font-body bg-white text-foreground">
       <header className="h-16 border-b border-border bg-white flex items-center justify-between px-6 z-50 shadow-sm">
         <div className="flex items-center gap-6">
+          <Link href="/">
+            <Button variant="ghost" size="sm" className="gap-2 font-bold text-muted-foreground hover:text-primary">
+              <ChevronLeft className="h-4 w-4" /> Inicio
+            </Button>
+          </Link>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-sm">
-              <Layers className="text-white h-5 w-5" />
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center shadow-sm">
+              <Layers className="text-white h-4 w-4" />
             </div>
-            <h1 className="text-2xl font-headline font-black tracking-tighter text-primary">
+            <h1 className="text-xl font-headline font-black tracking-tighter text-primary">
               MURALIS<span className="text-accent">.</span>
             </h1>
           </div>
           <Separator orientation="vertical" className="h-8" />
           <div className="flex bg-muted/50 p-1 rounded-xl">
-            <Button variant={view === 'editor' ? 'secondary' : 'ghost'} size="sm" onClick={() => setView('editor')} className="gap-2 font-bold h-9 rounded-lg">
-              <Layout className="h-4 w-4" /> {t.editor}
+            <Button variant={view === 'editor' ? 'secondary' : 'ghost'} size="sm" onClick={() => setView('editor')} className="gap-2 font-bold h-8 rounded-lg text-xs">
+              <Layout className="h-3.5 w-3.5" /> {t.editor}
             </Button>
-            <Button variant={view === 'preview' ? 'secondary' : 'ghost'} size="sm" onClick={() => setView('preview')} className="gap-2 font-bold h-9 rounded-lg">
-              <Eye className="h-4 w-4" /> {t.preview}
+            <Button variant={view === 'preview' ? 'secondary' : 'ghost'} size="sm" onClick={() => setView('preview')} className="gap-2 font-bold h-8 rounded-lg text-xs">
+              <Eye className="h-3.5 w-3.5" /> {t.preview}
             </Button>
           </div>
         </div>
         <div className="flex items-center gap-4">
           <LanguageSelector language={lang} setLanguage={setLang} />
-          <Button className="bg-primary hover:bg-primary/90 text-white font-black gap-2 h-11 px-8 rounded-xl shadow-md transition-all active:scale-95" onClick={handleExport} disabled={!image || isExporting}>
-            {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-5 w-5" />}
+          <Button className="bg-primary hover:bg-primary/90 text-white font-black gap-2 h-10 px-6 rounded-xl shadow-md transition-all active:scale-95 text-xs" onClick={handleExport} disabled={!image || isExporting}>
+            {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
             {isExporting ? "..." : t.export}
           </Button>
         </div>
@@ -273,7 +274,11 @@ export default function MuralisEditor() {
       <main className="flex-1 flex overflow-hidden">
         <section className="flex-1 relative bg-[#f8f9fa] overflow-hidden flex flex-col items-center justify-center">
           {!image ? (
-            <div className="max-w-lg w-full p-8 animate-fade-in">
+            <div className="max-w-lg w-full p-8 animate-fade-in text-center space-y-8">
+              <div className="space-y-2">
+                <h2 className="text-3xl font-headline font-black tracking-tighter">Preparar nuevo mural</h2>
+                <p className="text-muted-foreground font-medium">Sube una imagen de alta resolución para generar tu cuadrícula.</p>
+              </div>
               <ImageUploader onImageUpload={handleImageUpload} language={lang} t={t} />
             </div>
           ) : (
