@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
@@ -377,10 +378,26 @@ export default function MuralisEditor() {
           </div>
           <Separator orientation="vertical" className="h-8 hidden md:block" />
           <div className="hidden md:flex bg-muted/50 p-1 rounded-xl">
-            <Button variant={view === 'editor' ? 'secondary' : 'ghost'} size="sm" onClick={() => setView('editor')} className="gap-2 font-bold h-8 rounded-lg text-xs">
+            <Button 
+              variant={view === 'editor' ? 'default' : 'ghost'} 
+              size="sm" 
+              onClick={() => setView('editor')} 
+              className={cn(
+                "gap-2 font-bold h-8 rounded-lg text-xs transition-all",
+                view === 'editor' ? "bg-primary text-white shadow-sm" : "text-muted-foreground hover:bg-white"
+              )}
+            >
               <Layout className="h-3.5 w-3.5" /> {t.editor}
             </Button>
-            <Button variant={view === 'preview' ? 'secondary' : 'ghost'} size="sm" onClick={() => setView('preview')} className="gap-2 font-bold h-8 rounded-lg text-xs">
+            <Button 
+              variant={view === 'preview' ? 'default' : 'ghost'} 
+              size="sm" 
+              onClick={() => setView('preview')} 
+              className={cn(
+                "gap-2 font-bold h-8 rounded-lg text-xs transition-all",
+                view === 'preview' ? "bg-primary text-white shadow-sm" : "text-muted-foreground hover:bg-white"
+              )}
+            >
               <Eye className="h-3.5 w-3.5" /> {t.preview}
             </Button>
           </div>
@@ -479,18 +496,20 @@ export default function MuralisEditor() {
                     <span className="text-[10px] font-black uppercase tracking-widest text-primary bg-white/90 px-2 py-0.5 rounded shadow-md border border-primary/20">Vista</span>
                     <div className="flex bg-white/30 p-1 rounded-xl shadow-lg border border-white/40">
                       <Button 
-                        variant={view === 'editor' ? 'secondary' : 'ghost'} 
-                        size="sm" 
                         onClick={() => setView('editor')} 
-                        className="gap-2 font-bold h-7 rounded-lg text-[10px] bg-white/90 shadow-sm"
+                        className={cn(
+                          "gap-2 font-bold h-8 rounded-lg text-[10px] shadow-sm transition-all",
+                          view === 'editor' ? "bg-primary text-white" : "bg-white/90 text-muted-foreground hover:bg-white"
+                        )}
                       >
                         {t.editor}
                       </Button>
                       <Button 
-                        variant={view === 'preview' ? 'secondary' : 'ghost'} 
-                        size="sm" 
                         onClick={() => setView('preview')} 
-                        className="gap-2 font-bold h-7 rounded-lg text-[10px] bg-white/90 shadow-sm"
+                        className={cn(
+                          "gap-2 font-bold h-8 rounded-lg text-[10px] shadow-sm transition-all",
+                          view === 'preview' ? "bg-primary text-white" : "bg-white/90 text-muted-foreground hover:bg-white"
+                        )}
                       >
                         {t.preview}
                       </Button>
