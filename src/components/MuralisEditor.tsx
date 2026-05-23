@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
@@ -242,7 +241,7 @@ export default function MuralisEditor() {
   const SettingsContent = () => (
     <div className="p-6 space-y-8">
       <div className="flex items-center justify-between">
-        <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2 bg-white/80 px-2 py-1 rounded-md shadow-sm">
+        <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2 bg-white px-2 py-1 rounded-md shadow-sm border border-border/20">
           <Settings2 className="h-3 w-3" /> {t.gridSettings}
         </h2>
         {image && (
@@ -253,7 +252,7 @@ export default function MuralisEditor() {
       </div>
 
       <div className="space-y-6">
-        <div className="flex items-center justify-between bg-white/90 p-3 rounded-xl border border-primary/10 shadow-sm">
+        <div className="flex items-center justify-between bg-white p-3 rounded-xl border border-primary/10 shadow-sm">
           <div className="flex items-center gap-2">
             <Link2 className="h-3 w-3 text-primary" />
             <Label className="text-[10px] font-black uppercase cursor-pointer" htmlFor="lock-aspect">Proporción Bloqueada</Label>
@@ -263,16 +262,16 @@ export default function MuralisEditor() {
 
         <div className="space-y-4">
           <div className="flex justify-between items-center">
-            <Label className="text-[10px] font-black uppercase text-muted-foreground bg-white/80 px-2 py-0.5 rounded-md shadow-sm">{t.rows}</Label>
-            <span className="text-xs font-black text-primary bg-white/90 px-2 py-0.5 rounded-md shadow-sm">{rows}</span>
+            <Label className="text-[10px] font-black uppercase text-muted-foreground bg-white px-2 py-0.5 rounded-md shadow-sm border border-border/10">{t.rows}</Label>
+            <span className="text-xs font-black text-primary bg-white px-2 py-0.5 rounded-md shadow-sm border border-border/10">{rows}</span>
           </div>
           <Slider value={[rows]} onValueChange={(v) => lockAspect && image ? calculateAutoGrid(image.width, image.height, v[0]) : setRows(v[0])} min={1} max={15} step={1} />
         </div>
 
         <div className="space-y-4">
           <div className="flex justify-between items-center">
-            <Label className="text-[10px] font-black uppercase text-muted-foreground bg-white/80 px-2 py-0.5 rounded-md shadow-sm">{t.columns}</Label>
-            <span className="text-xs font-black text-primary bg-white/90 px-2 py-0.5 rounded-md shadow-sm">{cols}</span>
+            <Label className="text-[10px] font-black uppercase text-muted-foreground bg-white px-2 py-0.5 rounded-md shadow-sm border border-border/10">{t.columns}</Label>
+            <span className="text-xs font-black text-primary bg-white px-2 py-0.5 rounded-md shadow-sm border border-border/10">{cols}</span>
           </div>
           <Slider value={[cols]} onValueChange={(v) => lockAspect && image ? calculateAutoGrid(image.width, image.height, undefined, v[0]) : setCols(v[0])} min={1} max={15} step={1} />
         </div>
@@ -280,9 +279,9 @@ export default function MuralisEditor() {
         <Separator className="bg-white/40" />
 
         <div className="space-y-4">
-          <Label className="text-[10px] font-black uppercase text-muted-foreground bg-white/80 px-2 py-0.5 rounded-md shadow-sm mb-2 inline-block">{t.paperSize}</Label>
+          <Label className="text-[10px] font-black uppercase text-muted-foreground bg-white px-2 py-0.5 rounded-md shadow-sm border border-border/10 mb-2 inline-block">{t.paperSize}</Label>
           <Select value={paperSize} onValueChange={(v) => setPaperSize(v)}>
-            <SelectTrigger className="h-10 rounded-lg text-xs font-bold bg-white/90 shadow-sm"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-10 rounded-lg text-xs font-bold bg-white shadow-sm border border-border/10"><SelectValue /></SelectTrigger>
             <SelectContent>
               {Object.keys(PAPER_DIMENSIONS).map(key => <SelectItem key={key} value={key} className="text-xs font-bold">{key}</SelectItem>)}
             </SelectContent>
@@ -291,36 +290,36 @@ export default function MuralisEditor() {
 
         <div className="space-y-4">
           <div className="flex justify-between items-center">
-            <Label className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-2 bg-white/80 px-2 py-0.5 rounded-md shadow-sm">
+            <Label className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-2 bg-white px-2 py-0.5 rounded-md shadow-sm border border-border/10">
               <Scissors className="h-3 w-3" /> {t.overlap}
             </Label>
-            <span className="text-xs font-black text-accent bg-white/90 px-2 py-0.5 rounded-md shadow-sm">{overlap} cm</span>
+            <span className="text-xs font-black text-accent bg-white px-2 py-0.5 rounded-md shadow-sm border border-border/10">{overlap} cm</span>
           </div>
           <Slider value={[overlap]} onValueChange={(v) => setOverlap(v[0])} min={0} max={10} step={0.1} />
         </div>
 
         <div className="space-y-4">
           <div className="flex justify-between items-center">
-            <Label className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-2 bg-white/80 px-2 py-0.5 rounded-md shadow-sm">
+            <Label className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-2 bg-white px-2 py-0.5 rounded-md shadow-sm border border-border/10">
               <Maximize className="h-3 w-3" /> {t.marginsVertical}
             </Label>
-            <span className="text-xs font-black text-primary bg-white/90 px-2 py-0.5 rounded-md shadow-sm">{marginV} cm</span>
+            <span className="text-xs font-black text-primary bg-white px-2 py-0.5 rounded-md shadow-sm border border-border/10">{marginV} cm</span>
           </div>
           <Slider value={[marginV]} onValueChange={(v) => setMarginV(v[0])} min={0} max={5} step={0.5} />
         </div>
 
         <div className="space-y-4">
           <div className="flex justify-between items-center">
-            <Label className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-2 bg-white/80 px-2 py-0.5 rounded-md shadow-sm">
+            <Label className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-2 bg-white px-2 py-0.5 rounded-md shadow-sm border border-border/10">
               <Maximize className="h-3 w-3" /> {t.marginsHorizontal}
             </Label>
-            <span className="text-xs font-black text-primary bg-white/90 px-2 py-0.5 rounded-md shadow-sm">{marginH} cm</span>
+            <span className="text-xs font-black text-primary bg-white px-2 py-0.5 rounded-md shadow-sm border border-border/10">{marginH} cm</span>
           </div>
           <Slider value={[marginH]} onValueChange={(v) => setMarginH(v[0])} min={0} max={5} step={0.5} />
         </div>
 
         <div className="flex items-center justify-between pt-2">
-          <Label className="text-[10px] font-black uppercase text-muted-foreground cursor-pointer bg-white/80 px-2 py-0.5 rounded-md shadow-sm" htmlFor="guides">{t.guides}</Label>
+          <Label className="text-[10px] font-black uppercase text-muted-foreground cursor-pointer bg-white px-2 py-0.5 rounded-md shadow-sm border border-border/10" htmlFor="guides">{t.guides}</Label>
           <Switch id="guides" checked={showGuides} onCheckedChange={setShowGuides} className="bg-white/50" />
         </div>
       </div>
@@ -474,16 +473,16 @@ export default function MuralisEditor() {
                   <Settings2 className="h-6 w-6" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-[85%] sm:w-[400px] p-0 bg-transparent backdrop-blur-none border-l-white/20 shadow-none">
+              <SheetContent side="right" className="w-[85%] sm:w-[400px] p-0 bg-transparent backdrop-blur-none border-l border-white/30 shadow-none">
                 <div className="h-full overflow-y-auto pt-10 scrollbar-hide">
-                  <div className="px-6 pb-4 md:hidden flex bg-white/90 py-4 mb-4 items-center justify-between border-b border-white/20 shadow-sm">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-primary">Vista</span>
-                    <div className="flex bg-muted/50 p-1 rounded-xl shadow-inner border border-white/10">
+                  <div className="px-6 pb-4 md:hidden flex bg-white/10 py-4 mb-4 items-center justify-between border-b border-white/20">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-primary bg-white/80 px-2 py-0.5 rounded shadow-sm">Vista</span>
+                    <div className="flex bg-white/20 p-1 rounded-xl shadow-inner border border-white/10">
                       <Button 
                         variant={view === 'editor' ? 'secondary' : 'ghost'} 
                         size="sm" 
                         onClick={() => setView('editor')} 
-                        className="gap-2 font-bold h-7 rounded-lg text-[10px]"
+                        className="gap-2 font-bold h-7 rounded-lg text-[10px] bg-white/80"
                       >
                         {t.editor}
                       </Button>
@@ -491,7 +490,7 @@ export default function MuralisEditor() {
                         variant={view === 'preview' ? 'secondary' : 'ghost'} 
                         size="sm" 
                         onClick={() => setView('preview')} 
-                        className="gap-2 font-bold h-7 rounded-lg text-[10px]"
+                        className="gap-2 font-bold h-7 rounded-lg text-[10px] bg-white/80"
                       >
                         {t.preview}
                       </Button>
