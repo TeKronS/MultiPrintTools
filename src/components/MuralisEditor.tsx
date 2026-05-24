@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
@@ -22,7 +23,8 @@ import {
   Maximize2,
   ChevronLeft,
   Smartphone,
-  RefreshCcw
+  RefreshCcw,
+  X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -75,6 +77,7 @@ export default function MuralisEditor() {
   const [view, setView] = useState<'editor' | 'preview'>('editor');
   const [isExporting, setIsExporting] = useState(false);
   const [lockAspect, setLockAspect] = useState(true);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -543,12 +546,14 @@ export default function MuralisEditor() {
 
       {image && (
         <div className="lg:hidden fixed bottom-6 right-6 z-[60]">
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button size="icon" className="h-14 w-14 rounded-full shadow-2xl bg-primary text-white hover:bg-primary/90 transition-transform active:scale-95 border-4 border-white">
-                <Settings2 className="h-6 w-6" />
-              </Button>
-            </SheetTrigger>
+          <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+            <Button 
+              size="icon" 
+              className="h-14 w-14 rounded-full shadow-2xl bg-primary text-white hover:bg-primary/90 transition-all active:scale-95 border-4 border-white"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+            >
+              {isMenuOpen ? <X className="h-6 w-6" /> : <Settings2 className="h-6 w-6" />}
+            </Button>
             <SheetContent side="right" className="w-[85%] sm:w-[400px] p-0 bg-white/10 backdrop-blur-none border-l border-white/50 shadow-2xl">
               <SheetHeader className="sr-only">
                 <SheetTitle>{t.gridSettings}</SheetTitle>
