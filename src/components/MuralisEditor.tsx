@@ -637,7 +637,7 @@ export default function MuralisEditor() {
               )}
               
               <div className="w-full h-full p-4 lg:p-8 flex flex-col pt-20 lg:pt-24">
-                <div className="flex-1 min-h-[400px]">
+                <div className="flex-1 min-h-[280px] lg:min-h-[400px]">
                   {view === 'editor' ? (
                     <MuralCanvas 
                       imageUrl={image.url} 
