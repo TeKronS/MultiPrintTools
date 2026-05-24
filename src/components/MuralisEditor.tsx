@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
@@ -261,12 +260,14 @@ export default function MuralisEditor() {
   };
 
   const renderSettings = (isMobile?: boolean) => (
-    <div className={cn("space-y-4", isMobile ? "p-4 pt-2" : "p-4")}>
-      <div className="flex items-center justify-between">
-        <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2 bg-white px-2 py-1 rounded-md shadow-sm border border-border/20">
-          <Settings2 className="h-3 w-3" /> {t.gridSettings}
-        </h2>
-      </div>
+    <div className={cn("space-y-4", isMobile ? "p-4 pt-1" : "p-4")}>
+      {!isMobile && (
+        <div className="flex items-center justify-between">
+          <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2 bg-white px-2 py-1 rounded-md shadow-sm border border-border/20">
+            <Settings2 className="h-3 w-3" /> {t.gridSettings}
+          </h2>
+        </div>
+      )}
 
       <div className="space-y-4">
         <div className="flex items-center justify-between bg-white p-3 rounded-xl border border-primary/10 shadow-sm">
@@ -573,7 +574,7 @@ export default function MuralisEditor() {
 
               <div className="flex-1 overflow-y-auto scrollbar-hide">
                 {/* Selector de modo en móvil */}
-                <div className="px-4 pt-2 pb-0">
+                <div className="px-4 pt-1 pb-0">
                   <div className="flex bg-muted/40 p-1 rounded-xl shadow-inner w-full border border-border/20">
                     <Button 
                       onClick={() => setView('editor')} 
