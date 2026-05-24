@@ -557,6 +557,20 @@ export default function MuralisEditor() {
               </div>
             </SheetTrigger>
             <SheetContent side="right" className="w-[85%] sm:w-[400px] p-0 bg-white/10 backdrop-blur-none border-l border-white/50 shadow-2xl overflow-y-auto">
+              <div className="absolute top-4 right-4 z-[60]">
+                <Button 
+                  size="sm"
+                  className="bg-primary hover:bg-primary/90 text-white font-black gap-2 h-9 px-4 rounded-xl shadow-md transition-all active:scale-95 text-[10px]" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleExport();
+                  }} 
+                  disabled={!image || isExporting}
+                >
+                  {isExporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileDown className="h-3.5 w-3.5" />}
+                  {isExporting ? "..." : t.export}
+                </Button>
+              </div>
               <SheetHeader className="sr-only">
                 <SheetTitle>{t.gridSettings}</SheetTitle>
                 <SheetDescription>Panel de ajustes para la cuadrícula del mural</SheetDescription>
