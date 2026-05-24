@@ -32,7 +32,7 @@ import {
   Select, 
   SelectContent, 
   SelectItem, 
-  SelectTrigger, 
+  SelectTrigger as SelectTriggerUI, 
   SelectValue 
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -43,7 +43,8 @@ import {
   SheetContent, 
   SheetHeader,
   SheetTitle,
-  SheetDescription
+  SheetDescription,
+  SheetTrigger
 } from "@/components/ui/sheet";
 import { jsPDF } from "jspdf";
 import { useToast } from "@/hooks/use-toast";
@@ -298,7 +299,7 @@ export default function MuralisEditor() {
           <div className="space-y-4">
             <Label className="text-[10px] font-black uppercase text-muted-foreground bg-white px-2 py-0.5 rounded-md shadow-sm border border-border/10 mb-2 inline-block">{t.paperSize}</Label>
             <Select value={paperSize} onValueChange={(v) => setPaperSize(v)}>
-              <SelectTrigger className="h-10 rounded-lg text-xs font-bold bg-white shadow-sm border border-border/10"><SelectValue /></SelectTrigger>
+              <SelectTriggerUI className="h-10 rounded-lg text-xs font-bold bg-white shadow-sm border border-border/10"><SelectValue /></SelectTriggerUI>
               <SelectContent>
                 {Object.keys(PAPER_DIMENSIONS).map(key => <SelectItem key={key} value={key} className="text-xs font-bold">{key}</SelectItem>)}
               </SelectContent>
@@ -308,7 +309,7 @@ export default function MuralisEditor() {
           <div className="space-y-4">
             <Label className="text-[10px] font-black uppercase text-muted-foreground bg-white px-2 py-0.5 rounded-md shadow-sm border border-border/10 mb-2 inline-block">{t.orientation}</Label>
             <Select value={orientation} onValueChange={(v: any) => setOrientation(v)}>
-              <SelectTrigger className="h-10 rounded-lg text-xs font-bold bg-white shadow-sm border border-border/10"><SelectValue /></SelectTrigger>
+              <SelectTriggerUI className="h-10 rounded-lg text-xs font-bold bg-white shadow-sm border border-border/10"><SelectValue /></SelectTriggerUI>
               <SelectContent>
                 <SelectItem value="portrait" className="text-xs font-bold">{t.portrait}</SelectItem>
                 <SelectItem value="landscape" className="text-xs font-bold">{t.landscape}</SelectItem>
@@ -546,6 +547,16 @@ export default function MuralisEditor() {
       {image && (
         <>
           <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen} modal={false}>
+            <SheetTrigger asChild>
+              <div className="lg:hidden fixed bottom-6 right-6 z-[100] pointer-events-auto">
+                <Button 
+                  size="icon" 
+                  className="h-14 w-14 rounded-full shadow-2xl bg-primary text-white hover:bg-primary/90 transition-all active:scale-95 border-4 border-white"
+                >
+                  {isMenuOpen ? <X className="h-6 w-6" /> : <Settings2 className="h-6 w-6" />}
+                </Button>
+              </div>
+            </SheetTrigger>
             <SheetContent side="right" className="w-[85%] sm:w-[400px] p-0 bg-white/10 backdrop-blur-none border-l border-white/50 shadow-2xl overflow-y-auto">
               <SheetHeader className="sr-only">
                 <SheetTitle>{t.gridSettings}</SheetTitle>
@@ -581,22 +592,9 @@ export default function MuralisEditor() {
               </div>
             </SheetContent>
           </Sheet>
-          
-          <div className="lg:hidden fixed bottom-6 right-6 z-[100] pointer-events-auto">
-            <Button 
-              size="icon" 
-              className="h-14 w-14 rounded-full shadow-2xl bg-primary text-white hover:bg-primary/90 transition-all active:scale-95 border-4 border-white"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setIsMenuOpen(!isMenuOpen);
-              }}
-            >
-              {isMenuOpen ? <X className="h-6 w-6" /> : <Settings2 className="h-6 w-6" />}
-            </Button>
-          </div>
         </>
       )}
     </div>
   );
 }
+
