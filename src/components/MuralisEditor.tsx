@@ -21,7 +21,8 @@ import {
   Ruler,
   Maximize2,
   ChevronLeft,
-  Smartphone
+  Smartphone,
+  RefreshCcw
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -262,11 +263,6 @@ export default function MuralisEditor() {
         <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2 bg-white px-2 py-1 rounded-md shadow-sm border border-border/20">
           <Settings2 className="h-3 w-3" /> {t.gridSettings}
         </h2>
-        {image && (
-          <Button variant="outline" size="sm" className="h-8 text-[10px] font-bold uppercase gap-2 border-dashed border-primary/30 bg-white" onClick={() => setImage(null)}>
-            <ImageIcon className="h-3.5 w-3.5" /> {lang === 'es' ? 'Cambiar' : 'Change'}
-          </Button>
-        )}
       </div>
 
       <div className="space-y-6">
@@ -465,8 +461,8 @@ export default function MuralisEditor() {
           ) : (
             <>
               {physicalInfo && (
-                <div className="absolute top-4 md:top-6 left-1/2 -translate-x-1/2 z-20 pointer-events-none w-full max-w-4xl px-4 md:px-8">
-                  <div className="bg-white/80 backdrop-blur-xl border border-primary/20 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.1)] px-4 md:px-8 py-2 md:py-3 rounded-2xl flex items-center justify-between pointer-events-auto animate-fade-in">
+                <div className="absolute top-4 md:top-6 left-1/2 -translate-x-1/2 z-20 pointer-events-none w-full max-w-5xl px-4 md:px-8">
+                  <div className="bg-white/80 backdrop-blur-xl border border-primary/20 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.1)] px-4 md:px-6 py-2 md:py-3 rounded-2xl flex items-center justify-between pointer-events-auto animate-fade-in">
                     <div className="flex items-center gap-3 md:gap-6">
                       <div className="flex flex-col">
                         <span className="text-[6px] md:text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">{t.finalMeasures}</span>
@@ -485,11 +481,20 @@ export default function MuralisEditor() {
                       </div>
                     </div>
                     
-                    <div className="hidden sm:flex items-center gap-4">
-                      <div className="flex flex-col items-end">
+                    <div className="flex items-center gap-2 md:gap-4">
+                      <div className="hidden sm:flex flex-col items-end mr-2">
                         <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">{t.paperSize}</span>
                         <span className="text-[11px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">{paperSize} {orientation === 'portrait' ? '(V)' : '(H)'}</span>
                       </div>
+                      <Button 
+                        variant="secondary" 
+                        size="sm" 
+                        onClick={() => setImage(null)}
+                        className="h-8 md:h-10 text-[10px] md:text-xs font-black uppercase gap-2 rounded-xl border border-border/50 shadow-sm"
+                      >
+                        <RefreshCcw className="h-3.5 w-3.5" />
+                        <span className="hidden xs:inline">{lang === 'es' ? 'Cambiar Imagen' : 'Change Image'}</span>
+                      </Button>
                     </div>
                   </div>
                 </div>
