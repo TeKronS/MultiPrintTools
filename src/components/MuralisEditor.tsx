@@ -62,14 +62,13 @@ const PAPER_DIMENSIONS: Record<string, { width: number; height: number; format: 
   'Extra Oficio (38cm)': { width: 216, height: 380, format: 'extra-oficio' }
 };
 
-const MAX_GRID_DIM = 12; // Límite de seguridad para estabilidad móvil
+const MAX_GRID_DIM = 12; 
 
 export default function MuralisEditor() {
   const [mounted, setMounted] = useState(false);
   const [lang, setLang] = useState<Language>('es');
   const [image, setImage] = useState<{ url: string; file: File; width: number; height: number } | null>(null);
   
-  // Estado real (en vivo)
   const [rows, setRows] = useState(2);
   const [cols, setCols] = useState(2);
   const [overlap, setOverlap] = useState(1.5); 
@@ -79,7 +78,6 @@ export default function MuralisEditor() {
   const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait');
   const [showGuides, setShowGuides] = useState(true);
 
-  // Estado de borrador para móvil (drafts)
   const [draftRows, setDraftRows] = useState(2);
   const [draftCols, setDraftCols] = useState(2);
   const [draftOverlap, setDraftOverlap] = useState(1.5);
@@ -89,7 +87,6 @@ export default function MuralisEditor() {
   const [draftOrientation, setDraftOrientation] = useState<'portrait' | 'landscape'>('portrait');
   const [draftShowGuides, setDraftShowGuides] = useState(true);
 
-  // Valores diferidos para renderizado suave
   const deferredRows = useDeferredValue(rows);
   const deferredCols = useDeferredValue(cols);
   const deferredOverlap = useDeferredValue(overlap);
@@ -525,8 +522,8 @@ export default function MuralisEditor() {
   if (!mounted) return null;
 
   return (
-    <div className="flex flex-col h-svh w-full font-body bg-white text-foreground overflow-hidden">
-      <header className="h-14 lg:h-16 border-b border-border bg-white flex items-center justify-between px-4 lg:px-6 z-50 shadow-sm shrink-0">
+    <div className="flex flex-col min-h-svh w-full font-body bg-white text-foreground">
+      <header className="h-14 lg:h-16 border-b border-border bg-white flex items-center justify-between px-4 lg:px-6 z-50 shadow-sm shrink-0 sticky top-0">
         <div className="flex items-center gap-2 lg:gap-6">
           <Link href="/">
             <Button variant="ghost" size="sm" className="gap-2 font-bold text-muted-foreground hover:text-primary px-2">
@@ -584,8 +581,8 @@ export default function MuralisEditor() {
 
       <main className="flex-1 flex overflow-hidden relative">
         <section className={cn(
-          "flex-1 relative bg-[#f8f9fa] flex flex-col items-center",
-          !image ? "overflow-y-auto justify-start py-8" : "overflow-hidden justify-center"
+          "flex-1 relative bg-[#f8f9fa] flex flex-col items-center overflow-y-auto",
+          !image ? "justify-start py-8" : "justify-center"
         )}>
           {!image ? (
             <div className="max-w-lg w-full px-6 lg:p-8 animate-fade-in text-center flex flex-col gap-6 lg:gap-8 my-auto">
@@ -639,7 +636,7 @@ export default function MuralisEditor() {
                 </div>
               )}
               
-              <div className="w-full h-full p-4 lg:p-8 flex flex-col pt-20 lg:pt-24 overflow-y-auto">
+              <div className="w-full h-full p-4 lg:p-8 flex flex-col pt-20 lg:pt-24">
                 <div className="flex-1 min-h-[400px]">
                   {view === 'editor' ? (
                     <MuralCanvas 
@@ -731,7 +728,7 @@ export default function MuralisEditor() {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto scrollbar-hide">
+            <div className="flex-1 overflow-y-auto">
               {renderSettings(
                 draftRows, setDraftRows, 
                 draftCols, setDraftCols, 
