@@ -317,15 +317,16 @@ export default function MuralisEditor() {
         const effectiveW = printableW - overlapMm;
         const effectiveH = printableH - overlapMm;
 
-        const maxGridW = (2 * effectiveW) + overlapMm;
-        const maxGridH = (2 * effectiveH) + overlapMm;
+        // Intentar llenar una cuadrícula de 2x2 (4 hojas)
+        const targetGridW = (2 * effectiveW) + overlapMm;
+        const targetGridH = (2 * effectiveH) + overlapMm;
 
         let finalW, finalH;
-        if (maxGridW / maxGridH > aspect) {
-          finalH = maxGridH;
+        if (targetGridW / targetGridH > aspect) {
+          finalH = targetGridH;
           finalW = finalH * aspect;
         } else {
-          finalW = maxGridW;
+          finalW = targetGridW;
           finalH = finalW / aspect;
         }
         return { w: finalW, h: finalH, area: finalW * finalH, orient };

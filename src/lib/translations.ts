@@ -1,3 +1,4 @@
+
 export type Language = 'en' | 'es';
 
 export const translations = {
@@ -17,8 +18,6 @@ export const translations = {
     marginsVertical: 'Vertical Margins (cm)',
     marginsHorizontal: 'Horizontal Margins (cm)',
     export: 'Export PDF',
-    preview: 'Mockup Preview',
-    editor: 'Canvas Editor',
     reset: 'Reset',
     scale: 'Scale',
     physicalDimensions: 'Target Dimensions',
@@ -71,8 +70,6 @@ export const translations = {
     marginsVertical: 'Márgenes Verticales (cm)',
     marginsHorizontal: 'Márgenes Horizontales (cm)',
     export: 'Exportar PDF',
-    preview: 'Vista Previa de Maqueta',
-    editor: 'Editor de Lienzo',
     reset: 'Restablecer',
     scale: 'Escala',
     physicalDimensions: 'Dimensiones Reales',
