@@ -191,7 +191,7 @@ export default function ImageToPdfConverter() {
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <LanguageSelector language={lang} setLanguage={setLanguage} />
+          <LanguageSelector language={lang} setLanguage={setLang} />
           <Button 
             className="hidden sm:flex bg-primary hover:bg-primary/90 text-white font-black gap-2 rounded-xl shadow-md"
             onClick={exportPdf}
