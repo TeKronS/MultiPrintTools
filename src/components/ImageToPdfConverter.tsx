@@ -337,13 +337,13 @@ export default function ImageToPdfConverter() {
 
         {/* Sidebar Settings - Right */}
         <aside className="w-full lg:w-80 bg-white border-l border-border shadow-xl p-6 overflow-y-auto z-20">
-          <div className="space-y-8">
+          <div className="space-y-6">
             <div className="flex items-center gap-2">
               <Settings2 className="h-4 w-4 text-primary" />
               <h2 className="text-xs font-black uppercase tracking-widest text-slate-500">Configuración</h2>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-4">
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">{t.paperSize}</Label>
                 <Select value={paperSize} onValueChange={setPaperSize}>
@@ -384,7 +384,7 @@ export default function ImageToPdfConverter() {
                 </Select>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <div className="flex justify-between">
                   <Label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">{t.margins}</Label>
                   <span className="text-xs font-black text-primary">{margin} cm</span>
@@ -408,7 +408,7 @@ export default function ImageToPdfConverter() {
 
             <Separator />
 
-            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-3">
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Resumen</span>
                 <span className="text-xs font-black text-primary">#{images.length}</span>
@@ -419,7 +419,7 @@ export default function ImageToPdfConverter() {
               </div>
             </div>
 
-            <div className="pt-4 space-y-3">
+            <div className="pt-2 space-y-3">
               <Button 
                 className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-black gap-2 rounded-xl shadow-lg transition-transform active:scale-95"
                 onClick={exportPdf}
