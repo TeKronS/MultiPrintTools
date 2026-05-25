@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, useDeferredValue } from "react";
@@ -627,6 +626,7 @@ export default function MuralisEditor() {
               }
             }}>
               <SelectTriggerUI className="h-8 rounded-lg text-xs font-bold bg-white shadow-sm border border-border/10"><SelectValue /></SelectTriggerUI>
+              <SelectTriggerUI className="h-8 rounded-lg text-xs font-bold bg-white shadow-sm border border-border/10"><SelectValue /></SelectTriggerUI>
               <SelectContent>
                 {Object.keys(PAPER_DIMENSIONS).map(key => <SelectItem key={key} value={key} className="text-xs font-bold">{key}</SelectItem>)}
               </SelectContent>
@@ -687,7 +687,7 @@ export default function MuralisEditor() {
           <div className="flex justify-between items-center">
             <Label className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-2 bg-white px-2 py-0.5 rounded-md shadow-sm border border-border/10">
               <Maximize className="h-3 w-3" /> {t.marginsVertical}
-            </Label flash-image>
+            </Label>
             <span className="text-xs font-black text-primary bg-white px-2 py-0.5 rounded-md shadow-sm border border-border/10">{currentMarginV} cm</span>
           </div>
           <div className="flex items-center gap-2">
