@@ -62,7 +62,8 @@ export const translations = {
     fit: 'Fit to Page',
     fill: 'Fill Page',
     generating: 'Generating PDF...',
-    noImages: 'No images added yet'
+    noImages: 'No images added yet',
+    imagesPerPage: 'Images per Page'
   },
   es: {
     title: 'MURALIS',
@@ -124,6 +125,7 @@ export const translations = {
     fit: 'Ajustar a la página',
     fill: 'Llenar página',
     generating: 'Generando PDF...',
-    noImages: 'Aún no hay imágenes'
+    noImages: 'Aún no hay imágenes',
+    imagesPerPage: 'Imágenes por Página'
   }
 };

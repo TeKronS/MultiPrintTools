@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useCallback, useRef, useMemo, useEffect } from "react";
@@ -74,6 +75,7 @@ export default function ImageToPdfConverter() {
   const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait');
   const [margin, setMargin] = useState(1);
   const [fitMode, setFitMode] = useState<'fit' | 'fill'>('fit');
+  const [imagesPerPage, setImagesPerPage] = useState('1');
   const [isExporting, setIsExporting] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -135,54 +137,82 @@ export default function ImageToPdfConverter() {
       const usableWidth = pageWidth - (marginMm * 2);
       const usableHeight = pageHeight - (marginMm * 2);
 
-      for (let i = 0; i < images.length; i++) {
+      const nPerPage = parseInt(imagesPerPage);
+      
+      // Determine Grid Layout for Multiple Images
+      let gridRows = 1;
+      let gridCols = 1;
+      
+      if (nPerPage === 2) {
+        if (orientation === 'portrait') { gridRows = 2; gridCols = 1; }
+        else { gridRows = 1; gridCols = 2; }
+      } else if (nPerPage === 4) {
+        gridRows = 2; gridCols = 2;
+      } else if (nPerPage === 6) {
+        if (orientation === 'portrait') { gridRows = 3; gridCols = 2; }
+        else { gridRows = 2; gridCols = 3; }
+      } else if (nPerPage === 8) {
+        if (orientation === 'portrait') { gridRows = 4; gridCols = 2; }
+        else { gridRows = 2; gridCols = 4; }
+      }
+
+      const cellWidth = usableWidth / gridCols;
+      const cellHeight = usableHeight / gridRows;
+
+      // Group images by page
+      for (let i = 0; i < images.length; i += nPerPage) {
         if (i > 0) pdf.addPage();
 
-        const img = images[i];
-        const htmlImg = new window.Image();
-        htmlImg.src = img.url;
-        await new Promise((resolve) => (htmlImg.onload = resolve));
+        const pageImages = images.slice(i, i + nPerPage);
 
-        const imgWidth = htmlImg.width;
-        const imgHeight = htmlImg.height;
-        const imgRatio = imgWidth / imgHeight;
-        const pageRatio = usableWidth / usableHeight;
+        for (let j = 0; j < pageImages.length; j++) {
+          const imgData = pageImages[j];
+          const htmlImg = new window.Image();
+          htmlImg.src = imgData.url;
+          await new Promise((resolve) => (htmlImg.onload = resolve));
 
-        let drawW, drawH, x, y;
+          const rowIdx = Math.floor(j / gridCols);
+          const colIdx = j % gridCols;
 
-        if (fitMode === 'fit') {
-          if (imgRatio > pageRatio) {
-            drawW = usableWidth;
-            drawH = usableWidth / imgRatio;
+          const imgRatio = htmlImg.width / htmlImg.height;
+          const cellRatio = cellWidth / cellHeight;
+
+          let drawW, drawH, x, y;
+
+          if (fitMode === 'fit') {
+            if (imgRatio > cellRatio) {
+              drawW = cellWidth;
+              drawH = cellWidth / imgRatio;
+            } else {
+              drawH = cellHeight;
+              drawW = cellHeight * imgRatio;
+            }
           } else {
-            drawH = usableHeight;
-            drawW = usableHeight * imgRatio;
+            if (imgRatio > cellRatio) {
+              drawH = cellHeight;
+              drawW = cellHeight * imgRatio;
+            } else {
+              drawW = cellWidth;
+              drawH = cellWidth / imgRatio;
+            }
           }
-        } else {
-          if (imgRatio > pageRatio) {
-            drawH = usableHeight;
-            drawW = usableHeight * imgRatio;
-          } else {
-            drawW = usableWidth;
-            drawH = usableWidth / imgRatio;
-          }
-        }
-        
-        x = marginMm + (usableWidth - drawW) / 2;
-        y = marginMm + (usableHeight - drawH) / 2;
 
-        const canvas = document.createElement('canvas');
-        canvas.width = htmlImg.width;
-        canvas.height = htmlImg.height;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.fillStyle = "white";
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          ctx.drawImage(htmlImg, 0, 0);
+          x = marginMm + (colIdx * cellWidth) + (cellWidth - drawW) / 2;
+          y = marginMm + (rowIdx * cellHeight) + (cellHeight - drawH) / 2;
+
+          const canvas = document.createElement('canvas');
+          canvas.width = htmlImg.width;
+          canvas.height = htmlImg.height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.fillStyle = "white";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(htmlImg, 0, 0);
+          }
+          
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+          pdf.addImage(dataUrl, 'JPEG', x, y, drawW, drawH);
         }
-        
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-        pdf.addImage(dataUrl, 'JPEG', x, y, drawW, drawH);
       }
 
       pdf.save(`MultiPrintTools-ImageToPdf-${Date.now()}.pdf`);
@@ -232,6 +262,22 @@ export default function ImageToPdfConverter() {
         </div>
 
         <div className="space-y-1">
+          <Label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">{t.imagesPerPage}</Label>
+          <Select value={imagesPerPage} onValueChange={setImagesPerPage}>
+            <SelectTrigger className="font-bold border-2 h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="1" className="font-bold text-xs">1</SelectItem>
+              <SelectItem value="2" className="font-bold text-xs">2</SelectItem>
+              <SelectItem value="4" className="font-bold text-xs">4</SelectItem>
+              <SelectItem value="6" className="font-bold text-xs">6</SelectItem>
+              <SelectItem value="8" className="font-bold text-xs">8</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1">
           <Label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">{t.imageFit}</Label>
           <Select value={fitMode} onValueChange={(v: any) => setFitMode(v)}>
             <SelectTrigger className="font-bold border-2 h-8 text-xs">
@@ -275,7 +321,7 @@ export default function ImageToPdfConverter() {
         </div>
         <div className="flex justify-between items-center">
           <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Hojas Totales</span>
-          <span className="text-[10px] font-black text-slate-700">{images.length}</span>
+          <span className="text-[10px] font-black text-slate-700">{Math.ceil(images.length / parseInt(imagesPerPage))}</span>
         </div>
       </div>
 
@@ -333,7 +379,6 @@ export default function ImageToPdfConverter() {
       </header>
 
       <main className="flex-1 flex overflow-hidden relative">
-        {/* Left Column - Pages Thumbnails */}
         <aside className="hidden md:flex w-[80px] bg-white border-r border-border flex-col items-center py-4 gap-4 overflow-y-auto shrink-0 shadow-inner z-10 scrollbar-hide">
           {images.map((img, idx) => (
             <div 
@@ -359,7 +404,6 @@ export default function ImageToPdfConverter() {
           </button>
         </aside>
 
-        {/* Workspace - Center: Responsive Grid */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-slate-100/50 scroll-smooth">
           <div className="max-w-6xl mx-auto flex flex-col gap-8 pb-20 lg:pb-8 h-full min-h-full">
             {images.length === 0 ? (
@@ -460,12 +504,10 @@ export default function ImageToPdfConverter() {
           </div>
         </div>
 
-        {/* Sidebar Settings - Desktop Right */}
         <aside className="hidden lg:block w-72 bg-white border-l border-border shadow-xl p-5 overflow-y-auto shrink-0 z-20">
           {renderSettingsContent()}
         </aside>
 
-        {/* Mobile Export Button Overlay */}
         {images.length > 0 && (
           <div className="lg:hidden fixed bottom-6 left-6 right-24 z-[100] pointer-events-auto animate-in slide-in-from-bottom-10 duration-500">
             <Button 
@@ -479,7 +521,6 @@ export default function ImageToPdfConverter() {
           </div>
         )}
 
-        {/* Mobile Settings Toggle and Drawer */}
         <div className="lg:hidden fixed bottom-6 right-6 z-[100] pointer-events-auto">
           <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
             <Button 
