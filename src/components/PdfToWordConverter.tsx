@@ -75,7 +75,7 @@ export default function PdfToWordConverter() {
         toast({
           variant: "destructive",
           title: "Error de inicialización",
-          description: "No se pudieron cargar los componentes locales de procesamiento."
+          description: "No se pudieron cargar los componentes locales."
         });
       }
     };
@@ -98,90 +98,35 @@ export default function PdfToWordConverter() {
     const saveAs = (window as any).saveAs;
 
     if (!pdfjsLib || !docx || !saveAs) {
-      toast({ variant: "destructive", title: "Error", description: "Librerías de procesamiento no listas." });
+      toast({ variant: "destructive", title: "Error", description: "Librerías no listas." });
       return;
     }
 
     setIsConverting(true);
     setProgress(5);
-    setStatusText("Analizando estructura...");
+    setStatusText("Analizando documento...");
 
     try {
-      const { Document, Packer, Paragraph, TextRun, AlignmentType, ImageRun, Header } = docx;
+      const { Document, Packer, Paragraph, TextRun, AlignmentType } = docx;
       const arrayBuffer = await pdfFile.arrayBuffer();
       const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
       const pdf = await loadingTask.promise;
       const numPages = pdf.numPages;
       
       const docChildren: any[] = [];
-      const headerChildren: any[] = [];
-      const headerThreshold = 120; // Puntos desde el top para considerar "cabecera"
 
       for (let i = 1; i <= numPages; i++) {
-        setStatusText(`Procesando página ${i} de ${numPages}...`);
+        setStatusText(`Procesando página ${i}...`);
         const page = await pdf.getPage(i);
         const viewport = page.getViewport({ scale: 1.0 });
         const pageWidth = viewport.width;
         const pageHeight = viewport.height;
 
-        // 1. Extraer Imágenes y detectar si van a la Cabecera
-        const operatorList = await page.getOperatorList();
-        for (let j = 0; j < operatorList.fnArray.length; j++) {
-          const fn = operatorList.fnArray[j];
-          if (fn === (pdfjsLib as any).OPS.paintImageXObject || fn === (pdfjsLib as any).OPS.paintInlineImageXObject) {
-            const imgKey = operatorList.argsArray[j][0];
-            try {
-              const imgObj = await new Promise((resolve) => {
-                page.objs.get(imgKey, (obj: any) => resolve(obj));
-              });
-              
-              if (imgObj && (imgObj as any).data) {
-                const canvas = document.createElement('canvas');
-                canvas.width = (imgObj as any).width;
-                canvas.height = (imgObj as any).height;
-                const ctx = canvas.getContext('2d');
-                if (ctx) {
-                  const imgData = ctx.createImageData(canvas.width, canvas.height);
-                  imgData.data.set((imgObj as any).data);
-                  ctx.putImageData(imgData, 0, 0);
-                  
-                  const imgBase64 = canvas.toDataURL('image/png');
-                  const imageRun = new ImageRun({
-                    data: imgBase64,
-                    transformation: { 
-                      width: Math.min(canvas.width / 2.5, pageWidth - 100), 
-                      height: canvas.height / 2.5 
-                    }
-                  });
-
-                  // Si está en el primer 15% de la primera página, lo mandamos al Header real de Word
-                  if (i === 1) {
-                    headerChildren.push(new Paragraph({
-                      children: [imageRun],
-                      alignment: AlignmentType.CENTER,
-                      spacing: { after: 200 }
-                    }));
-                  } else {
-                    docChildren.push(new Paragraph({
-                      children: [imageRun],
-                      alignment: AlignmentType.CENTER,
-                      spacing: { after: 300 }
-                    }));
-                  }
-                }
-              }
-            } catch (e) {
-              console.warn("Error extrayendo imagen:", e);
-            }
-          }
-        }
-
-        // 2. Extraer Texto
         const textContent = await page.getTextContent();
         const items = textContent.items as any[];
         const styles = textContent.styles as any;
 
-        // Ordenar items por posición Y (arriba a abajo)
+        // Ordenar items de arriba a abajo y de izquierda a derecha
         items.sort((a, b) => {
           const yDiff = b.transform[5] - a.transform[5];
           if (Math.abs(yDiff) > 5) return yDiff;
@@ -200,12 +145,10 @@ export default function PdfToWordConverter() {
           let maxFontSize = 11;
           const textRuns: any[] = [];
 
-          const lineYFromTop = pageHeight - line[0].transform[5];
-
           line.forEach(item => {
             const fontStyle = styles[item.fontName];
             
-            // Normalización de Fuentes
+            // Detección de Familia Tipográfica
             let fontFamily = "Arial";
             if (fontStyle && fontStyle.fontFamily) {
               const rawFont = fontStyle.fontFamily.toLowerCase();
@@ -236,7 +179,7 @@ export default function PdfToWordConverter() {
             }));
           });
 
-          // Detección de Alineación
+          // Detección de Alineación Simple
           const lineCenter = (minX + maxX) / 2;
           const pageCenter = pageWidth / 2;
           let alignment = AlignmentType.LEFT;
@@ -247,28 +190,22 @@ export default function PdfToWordConverter() {
             alignment = AlignmentType.RIGHT;
           }
 
-          const paragraph = new Paragraph({
-            children: textRuns,
-            alignment: alignment,
-            spacing: { after: 120, line: 240 }
-          });
-
-          // Si el texto está muy arriba en la primera página, va al Header técnico de Word
-          if (i === 1 && lineYFromTop < headerThreshold) {
-            headerChildren.push(paragraph);
-          } else {
-            // Detección de Enters (Espaciado Vertical) entre párrafos del cuerpo
-            if (lastLineY !== -1) {
-              const verticalGap = lastLineY - line[0].transform[5];
-              if (verticalGap > maxFontSize * 2) {
-                const numEnters = Math.max(1, Math.floor(verticalGap / (maxFontSize * 1.5)) - 1);
-                for (let e = 0; e < numEnters; e++) {
-                  docChildren.push(new Paragraph({ children: [new TextRun({ text: "" })] }));
-                }
+          // Detección de "Enters" por espacio vertical
+          if (lastLineY !== -1) {
+            const verticalGap = lastLineY - line[0].transform[5];
+            if (verticalGap > maxFontSize * 2) {
+              const numEnters = Math.max(1, Math.floor(verticalGap / (maxFontSize * 1.5)) - 1);
+              for (let e = 0; e < numEnters; e++) {
+                docChildren.push(new Paragraph({ children: [new TextRun({ text: "" })] }));
               }
             }
-            docChildren.push(paragraph);
           }
+
+          docChildren.push(new Paragraph({
+            children: textRuns,
+            alignment: alignment,
+            spacing: { after: 120 }
+          }));
 
           lastLineY = line[0].transform[5];
         };
@@ -284,7 +221,7 @@ export default function PdfToWordConverter() {
         });
         processLine(lineItems);
 
-        // Salto de página en Word
+        // Salto de página
         if (i < numPages) {
           docChildren.push(new Paragraph({ children: [new TextRun({ text: "", break: 1 })] }));
           lastLineY = -1;
@@ -293,21 +230,15 @@ export default function PdfToWordConverter() {
         setProgress(10 + Math.round((i / numPages) * 85));
       }
 
-      // Crear el documento con Header real
       const docObj = new Document({
-        creator: "MultiPrintTools PRO",
+        creator: "MultiPrintTools",
         title: pdfFile.name,
         sections: [{
           properties: { 
             page: { 
-              margin: { top: 1200, right: 1200, bottom: 1200, left: 1200 } 
+              margin: { top: 1000, right: 1000, bottom: 1000, left: 1000 } 
             } 
           },
-          headers: headerChildren.length > 0 ? {
-            default: new Header({
-              children: headerChildren,
-            }),
-          } : undefined,
           children: docChildren,
         }],
       });
@@ -315,13 +246,13 @@ export default function PdfToWordConverter() {
       const blob = await Packer.toBlob(docObj);
       saveAs(blob, pdfFile.name.replace(/\.[^/.]+$/, "") + " (Convertido).docx");
       setProgress(100);
-      toast({ title: "¡Éxito!", description: "Conversión finalizada con cabecera técnica." });
+      toast({ title: "Convertido", description: "El documento se ha generado correctamente." });
     } catch (error) {
-      console.error("Fallo conversión:", error);
+      console.error("Error en conversión:", error);
       toast({ variant: "destructive", title: "Error", description: "No se pudo reconstruir el documento." });
     } finally {
       setIsConverting(false);
-      setTimeout(() => setProgress(0), 4000);
+      setTimeout(() => setProgress(0), 3000);
     }
   };
 
@@ -341,7 +272,7 @@ export default function PdfToWordConverter() {
             <div className="w-8 h-8 relative rounded-lg overflow-hidden border">
               <Image src={logo} alt="Logo" fill className="object-contain" />
             </div>
-            <h1 className="text-xl font-headline font-black tracking-tighter text-primary uppercase">PDF A WORD PRO</h1>
+            <h1 className="text-xl font-headline font-black tracking-tighter text-primary uppercase">PDF A WORD</h1>
           </div>
         </div>
         <LanguageSelector language={lang} setLanguage={setLang} />
@@ -350,15 +281,11 @@ export default function PdfToWordConverter() {
       <main className="flex-1 flex flex-col items-center justify-center p-6 sm:p-12 overflow-y-auto">
         <div className="w-full max-w-2xl space-y-8 animate-fade-in">
           <div className="text-center space-y-3">
-            <div className="inline-flex items-center gap-2 bg-primary/10 px-4 py-1 rounded-full mb-2">
-              <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-              <span className="text-[10px] font-black text-primary uppercase tracking-widest">Motor de Alta Fidelidad v3.0</span>
-            </div>
             <h2 className="text-3xl sm:text-4xl font-headline font-black tracking-tighter text-slate-900 uppercase">
-              RECONSTRUCCIÓN DE CABECERAS
+              CONVERSIÓN FIEL DE TEXTO
             </h2>
             <p className="text-slate-500 font-medium max-w-md mx-auto">
-              Extracción de logotipos e integración en la cabecera real de Word (.docx).
+              Extracción precisa de fuentes, negritas y espaciado original.
             </p>
           </div>
 
@@ -366,7 +293,7 @@ export default function PdfToWordConverter() {
             {!libsReady ? (
               <div className="flex flex-col items-center justify-center py-12 gap-4">
                 <Loader2 className="h-12 w-12 text-primary animate-spin" />
-                <p className="font-bold text-primary uppercase tracking-widest text-[10px]">Cargando motores locales de alta precisión...</p>
+                <p className="font-bold text-primary uppercase tracking-widest text-[10px]">Cargando motores locales...</p>
               </div>
             ) : !pdfFile ? (
               <div onClick={() => fileInputRef.current?.click()} className="flex flex-col items-center justify-center space-y-6 cursor-pointer">
@@ -375,7 +302,7 @@ export default function PdfToWordConverter() {
                 </div>
                 <div className="text-center space-y-2">
                   <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tight">{t.dropPdf}</h3>
-                  <p className="text-slate-500 font-bold text-sm">Privacidad garantizada: Procesamiento 100% local en tu navegador.</p>
+                  <p className="text-slate-500 font-bold text-sm">Privacidad 100% garantizada: Todo ocurre en tu navegador.</p>
                 </div>
                 <Button className="bg-primary hover:bg-primary/90 text-white font-black px-8 py-6 rounded-2xl text-lg uppercase tracking-widest shadow-xl">
                   {t.selectPdf}
@@ -419,7 +346,7 @@ export default function PdfToWordConverter() {
                   disabled={isConverting}
                 >
                   {isConverting ? <Loader2 className="h-6 w-6 animate-spin mr-2" /> : <FileCheck className="h-6 w-6 mr-2" />}
-                  {isConverting ? "Procesando Cabecera..." : "Convertir Fielmente"}
+                  {isConverting ? "Procesando..." : "Convertir Texto"}
                 </Button>
               </div>
             )}
@@ -428,9 +355,9 @@ export default function PdfToWordConverter() {
           <div className="flex items-start gap-3 bg-slate-100 p-4 rounded-2xl border border-slate-200">
             <AlertCircle className="h-5 w-5 text-slate-400 shrink-0 mt-0.5" />
             <div className="space-y-1">
-              <p className="text-xs font-bold text-slate-600 uppercase tracking-wider">Nota de Calidad</p>
+              <p className="text-xs font-bold text-slate-600 uppercase tracking-wider">Aviso de Formato</p>
               <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
-                Este motor detecta elementos en la parte superior de la página y los integra en la cabecera real de Word para una edición más profesional.
+                Esta herramienta prioriza la fidelidad del texto y el espaciado. Las imágenes se omiten para mantener la estructura del documento limpia y editable.
               </p>
             </div>
           </div>
