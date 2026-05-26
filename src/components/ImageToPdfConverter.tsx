@@ -28,9 +28,16 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
+import { 
+  Sheet, 
+  SheetContent, 
+  SheetHeader,
+  SheetTitle,
+  SheetDescription
+} from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { jsPDF } from "jspdf";
+import { jsPDF } from "jsPDF";
 import { useToast } from "@/hooks/use-toast";
 import { Language, translations } from "@/lib/translations";
 import { LanguageSelector } from "./LanguageSelector";
@@ -63,6 +70,7 @@ export default function ImageToPdfConverter() {
   const [margin, setMargin] = useState(1);
   const [fitMode, setFitMode] = useState<'fit' | 'fill'>('fit');
   const [isExporting, setIsExporting] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const paper = useMemo(() => PAPER_DIMENSIONS[paperSize], [paperSize]);
   const aspectRatio = useMemo(() => {
@@ -178,6 +186,110 @@ export default function ImageToPdfConverter() {
     }
   };
 
+  const renderSettingsContent = () => (
+    <div className="space-y-6">
+      <div className="flex items-center gap-2">
+        <Settings2 className="h-4 w-4 text-primary" />
+        <h2 className="text-xs font-black uppercase tracking-widest text-slate-500">Configuración</h2>
+      </div>
+
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <Label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">{t.paperSize}</Label>
+          <Select value={paperSize} onValueChange={setPaperSize}>
+            <SelectTrigger className="font-bold border-2">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.keys(PAPER_DIMENSIONS).map(size => (
+                <SelectItem key={size} value={size} className="font-bold">{size}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">{t.orientation}</Label>
+          <Select value={orientation} onValueChange={(v: any) => setOrientation(v)}>
+            <SelectTrigger className="font-bold border-2">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="portrait" className="font-bold">{t.portrait}</SelectItem>
+              <SelectItem value="landscape" className="font-bold">{t.landscape}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">{t.imageFit}</Label>
+          <Select value={fitMode} onValueChange={(v: any) => setFitMode(v)}>
+            <SelectTrigger className="font-bold border-2">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="fit" className="font-bold">{t.fit}</SelectItem>
+              <SelectItem value="fill" className="font-bold">{t.fill}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1">
+          <div className="flex justify-between">
+            <Label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">{t.margins}</Label>
+            <span className="text-xs font-black text-primary">{margin} cm</span>
+          </div>
+          <div className="flex items-center gap-4 py-2">
+            <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg" onClick={() => setMargin(Math.max(0, margin - 0.5))}>
+              <X className="h-3 w-3 rotate-45" />
+            </Button>
+            <div className="flex-1 h-1 bg-slate-100 rounded-full relative overflow-hidden">
+              <div 
+                className="absolute h-full bg-primary rounded-full transition-all" 
+                style={{ width: `${(margin / 5) * 100}%` }}
+              />
+            </div>
+            <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg" onClick={() => setMargin(Math.min(5, margin + 0.5))}>
+              <Plus className="h-3 w-3" />
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <Separator />
+
+      <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-2">
+        <div className="flex justify-between items-center">
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Resumen</span>
+          <span className="text-xs font-black text-primary">#{images.length}</span>
+        </div>
+        <div className="flex justify-between items-center">
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Hojas Totales</span>
+          <span className="text-xs font-black text-slate-700">{images.length}</span>
+        </div>
+      </div>
+
+      <div className="pt-2 space-y-3">
+        <Button 
+          className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-black gap-2 rounded-xl shadow-lg transition-transform active:scale-95"
+          onClick={exportPdf}
+          disabled={images.length === 0 || isExporting}
+        >
+          {isExporting ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileDown className="h-4 w-4" />}
+          {isExporting ? t.generating : t.export}
+        </Button>
+        <Button 
+          variant="ghost" 
+          className="w-full text-slate-400 hover:text-destructive transition-colors font-bold text-xs"
+          onClick={() => setImages([])}
+          disabled={images.length === 0}
+        >
+          {t.clearAll}
+        </Button>
+      </div>
+    </div>
+  );
+
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 font-body">
       <header className="h-16 border-b border-border bg-white flex items-center justify-between px-6 sticky top-0 z-50 shadow-sm">
@@ -210,7 +322,7 @@ export default function ImageToPdfConverter() {
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+      <main className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
         {/* Left Column - Pages Thumbnails */}
         <aside className="hidden md:flex w-[80px] bg-white border-r border-border flex-col items-center py-4 gap-3 overflow-y-auto shrink-0 shadow-inner z-10">
           {images.map((img, idx) => (
@@ -335,110 +447,34 @@ export default function ImageToPdfConverter() {
           </div>
         </div>
 
-        {/* Sidebar Settings - Right */}
-        <aside className="w-full lg:w-80 bg-white border-l border-border shadow-xl p-6 overflow-y-auto z-20">
-          <div className="space-y-6">
-            <div className="flex items-center gap-2">
-              <Settings2 className="h-4 w-4 text-primary" />
-              <h2 className="text-xs font-black uppercase tracking-widest text-slate-500">Configuración</h2>
-            </div>
-
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">{t.paperSize}</Label>
-                <Select value={paperSize} onValueChange={setPaperSize}>
-                  <SelectTrigger className="font-bold border-2">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.keys(PAPER_DIMENSIONS).map(size => (
-                      <SelectItem key={size} value={size} className="font-bold">{size}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">{t.orientation}</Label>
-                <Select value={orientation} onValueChange={(v: any) => setOrientation(v)}>
-                  <SelectTrigger className="font-bold border-2">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="portrait" className="font-bold">{t.portrait}</SelectItem>
-                    <SelectItem value="landscape" className="font-bold">{t.landscape}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">{t.imageFit}</Label>
-                <Select value={fitMode} onValueChange={(v: any) => setFitMode(v)}>
-                  <SelectTrigger className="font-bold border-2">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="fit" className="font-bold">{t.fit}</SelectItem>
-                    <SelectItem value="fill" className="font-bold">{t.fill}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1">
-                <div className="flex justify-between">
-                  <Label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">{t.margins}</Label>
-                  <span className="text-xs font-black text-primary">{margin} cm</span>
-                </div>
-                <div className="flex items-center gap-4 py-2">
-                  <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg" onClick={() => setMargin(Math.max(0, margin - 0.5))}>
-                    <X className="h-3 w-3 rotate-45" />
-                  </Button>
-                  <div className="flex-1 h-1 bg-slate-100 rounded-full relative overflow-hidden">
-                    <div 
-                      className="absolute h-full bg-primary rounded-full transition-all" 
-                      style={{ width: `${(margin / 5) * 100}%` }}
-                    />
-                  </div>
-                  <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg" onClick={() => setMargin(Math.min(5, margin + 0.5))}>
-                    <Plus className="h-3 w-3" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            <Separator />
-
-            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Resumen</span>
-                <span className="text-xs font-black text-primary">#{images.length}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Hojas Totales</span>
-                <span className="text-xs font-black text-slate-700">{images.length}</span>
-              </div>
-            </div>
-
-            <div className="pt-2 space-y-3">
-              <Button 
-                className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-black gap-2 rounded-xl shadow-lg transition-transform active:scale-95"
-                onClick={exportPdf}
-                disabled={images.length === 0 || isExporting}
-              >
-                {isExporting ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileDown className="h-4 w-4" />}
-                {isExporting ? t.generating : t.export}
-              </Button>
-              <Button 
-                variant="ghost" 
-                className="w-full text-slate-400 hover:text-destructive transition-colors font-bold text-xs"
-                onClick={() => setImages([])}
-                disabled={images.length === 0}
-              >
-                {t.clearAll}
-              </Button>
-            </div>
-          </div>
+        {/* Sidebar Settings - Desktop Right */}
+        <aside className="hidden lg:block w-80 bg-white border-l border-border shadow-xl p-6 overflow-y-auto z-20">
+          {renderSettingsContent()}
         </aside>
+
+        {/* Mobile Settings Toggle and Drawer */}
+        <div className="lg:hidden fixed bottom-6 right-6 z-[100] pointer-events-auto">
+          <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+            <Button 
+              size="icon" 
+              className="h-14 w-14 rounded-full shadow-2xl bg-primary text-white hover:bg-primary/90 transition-all active:scale-95 border-4 border-white"
+              onPointerDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsMenuOpen(!isMenuOpen);
+              }}
+            >
+              <Settings2 className="h-6 w-6" />
+            </Button>
+            <SheetContent side="right" className="w-[85%] sm:w-[400px] p-6 bg-white/95 backdrop-blur-xl shadow-2xl overflow-y-auto">
+              <SheetHeader className="sr-only">
+                <SheetTitle>Configuración</SheetTitle>
+                <SheetDescription>Ajustes de exportación a PDF</SheetDescription>
+              </SheetHeader>
+              {renderSettingsContent()}
+            </SheetContent>
+          </Sheet>
+        </div>
       </main>
     </div>
   );
