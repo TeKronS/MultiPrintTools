@@ -52,10 +52,6 @@ export default function PdfToWordConverter() {
     const loadScript = (url: string) => {
       return new Promise((resolve, reject) => {
         if (typeof document === 'undefined') return;
-        if (document.querySelector(`script[src="${url}"]`)) {
-          resolve(true);
-          return;
-        }
         const script = document.createElement("script");
         script.src = url;
         script.async = true;
@@ -70,20 +66,18 @@ export default function PdfToWordConverter() {
 
     const loadAllLibs = async () => {
       try {
-        console.log("Cargando motores de conversión locales...");
         for (const lib of LIBS) {
           await loadScript(lib.url);
         }
         if ((window as any).pdfjsLib) {
           (window as any).pdfjsLib.GlobalWorkerOptions.workerSrc = LIBS[1].url;
         }
-        console.log("Motores listos.");
         setLibsReady(true);
       } catch (err) {
         toast({
           variant: "destructive",
           title: "Error de inicialización",
-          description: "No se pudieron cargar los componentes locales. Revisa tu conexión."
+          description: "No se pudieron cargar los componentes locales."
         });
       }
     };
@@ -105,14 +99,11 @@ export default function PdfToWordConverter() {
     const docx = (window as any).docx;
     const saveAs = (window as any).saveAs;
 
-    if (!pdfjsLib || !docx || !saveAs) {
-      console.error("Librerías no encontradas en el objeto window");
-      return;
-    }
+    if (!pdfjsLib || !docx || !saveAs) return;
 
     setIsConverting(true);
     setProgress(5);
-    setStatusText("Analizando estructura técnica...");
+    setStatusText("Analizando estructura...");
 
     try {
       const { Document, Packer, Paragraph, TextRun, AlignmentType, ImageRun } = docx;
@@ -123,15 +114,13 @@ export default function PdfToWordConverter() {
       const docChildren: any[] = [];
 
       for (let i = 1; i <= numPages; i++) {
-        setStatusText(`Reconstruyendo página ${i} de ${numPages}...`);
+        setStatusText(`Procesando página ${i}...`);
         const page = await pdf.getPage(i);
         const viewport = page.getViewport({ scale: 1.0 });
         const pageWidth = viewport.width;
 
-        // --- 1. EXTRACCIÓN DE IMÁGENES (LOGOS, FOTOS) ---
+        // --- EXTRACCIÓN DE IMÁGENES ---
         const operatorList = await page.getOperatorList();
-        const images: any[] = [];
-        
         for (let j = 0; j < operatorList.fnArray.length; j++) {
           const fn = operatorList.fnArray[j];
           if (fn === (pdfjsLib as any).OPS.paintImageXObject || fn === (pdfjsLib as any).OPS.paintInlineImageXObject) {
@@ -140,7 +129,6 @@ export default function PdfToWordConverter() {
               const imgObj = await new Promise((resolve) => {
                 page.objs.get(imgKey, (obj: any) => resolve(obj));
               });
-              
               if (imgObj) {
                 const canvas = document.createElement('canvas');
                 canvas.width = (imgObj as any).width;
@@ -150,36 +138,25 @@ export default function PdfToWordConverter() {
                   const imgData = ctx.createImageData(canvas.width, canvas.height);
                   imgData.data.set((imgObj as any).data);
                   ctx.putImageData(imgData, 0, 0);
-                  
-                  images.push({
-                    data: canvas.toDataURL('image/png'),
-                    width: Math.min(canvas.width / 3.5, pageWidth - 100),
-                    height: canvas.height / 3.5
-                  });
+                  docChildren.push(new Paragraph({
+                    children: [new ImageRun({
+                      data: canvas.toDataURL('image/png'),
+                      transformation: { width: Math.min(canvas.width / 4, pageWidth - 100), height: canvas.height / 4 }
+                    })],
+                    alignment: AlignmentType.CENTER,
+                    spacing: { after: 200 }
+                  }));
                 }
               }
-            } catch (e) {
-              console.warn("Fallo al extraer objeto gráfico", e);
-            }
+            } catch (e) {}
           }
         }
 
-        images.forEach(img => {
-          docChildren.push(new Paragraph({
-            children: [new ImageRun({
-              data: img.data,
-              transformation: { width: img.width, height: img.height }
-            })],
-            alignment: AlignmentType.CENTER,
-            spacing: { after: 200 }
-          }));
-        });
-
-        // --- 2. EXTRACCIÓN DE TEXTO CON ANÁLISIS ESPACIAL Y DETECCIÓN DE ENTERS ---
+        // --- EXTRACCIÓN DE TEXTO CON ATRIBUTOS ---
         const textContent = await page.getTextContent();
         const items = textContent.items as any[];
+        const styles = textContent.styles as any;
 
-        // Ordenar por posición Y (arriba a abajo) y luego X (izquierda a derecha)
         items.sort((a, b) => {
           const yDiff = b.transform[5] - a.transform[5];
           if (Math.abs(yDiff) > 5) return yDiff;
@@ -193,58 +170,58 @@ export default function PdfToWordConverter() {
         const processLine = (line: any[]) => {
           if (line.length === 0) return;
           
-          let lineText = "";
           let minX = Infinity;
           let maxX = -Infinity;
           let fontSize = 11;
+          const textRuns: any[] = [];
 
           line.forEach(item => {
-            lineText += item.str;
+            const fontStyle = styles[item.fontName];
+            const isBold = fontStyle?.fontFamily?.toLowerCase().includes('bold') || 
+                           item.fontName?.toLowerCase().includes('bold');
+            
             minX = Math.min(minX, item.transform[4]);
             maxX = Math.max(maxX, item.transform[4] + item.width);
             fontSize = Math.max(fontSize, Math.abs(item.transform[0]));
+
+            textRuns.push(new TextRun({
+              text: item.str,
+              size: Math.round(fontSize * 2),
+              bold: isBold,
+              font: fontStyle?.fontFamily?.split(',')[0] || "Calibri"
+            }));
           });
 
-          // DETECCIÓN DE ESPACIOS VERTICALES (ENTERS)
+          // DETECCIÓN DE ENTERS (SALTOS VERTICALES)
           if (lastLineY !== -1) {
             const verticalGap = lastLineY - line[0].transform[5];
-            const threshold = fontSize * 1.8; // Si el hueco es mayor al 180% de la fuente, es un Enter manual
-            
+            const threshold = fontSize * 1.6;
             if (verticalGap > threshold) {
-              const numEnters = Math.floor(verticalGap / (fontSize * 1.5)) - 1;
+              const numEnters = Math.max(0, Math.floor(verticalGap / (fontSize * 1.5)) - 1);
               for (let e = 0; e < numEnters; e++) {
                 docChildren.push(new Paragraph({ children: [new TextRun({ text: "" })] }));
               }
             }
           }
 
-          // Determinar alineación basada en coordenadas X
+          // DETECCIÓN DE ALINEACIÓN
           const lineCenter = (minX + maxX) / 2;
           const pageCenter = pageWidth / 2;
           let alignment = AlignmentType.LEFT;
-          
-          if (Math.abs(lineCenter - pageCenter) < 30 && lineText.length > 5) {
-            alignment = AlignmentType.CENTER;
-          } else if (maxX > pageWidth - 80 && minX > pageWidth / 2) {
-            alignment = AlignmentType.RIGHT;
-          }
+          if (Math.abs(lineCenter - pageCenter) < 40) alignment = AlignmentType.CENTER;
+          else if (maxX > pageWidth - 100 && minX > pageWidth / 2) alignment = AlignmentType.RIGHT;
 
           docChildren.push(new Paragraph({
-            children: [new TextRun({
-              text: lineText,
-              size: Math.round(fontSize * 2), // docx usa medio-puntos (half-points)
-              font: "Calibri"
-            })],
+            children: textRuns,
             alignment: alignment,
-            spacing: { after: 80, before: 0 }
+            spacing: { after: 100 }
           }));
 
           lastLineY = line[0].transform[5];
         };
 
         items.forEach(item => {
-          // Si el cambio en Y es significativo, procesamos la línea anterior
-          if (currentY !== -1 && Math.abs(item.transform[5] - currentY) > 6) {
+          if (currentY !== -1 && Math.abs(item.transform[5] - currentY) > 7) {
             processLine(lineItems);
             lineItems = [item];
           } else {
@@ -254,37 +231,31 @@ export default function PdfToWordConverter() {
         });
         processLine(lineItems);
 
-        // Salto de página
         if (i < numPages) {
           docChildren.push(new Paragraph({ children: [new TextRun({ text: "", break: 1 })] }));
-          lastLineY = -1; // Resetear para la nueva página
+          lastLineY = -1;
         }
 
-        setProgress(10 + (Math.round((i / numPages) * 85)));
+        setProgress(10 + Math.round((i / numPages) * 85));
       }
 
-      // Crear el documento final
       const doc = new Document({
-        creator: "MultiPrintTools Professional",
-        title: pdfFile.name,
+        creator: "MultiPrintTools",
         sections: [{
-          properties: {
-            page: { margin: { top: 1200, right: 1200, bottom: 1200, left: 1200 } }
-          },
+          properties: { page: { margin: { top: 1200, right: 1200, bottom: 1200, left: 1200 } } },
           children: docChildren,
         }],
       });
 
       const blob = await Packer.toBlob(doc);
-      saveAs(blob, pdfFile.name.replace(/\.[^/.]+$/, "") + " (Editado).docx");
+      saveAs(blob, pdfFile.name.replace(/\.[^/.]+$/, "") + " (Convertido).docx");
       setProgress(100);
-      toast({ title: "¡Éxito!", description: "El documento ha sido reconstruido y descargado." });
+      toast({ title: "Convertido", description: "El archivo Word se ha descargado." });
     } catch (error) {
-      console.error("Error crítico en conversión:", error);
-      toast({ variant: "destructive", title: "Error técnico", description: "Hubo un fallo al analizar los objetos del PDF." });
+      toast({ variant: "destructive", title: "Error", description: "No se pudo procesar el PDF." });
     } finally {
       setIsConverting(false);
-      setTimeout(() => { setProgress(0); setStatusText(""); }, 3000);
+      setTimeout(() => setProgress(0), 3000);
     }
   };
 
@@ -314,10 +285,10 @@ export default function PdfToWordConverter() {
         <div className="w-full max-w-2xl space-y-8 animate-fade-in">
           <div className="text-center space-y-3">
             <h2 className="text-3xl sm:text-4xl font-headline font-black tracking-tighter text-slate-900 uppercase">
-              RECONSTRUCCIÓN DE DOCUMENTOS
+              RECONSTRUCCIÓN INTELIGENTE
             </h2>
             <p className="text-slate-500 font-medium max-w-md mx-auto">
-              Analizamos la estructura espacial para respetar alineaciones, imágenes y saltos de línea (Enters).
+              Analizamos fuentes, negritas, imágenes y espaciado original para un documento editable perfecto.
             </p>
           </div>
 
@@ -378,22 +349,11 @@ export default function PdfToWordConverter() {
                   disabled={isConverting}
                 >
                   {isConverting ? <Loader2 className="h-6 w-6 animate-spin mr-2" /> : <FileCheck className="h-6 w-6 mr-2" />}
-                  {isConverting ? "Procesando..." : "Convertir y Descargar"}
+                  {isConverting ? "Reconstruyendo..." : "Convertir y Descargar"}
                 </Button>
               </div>
             )}
           </Card>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="flex items-center gap-4 p-4 bg-blue-50/50 border border-blue-100 rounded-2xl">
-              <ImageIcon className="h-5 w-5 text-blue-600 shrink-0" />
-              <p className="text-[10px] font-bold text-blue-800 uppercase tracking-tighter">Respeto de saltos de línea (Enters)</p>
-            </div>
-            <div className="flex items-center gap-4 p-4 bg-emerald-50/50 border border-emerald-100 rounded-2xl">
-              <FileCheck className="h-5 w-5 text-emerald-600 shrink-0" />
-              <p className="text-[10px] font-bold text-emerald-800 uppercase tracking-tighter">Extracción de logos y gráficos</p>
-            </div>
-          </div>
         </div>
       </main>
     </div>
