@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -24,6 +23,11 @@ import logo from "@/app/icono.png";
 import { Document, Packer, Paragraph, TextRun } from "docx";
 import { saveAs } from "file-saver";
 
+// Versión estable de PDF.js
+const PDFJS_VERSION = "3.11.174";
+const PDFJS_CDN = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}/pdf.min.js`;
+const PDFJS_WORKER_CDN = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}/pdf.worker.min.js`;
+
 export default function PdfToWordConverter() {
   const [mounted, setMounted] = useState(false);
   const [lang, setLang] = useState<Language>('es');
@@ -34,28 +38,32 @@ export default function PdfToWordConverter() {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [isConverting, setIsConverting] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [pdfjs, setPdfjs] = useState<any>(null);
+  const [libReady, setLibReady] = useState(false);
 
   useEffect(() => {
     setMounted(true);
     
-    const initPdfJs = async () => {
-      try {
-        // Utilizamos la versión 'legacy' para evitar errores de sintaxis moderna (como el error 'super')
-        // en entornos de empaquetado como Turbopack o Next.js
-        const pdfjsModule = await import("pdfjs-dist/legacy/build/pdf.mjs");
-        
-        // Configuramos el worker utilizando un CDN para garantizar máxima compatibilidad
-        // y evitar problemas de carga de archivos locales pesados
-        pdfjsModule.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsModule.version}/pdf.worker.min.mjs`;
-        
-        setPdfjs(pdfjsModule);
-      } catch (error) {
-        console.error("Error al cargar el motor de PDF.js:", error);
+    // Carga dinámica de PDF.js para evitar errores de compilación/empaquetado
+    const loadPdfJs = () => {
+      if ((window as any).pdfjsLib) {
+        setLibReady(true);
+        return;
       }
+
+      const script = document.createElement("script");
+      script.src = PDFJS_CDN;
+      script.onload = () => {
+        const pdfjsLib = (window as any).pdfjsLib;
+        pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER_CDN;
+        setLibReady(true);
+      };
+      script.onerror = () => {
+        console.error("No se pudo cargar el motor de PDF");
+      };
+      document.head.appendChild(script);
     };
 
-    initPdfJs();
+    loadPdfJs();
   }, []);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -72,21 +80,22 @@ export default function PdfToWordConverter() {
   };
 
   const convertToWord = async () => {
-    if (!pdfFile || !pdfjs) {
+    const pdfjsLib = (window as any).pdfjsLib;
+    if (!pdfFile || !pdfjsLib) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "El motor de conversión se está preparando. Por favor, intenta de nuevo en un segundo."
+        description: "El motor de conversión aún no está listo."
       });
       return;
     }
     
     setIsConverting(true);
-    setProgress(10);
+    setProgress(5);
 
     try {
       const arrayBuffer = await pdfFile.arrayBuffer();
-      const loadingTask = pdfjs.getDocument({ data: arrayBuffer });
+      const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
       const pdf = await loadingTask.promise;
       
       const numPages = pdf.numPages;
@@ -99,9 +108,8 @@ export default function PdfToWordConverter() {
         let lastY = -1;
         let currentLine = "";
 
-        // @ts-ignore - items de PDF.js pueden variar según versión
         textContent.items.forEach((item: any) => {
-          // Heurística para detectar saltos de línea basados en la posición vertical (Y)
+          // Heurística de detección de líneas basada en posición vertical
           if (lastY !== -1 && Math.abs(item.transform[5] - lastY) > 5) {
             if (currentLine.trim()) {
               paragraphs.push(new Paragraph({
@@ -115,20 +123,21 @@ export default function PdfToWordConverter() {
           lastY = item.transform[5];
         });
 
+        // Última línea de la página
         if (currentLine.trim()) {
           paragraphs.push(new Paragraph({
             children: [new TextRun(currentLine)],
           }));
         }
 
-        // Espacio entre páginas
+        // Salto de página en Word
         if (i < numPages) {
           paragraphs.push(new Paragraph({
             children: [new TextRun({ text: "", break: 1 })],
           }));
         }
 
-        setProgress(10 + (Math.round((i / numPages) * 80)));
+        setProgress(10 + (Math.round((i / numPages) * 85)));
       }
 
       const doc = new Document({
@@ -143,15 +152,15 @@ export default function PdfToWordConverter() {
       
       setProgress(100);
       toast({
-        title: "Conversión Finalizada",
-        description: "El archivo Word ha sido generado correctamente."
+        title: "Éxito",
+        description: "Archivo Word descargado correctamente."
       });
     } catch (error) {
-      console.error("Error durante la conversión:", error);
+      console.error("Error en conversión:", error);
       toast({
         variant: "destructive",
-        title: "Error de Conversión",
-        description: "No se pudo procesar este archivo PDF. Puede que esté protegido o dañado."
+        title: "Error",
+        description: "No se pudo procesar el PDF localmente."
       });
     } finally {
       setIsConverting(false);
@@ -195,7 +204,12 @@ export default function PdfToWordConverter() {
           </div>
 
           <Card className="border-4 border-dashed border-primary/20 p-8 sm:p-12 bg-white/50 backdrop-blur-sm rounded-[2.5rem] relative overflow-hidden group">
-            {!pdfFile ? (
+            {!libReady ? (
+              <div className="flex flex-col items-center justify-center py-12 gap-4">
+                <Loader2 className="h-12 w-12 text-primary animate-spin" />
+                <p className="font-bold text-primary animate-pulse uppercase tracking-widest text-xs">Iniciando motor local...</p>
+              </div>
+            ) : !pdfFile ? (
               <div 
                 onClick={() => fileInputRef.current?.click()}
                 className="flex flex-col items-center justify-center space-y-6 cursor-pointer"
@@ -242,7 +256,7 @@ export default function PdfToWordConverter() {
                 {isConverting && (
                   <div className="space-y-3">
                     <div className="flex justify-between text-sm font-black text-primary uppercase tracking-widest">
-                      <span>{t.convertingPdf}</span>
+                      <span>Procesando archivo...</span>
                       <span>{progress}%</span>
                     </div>
                     <Progress value={progress} className="h-3 bg-primary/10" />
@@ -251,16 +265,16 @@ export default function PdfToWordConverter() {
 
                 <div className="flex flex-col gap-4">
                   <Button 
-                    className="w-full h-16 bg-primary hover:bg-primary/90 text-white font-black rounded-2xl shadow-2xl shadow-primary/20 text-lg uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50"
+                    className="w-full h-16 bg-primary hover:bg-primary/90 text-white font-black rounded-2xl shadow-2xl shadow-primary/20 text-lg uppercase tracking-widest transition-all active:scale-95"
                     onClick={convertToWord}
-                    disabled={isConverting || !pdfjs}
+                    disabled={isConverting}
                   >
                     {isConverting ? (
                       <Loader2 className="h-6 w-6 animate-spin mr-2" />
                     ) : (
                       <FileCheck className="h-6 w-6 mr-2" />
                     )}
-                    {isConverting ? "Procesando..." : t.downloadDocx}
+                    {isConverting ? "Analizando..." : t.downloadDocx}
                   </Button>
                 </div>
               </div>
@@ -270,7 +284,7 @@ export default function PdfToWordConverter() {
           <div className="flex items-center gap-4 p-4 bg-orange-50 border border-orange-100 rounded-2xl">
             <AlertCircle className="h-5 w-5 text-orange-500 shrink-0" />
             <p className="text-[11px] font-bold text-orange-700 leading-tight">
-              Nota: La conversión extrae el texto manteniendo párrafos básicos. Formatos complejos como tablas, formularios o imágenes anidadas podrían no preservarse perfectamente en esta versión.
+              Procesamiento Local: Tus archivos no se suben a ningún servidor. La conversión se realiza íntegramente en tu navegador para máxima privacidad.
             </p>
           </div>
         </div>
