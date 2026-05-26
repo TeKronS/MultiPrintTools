@@ -102,7 +102,7 @@ export default function ImageToPdfConverter() {
       file,
       name: file.name,
       quantity: 1,
-      orientation: orientation // Default to current global orientation
+      orientation: orientation 
     }));
 
     setImages(prev => [...prev, ...newImages]);
@@ -138,8 +138,6 @@ export default function ImageToPdfConverter() {
 
     try {
       const nPerPage = parseInt(imagesPerPage);
-      
-      // Initial PDF orientation depends on the first page if nPerPage is 1
       const initialOrient = (nPerPage === 1 && expandedImagesList[0].orientation) 
         ? expandedImagesList[0].orientation 
         : orientation;
@@ -152,8 +150,6 @@ export default function ImageToPdfConverter() {
 
       for (let i = 0; i < expandedImagesList.length; i += nPerPage) {
         const pageImages = expandedImagesList.slice(i, i + nPerPage);
-        
-        // Determine orientation for THIS page
         let currentPageOrient = orientation;
         if (nPerPage === 1) {
           currentPageOrient = pageImages[0].orientation || orientation;
@@ -161,9 +157,6 @@ export default function ImageToPdfConverter() {
 
         if (i > 0) {
           pdf.addPage(paper.format as any, currentPageOrient === 'portrait' ? 'p' : 'l');
-        } else {
-          // If first page orientation is different from initial orientation set in constructor
-          // (Though we tried to match it above)
         }
 
         const pageWidth = currentPageOrient === 'portrait' ? paper.width : paper.height;
