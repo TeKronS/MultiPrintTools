@@ -21,6 +21,7 @@ import { Language, translations } from "@/lib/translations";
 import { LanguageSelector } from "./LanguageSelector";
 import logo from "@/app/icono.png";
 
+// Versiones estables para uso vía CDN (v2.x es la más compatible con Turbopack)
 const PDFJS_VERSION = "2.16.105";
 const DOCX_VERSION = "7.1.0";
 const FILE_SAVER_VERSION = "2.0.5";
@@ -59,25 +60,30 @@ export default function PdfToWordConverter() {
         script.src = url;
         script.async = true;
         script.onload = () => resolve(true);
-        script.onerror = (e) => reject(e);
+        script.onerror = (e) => {
+          console.error(`Fallo al cargar motor externo: ${url}`, e);
+          reject(e);
+        };
         document.head.appendChild(script);
       });
     };
 
     const loadAllLibs = async () => {
       try {
+        console.log("Cargando motores de conversión locales...");
         for (const lib of LIBS) {
           await loadScript(lib.url);
         }
         if ((window as any).pdfjsLib) {
           (window as any).pdfjsLib.GlobalWorkerOptions.workerSrc = LIBS[1].url;
         }
+        console.log("Motores listos.");
         setLibsReady(true);
       } catch (err) {
         toast({
           variant: "destructive",
-          title: "Error",
-          description: "No se pudieron cargar los motores de conversión."
+          title: "Error de inicialización",
+          description: "No se pudieron cargar los componentes locales. Revisa tu conexión."
         });
       }
     };
@@ -99,11 +105,14 @@ export default function PdfToWordConverter() {
     const docx = (window as any).docx;
     const saveAs = (window as any).saveAs;
 
-    if (!pdfjsLib || !docx || !saveAs) return;
+    if (!pdfjsLib || !docx || !saveAs) {
+      console.error("Librerías no encontradas en el objeto window");
+      return;
+    }
 
     setIsConverting(true);
     setProgress(5);
-    setStatusText("Analizando estructura...");
+    setStatusText("Analizando estructura técnica...");
 
     try {
       const { Document, Packer, Paragraph, TextRun, AlignmentType, ImageRun } = docx;
@@ -114,12 +123,12 @@ export default function PdfToWordConverter() {
       const docChildren: any[] = [];
 
       for (let i = 1; i <= numPages; i++) {
-        setStatusText(`Procesando página ${i} de ${numPages}...`);
+        setStatusText(`Reconstruyendo página ${i} de ${numPages}...`);
         const page = await pdf.getPage(i);
         const viewport = page.getViewport({ scale: 1.0 });
         const pageWidth = viewport.width;
 
-        // 1. EXTRAER IMÁGENES
+        // --- 1. EXTRACCIÓN DE IMÁGENES (LOGOS, FOTOS) ---
         const operatorList = await page.getOperatorList();
         const images: any[] = [];
         
@@ -144,39 +153,41 @@ export default function PdfToWordConverter() {
                   
                   images.push({
                     data: canvas.toDataURL('image/png'),
-                    width: canvas.width / 4, // Escala aproximada
-                    height: canvas.height / 4
+                    width: Math.min(canvas.width / 3.5, pageWidth - 100),
+                    height: canvas.height / 3.5
                   });
                 }
               }
             } catch (e) {
-              console.warn("No se pudo extraer una imagen del PDF", e);
+              console.warn("Fallo al extraer objeto gráfico", e);
             }
           }
         }
 
-        // Insertar imágenes al inicio si hay (común en cabeceras)
         images.forEach(img => {
           docChildren.push(new Paragraph({
             children: [new ImageRun({
               data: img.data,
               transformation: { width: img.width, height: img.height }
             })],
-            alignment: AlignmentType.CENTER
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 200 }
           }));
         });
 
-        // 2. EXTRAER TEXTO CON ANÁLISIS ESPACIAL
+        // --- 2. EXTRACCIÓN DE TEXTO CON ANÁLISIS ESPACIAL Y DETECCIÓN DE ENTERS ---
         const textContent = await page.getTextContent();
         const items = textContent.items as any[];
 
+        // Ordenar por posición Y (arriba a abajo) y luego X (izquierda a derecha)
         items.sort((a, b) => {
           const yDiff = b.transform[5] - a.transform[5];
-          if (Math.abs(yDiff) > 3) return yDiff;
+          if (Math.abs(yDiff) > 5) return yDiff;
           return a.transform[4] - b.transform[4];
         });
 
         let currentY = -1;
+        let lastLineY = -1;
         let lineItems: any[] = [];
         
         const processLine = (line: any[]) => {
@@ -194,30 +205,46 @@ export default function PdfToWordConverter() {
             fontSize = Math.max(fontSize, Math.abs(item.transform[0]));
           });
 
-          // Determinar alineación
+          // DETECCIÓN DE ESPACIOS VERTICALES (ENTERS)
+          if (lastLineY !== -1) {
+            const verticalGap = lastLineY - line[0].transform[5];
+            const threshold = fontSize * 1.8; // Si el hueco es mayor al 180% de la fuente, es un Enter manual
+            
+            if (verticalGap > threshold) {
+              const numEnters = Math.floor(verticalGap / (fontSize * 1.5)) - 1;
+              for (let e = 0; e < numEnters; e++) {
+                docChildren.push(new Paragraph({ children: [new TextRun({ text: "" })] }));
+              }
+            }
+          }
+
+          // Determinar alineación basada en coordenadas X
           const lineCenter = (minX + maxX) / 2;
           const pageCenter = pageWidth / 2;
           let alignment = AlignmentType.LEFT;
           
-          if (Math.abs(lineCenter - pageCenter) < 20 && lineText.length > 5) {
+          if (Math.abs(lineCenter - pageCenter) < 30 && lineText.length > 5) {
             alignment = AlignmentType.CENTER;
-          } else if (maxX > pageWidth - 100 && minX > pageWidth / 2) {
+          } else if (maxX > pageWidth - 80 && minX > pageWidth / 2) {
             alignment = AlignmentType.RIGHT;
           }
 
           docChildren.push(new Paragraph({
             children: [new TextRun({
               text: lineText,
-              size: Math.round(fontSize * 2), // docx usa medio-puntos
+              size: Math.round(fontSize * 2), // docx usa medio-puntos (half-points)
               font: "Calibri"
             })],
             alignment: alignment,
-            spacing: { after: 120 }
+            spacing: { after: 80, before: 0 }
           }));
+
+          lastLineY = line[0].transform[5];
         };
 
         items.forEach(item => {
-          if (currentY !== -1 && Math.abs(item.transform[5] - currentY) > 5) {
+          // Si el cambio en Y es significativo, procesamos la línea anterior
+          if (currentY !== -1 && Math.abs(item.transform[5] - currentY) > 6) {
             processLine(lineItems);
             lineItems = [item];
           } else {
@@ -227,34 +254,37 @@ export default function PdfToWordConverter() {
         });
         processLine(lineItems);
 
+        // Salto de página
         if (i < numPages) {
           docChildren.push(new Paragraph({ children: [new TextRun({ text: "", break: 1 })] }));
+          lastLineY = -1; // Resetear para la nueva página
         }
 
         setProgress(10 + (Math.round((i / numPages) * 85)));
       }
 
+      // Crear el documento final
       const doc = new Document({
-        creator: "MultiPrintTools",
+        creator: "MultiPrintTools Professional",
         title: pdfFile.name,
         sections: [{
           properties: {
-            page: { margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 } }
+            page: { margin: { top: 1200, right: 1200, bottom: 1200, left: 1200 } }
           },
           children: docChildren,
         }],
       });
 
       const blob = await Packer.toBlob(doc);
-      saveAs(blob, pdfFile.name.replace(/\.[^/.]+$/, "") + ".docx");
+      saveAs(blob, pdfFile.name.replace(/\.[^/.]+$/, "") + " (Editado).docx");
       setProgress(100);
-      toast({ title: "Completado", description: "Documento Word generado con éxito." });
+      toast({ title: "¡Éxito!", description: "El documento ha sido reconstruido y descargado." });
     } catch (error) {
-      console.error(error);
-      toast({ variant: "destructive", title: "Error", description: "Fallo al procesar el documento." });
+      console.error("Error crítico en conversión:", error);
+      toast({ variant: "destructive", title: "Error técnico", description: "Hubo un fallo al analizar los objetos del PDF." });
     } finally {
       setIsConverting(false);
-      setTimeout(() => { setProgress(0); setStatusText(""); }, 2000);
+      setTimeout(() => { setProgress(0); setStatusText(""); }, 3000);
     }
   };
 
@@ -284,10 +314,10 @@ export default function PdfToWordConverter() {
         <div className="w-full max-w-2xl space-y-8 animate-fade-in">
           <div className="text-center space-y-3">
             <h2 className="text-3xl sm:text-4xl font-headline font-black tracking-tighter text-slate-900 uppercase">
-              RECONSTRUCCIÓN TÉCNICA
+              RECONSTRUCCIÓN DE DOCUMENTOS
             </h2>
             <p className="text-slate-500 font-medium max-w-md mx-auto">
-              Analiza coordenadas y objetos gráficos para una conversión fiel 100% local.
+              Analizamos la estructura espacial para respetar alineaciones, imágenes y saltos de línea (Enters).
             </p>
           </div>
 
@@ -295,7 +325,7 @@ export default function PdfToWordConverter() {
             {!libsReady ? (
               <div className="flex flex-col items-center justify-center py-12 gap-4">
                 <Loader2 className="h-12 w-12 text-primary animate-spin" />
-                <p className="font-bold text-primary uppercase tracking-widest text-[10px]">Cargando motores...</p>
+                <p className="font-bold text-primary uppercase tracking-widest text-[10px]">Iniciando motores locales...</p>
               </div>
             ) : !pdfFile ? (
               <div onClick={() => fileInputRef.current?.click()} className="flex flex-col items-center justify-center space-y-6 cursor-pointer">
@@ -304,7 +334,7 @@ export default function PdfToWordConverter() {
                 </div>
                 <div className="text-center space-y-2">
                   <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tight">{t.dropPdf}</h3>
-                  <p className="text-slate-500 font-bold text-sm">{t.pdfFormatOnly}</p>
+                  <p className="text-slate-500 font-bold text-sm">Privacidad 100% garantizada. Sin servidores.</p>
                 </div>
                 <Button className="bg-primary hover:bg-primary/90 text-white font-black px-8 py-6 rounded-2xl text-lg uppercase tracking-widest shadow-xl">
                   {t.selectPdf}
@@ -334,7 +364,7 @@ export default function PdfToWordConverter() {
 
                 {isConverting && (
                   <div className="space-y-3">
-                    <div className="flex justify-between text-[10px] font-black text-primary uppercase">
+                    <div className="flex justify-between text-[10px] font-black text-primary uppercase tracking-widest">
                       <span>{statusText}</span>
                       <span>{progress}%</span>
                     </div>
@@ -348,7 +378,7 @@ export default function PdfToWordConverter() {
                   disabled={isConverting}
                 >
                   {isConverting ? <Loader2 className="h-6 w-6 animate-spin mr-2" /> : <FileCheck className="h-6 w-6 mr-2" />}
-                  {isConverting ? "Reconstruyendo..." : "Convertir y Descargar"}
+                  {isConverting ? "Procesando..." : "Convertir y Descargar"}
                 </Button>
               </div>
             )}
@@ -357,11 +387,11 @@ export default function PdfToWordConverter() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex items-center gap-4 p-4 bg-blue-50/50 border border-blue-100 rounded-2xl">
               <ImageIcon className="h-5 w-5 text-blue-600 shrink-0" />
-              <p className="text-[10px] font-bold text-blue-800 uppercase tracking-tighter">Extracción de imágenes y cabeceras</p>
+              <p className="text-[10px] font-bold text-blue-800 uppercase tracking-tighter">Respeto de saltos de línea (Enters)</p>
             </div>
             <div className="flex items-center gap-4 p-4 bg-emerald-50/50 border border-emerald-100 rounded-2xl">
               <FileCheck className="h-5 w-5 text-emerald-600 shrink-0" />
-              <p className="text-[10px] font-bold text-emerald-800 uppercase tracking-tighter">Detección de alineación automática</p>
+              <p className="text-[10px] font-bold text-emerald-800 uppercase tracking-tighter">Extracción de logos y gráficos</p>
             </div>
           </div>
         </div>
