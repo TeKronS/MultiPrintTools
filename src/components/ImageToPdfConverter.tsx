@@ -301,8 +301,8 @@ export default function ImageToPdfConverter() {
   );
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50 font-body">
-      <header className="h-16 border-b border-border bg-white flex items-center justify-between px-6 sticky top-0 z-50 shadow-sm">
+    <div className="flex flex-col h-screen max-h-screen bg-slate-50 font-body overflow-hidden">
+      <header className="h-16 shrink-0 border-b border-border bg-white flex items-center justify-between px-6 z-50 shadow-sm">
         <div className="flex items-center gap-4">
           <Link href="/">
             <Button variant="ghost" size="sm" className="gap-2 font-bold text-muted-foreground hover:text-primary px-2">
@@ -332,7 +332,7 @@ export default function ImageToPdfConverter() {
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+      <main className="flex-1 flex overflow-hidden relative">
         {/* Left Column - Pages Thumbnails */}
         <aside className="hidden md:flex w-[80px] bg-white border-r border-border flex-col items-center py-4 gap-4 overflow-y-auto shrink-0 shadow-inner z-10 scrollbar-hide">
           {images.map((img, idx) => (
@@ -459,7 +459,7 @@ export default function ImageToPdfConverter() {
         </div>
 
         {/* Sidebar Settings - Desktop Right */}
-        <aside className="hidden lg:block w-72 bg-white border-l border-border shadow-xl p-5 overflow-y-auto z-20">
+        <aside className="hidden lg:block w-72 bg-white border-l border-border shadow-xl p-5 overflow-y-auto shrink-0 z-20">
           {renderSettingsContent()}
         </aside>
 
