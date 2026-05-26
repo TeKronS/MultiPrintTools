@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -10,7 +9,8 @@ import {
   Loader2, 
   X,
   FileCheck,
-  AlertCircle
+  AlertCircle,
+  Sparkles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -19,14 +19,12 @@ import { useToast } from "@/hooks/use-toast";
 import { Language, translations } from "@/lib/translations";
 import { LanguageSelector } from "./LanguageSelector";
 import logo from "@/app/icono.png";
+import { convertPdfToWordStructure } from "@/ai/flows/pdf-to-word-flow";
 
-const PDFJS_VERSION = "2.16.105";
 const DOCX_VERSION = "7.1.0";
 const FILE_SAVER_VERSION = "2.0.5";
 
 const LIBS = [
-  { id: 'pdfjs', url: `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}/pdf.min.js` },
-  { id: 'pdfjs-worker', url: `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}/pdf.worker.min.js` },
   { id: 'docx', url: `https://unpkg.com/docx@${DOCX_VERSION}/build/index.js` },
   { id: 'file-saver', url: `https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/${FILE_SAVER_VERSION}/FileSaver.min.js` }
 ];
@@ -67,9 +65,6 @@ export default function PdfToWordConverter() {
         for (const lib of LIBS) {
           await loadScript(lib.url);
         }
-        if ((window as any).pdfjsLib) {
-          (window as any).pdfjsLib.GlobalWorkerOptions.workerSrc = LIBS[1].url;
-        }
         setLibsReady(true);
       } catch (err) {
         toast({
@@ -90,148 +85,69 @@ export default function PdfToWordConverter() {
     }
   };
 
-  const convertToWord = async () => {
+  const convertToWordAI = async () => {
     if (!pdfFile || !libsReady) return;
     
-    const pdfjsLib = (window as any).pdfjsLib;
     const docx = (window as any).docx;
     const saveAs = (window as any).saveAs;
 
-    if (!pdfjsLib || !docx || !saveAs) {
+    if (!docx || !saveAs) {
       toast({ variant: "destructive", title: "Error", description: "Librerías no listas." });
       return;
     }
 
     setIsConverting(true);
-    setProgress(5);
-    setStatusText("Analizando documento...");
+    setProgress(10);
+    setStatusText("La IA está analizando tu documento...");
 
     try {
-      const { Document, Packer, Paragraph, TextRun, AlignmentType } = docx;
-      const arrayBuffer = await pdfFile.arrayBuffer();
-      const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-      const pdf = await loadingTask.promise;
-      const numPages = pdf.numPages;
+      const reader = new FileReader();
+      const base64Promise = new Promise<string>((resolve) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(pdfFile);
+      });
+
+      const pdfDataUri = await base64Promise;
       
+      // Llamamos a la IA para obtener la estructura
+      const structure = await convertPdfToWordStructure({ pdfDataUri });
+      
+      setProgress(60);
+      setStatusText("Reconstruyendo documento Word...");
+
+      const { Document, Packer, Paragraph, TextRun, AlignmentType } = docx;
       const docChildren: any[] = [];
 
-      for (let i = 1; i <= numPages; i++) {
-        setStatusText(`Procesando página ${i}...`);
-        const page = await pdf.getPage(i);
-        const viewport = page.getViewport({ scale: 1.0 });
-        const pageWidth = viewport.width;
-        const pageHeight = viewport.height;
+      structure.pages.forEach((page, pageIdx) => {
+        page.paragraphs.forEach((p) => {
+          const textRuns = p.runs.map(run => new TextRun({
+            text: run.text,
+            bold: run.bold,
+            underline: run.underline ? {} : undefined,
+            italics: run.italic,
+            size: run.fontSize ? run.fontSize * 2 : 24, // Word usa medio-puntos
+            font: run.fontFamily || "Arial",
+          }));
 
-        const textContent = await page.getTextContent();
-        const items = textContent.items as any[];
-        const styles = textContent.styles as any;
-
-        // Ordenar items de arriba a abajo y de izquierda a derecha
-        items.sort((a, b) => {
-          const yDiff = b.transform[5] - a.transform[5];
-          if (Math.abs(yDiff) > 5) return yDiff;
-          return a.transform[4] - b.transform[4];
-        });
-
-        let currentY = -1;
-        let lastLineY = -1;
-        let lineItems: any[] = [];
-        
-        const processLine = (line: any[]) => {
-          if (line.length === 0) return;
-          
-          let minX = Infinity;
-          let maxX = -Infinity;
-          let maxFontSize = 11;
-          const textRuns: any[] = [];
-
-          line.forEach(item => {
-            const fontStyle = styles[item.fontName];
-            
-            // Detección de Familia Tipográfica
-            let fontFamily = "Arial";
-            if (fontStyle && fontStyle.fontFamily) {
-              const rawFont = fontStyle.fontFamily.toLowerCase();
-              if (rawFont.includes('times')) fontFamily = "Times New Roman";
-              else if (rawFont.includes('calibri')) fontFamily = "Calibri";
-              else if (rawFont.includes('arial')) fontFamily = "Arial";
-            }
-
-            // Detección de Negritas
-            const fontNameLower = (item.fontName || "").toLowerCase();
-            const isBold = fontNameLower.includes('bold') || 
-                           fontNameLower.includes('black') || 
-                           fontNameLower.includes('heavy') ||
-                           fontNameLower.includes('w7') ||
-                           fontNameLower.includes('w8') ||
-                           fontNameLower.includes('w9');
-            
-            minX = Math.min(minX, item.transform[4]);
-            maxX = Math.max(maxX, item.transform[4] + item.width);
-            const fontSize = Math.abs(item.transform[0]);
-            maxFontSize = Math.max(maxFontSize, fontSize);
-
-            textRuns.push(new TextRun({
-              text: item.str,
-              size: Math.round(fontSize * 2),
-              bold: isBold,
-              font: fontFamily
-            }));
-          });
-
-          // Detección de Alineación Simple
-          const lineCenter = (minX + maxX) / 2;
-          const pageCenter = pageWidth / 2;
           let alignment = AlignmentType.LEFT;
-          
-          if (Math.abs(lineCenter - pageCenter) < 50) {
-            alignment = AlignmentType.CENTER;
-          } else if (maxX > pageWidth - 100) {
-            alignment = AlignmentType.RIGHT;
-          }
-
-          // Detección de "Enters" por espacio vertical
-          if (lastLineY !== -1) {
-            const verticalGap = lastLineY - line[0].transform[5];
-            if (verticalGap > maxFontSize * 2) {
-              const numEnters = Math.max(1, Math.floor(verticalGap / (maxFontSize * 1.5)) - 1);
-              for (let e = 0; e < numEnters; e++) {
-                docChildren.push(new Paragraph({ children: [new TextRun({ text: "" })] }));
-              }
-            }
-          }
+          if (p.alignment === 'center') alignment = AlignmentType.CENTER;
+          if (p.alignment === 'right') alignment = AlignmentType.RIGHT;
+          if (p.alignment === 'justify') alignment = AlignmentType.JUSTIFIED;
 
           docChildren.push(new Paragraph({
             children: textRuns,
             alignment: alignment,
-            spacing: { after: 120 }
+            spacing: { after: p.spacingAfter || 200 }
           }));
-
-          lastLineY = line[0].transform[5];
-        };
-
-        items.forEach(item => {
-          if (currentY !== -1 && Math.abs(item.transform[5] - currentY) > 8) {
-            processLine(lineItems);
-            lineItems = [item];
-          } else {
-            lineItems.push(item);
-          }
-          currentY = item.transform[5];
         });
-        processLine(lineItems);
 
-        // Salto de página
-        if (i < numPages) {
+        if (pageIdx < structure.pages.length - 1) {
           docChildren.push(new Paragraph({ children: [new TextRun({ text: "", break: 1 })] }));
-          lastLineY = -1;
         }
-
-        setProgress(10 + Math.round((i / numPages) * 85));
-      }
+      });
 
       const docObj = new Document({
-        creator: "MultiPrintTools",
+        creator: "MultiPrintTools AI",
         title: pdfFile.name,
         sections: [{
           properties: { 
@@ -244,12 +160,13 @@ export default function PdfToWordConverter() {
       });
 
       const blob = await Packer.toBlob(docObj);
-      saveAs(blob, pdfFile.name.replace(/\.[^/.]+$/, "") + " (Convertido).docx");
+      saveAs(blob, pdfFile.name.replace(/\.[^/.]+$/, "") + " (AI-Convertido).docx");
+      
       setProgress(100);
-      toast({ title: "Convertido", description: "El documento se ha generado correctamente." });
+      toast({ title: "¡Éxito!", description: "Conversión de alta fidelidad completada." });
     } catch (error) {
-      console.error("Error en conversión:", error);
-      toast({ variant: "destructive", title: "Error", description: "No se pudo reconstruir el documento." });
+      console.error("Error en conversión AI:", error);
+      toast({ variant: "destructive", title: "Error", description: "La IA no pudo procesar este documento." });
     } finally {
       setIsConverting(false);
       setTimeout(() => setProgress(0), 3000);
@@ -272,7 +189,7 @@ export default function PdfToWordConverter() {
             <div className="w-8 h-8 relative rounded-lg overflow-hidden border">
               <Image src={logo} alt="Logo" fill className="object-contain" />
             </div>
-            <h1 className="text-xl font-headline font-black tracking-tighter text-primary uppercase">PDF A WORD</h1>
+            <h1 className="text-xl font-headline font-black tracking-tighter text-primary uppercase">PDF A WORD AI</h1>
           </div>
         </div>
         <LanguageSelector language={lang} setLanguage={setLang} />
@@ -281,11 +198,14 @@ export default function PdfToWordConverter() {
       <main className="flex-1 flex flex-col items-center justify-center p-6 sm:p-12 overflow-y-auto">
         <div className="w-full max-w-2xl space-y-8 animate-fade-in">
           <div className="text-center space-y-3">
+            <Badge className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 font-black mb-2">
+              <Sparkles className="h-3 w-3 mr-1" /> POTENCIADO POR INTELIGENCIA ARTIFICIAL
+            </Badge>
             <h2 className="text-3xl sm:text-4xl font-headline font-black tracking-tighter text-slate-900 uppercase">
-              CONVERSIÓN FIEL DE TEXTO
+              FIDELIDAD EXTREMA
             </h2>
             <p className="text-slate-500 font-medium max-w-md mx-auto">
-              Extracción precisa de fuentes, negritas y espaciado original.
+              Nuestra IA analiza el diseño original para respetar tipos de letra, negritas, subrayados y espaciado real.
             </p>
           </div>
 
@@ -293,7 +213,7 @@ export default function PdfToWordConverter() {
             {!libsReady ? (
               <div className="flex flex-col items-center justify-center py-12 gap-4">
                 <Loader2 className="h-12 w-12 text-primary animate-spin" />
-                <p className="font-bold text-primary uppercase tracking-widest text-[10px]">Cargando motores locales...</p>
+                <p className="font-bold text-primary uppercase tracking-widest text-[10px]">Iniciando motores de IA...</p>
               </div>
             ) : !pdfFile ? (
               <div onClick={() => fileInputRef.current?.click()} className="flex flex-col items-center justify-center space-y-6 cursor-pointer">
@@ -302,7 +222,7 @@ export default function PdfToWordConverter() {
                 </div>
                 <div className="text-center space-y-2">
                   <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tight">{t.dropPdf}</h3>
-                  <p className="text-slate-500 font-bold text-sm">Privacidad 100% garantizada: Todo ocurre en tu navegador.</p>
+                  <p className="text-slate-500 font-bold text-sm">La IA leerá tu PDF y lo reconstruirá desde cero.</p>
                 </div>
                 <Button className="bg-primary hover:bg-primary/90 text-white font-black px-8 py-6 rounded-2xl text-lg uppercase tracking-widest shadow-xl">
                   {t.selectPdf}
@@ -333,7 +253,10 @@ export default function PdfToWordConverter() {
                 {isConverting && (
                   <div className="space-y-3">
                     <div className="flex justify-between text-[10px] font-black text-primary uppercase tracking-widest">
-                      <span>{statusText}</span>
+                      <span className="flex items-center gap-2">
+                        <Sparkles className="h-3 w-3 animate-pulse" />
+                        {statusText}
+                      </span>
                       <span>{progress}%</span>
                     </div>
                     <Progress value={progress} className="h-3 bg-primary/10 rounded-full" />
@@ -341,12 +264,12 @@ export default function PdfToWordConverter() {
                 )}
 
                 <Button 
-                  className="w-full h-16 bg-primary hover:bg-primary/90 text-white font-black rounded-2xl shadow-2xl text-lg uppercase tracking-widest"
-                  onClick={convertToWord}
+                  className="w-full h-16 bg-primary hover:bg-primary/90 text-white font-black rounded-2xl shadow-2xl text-lg uppercase tracking-widest gap-3"
+                  onClick={convertToWordAI}
                   disabled={isConverting}
                 >
-                  {isConverting ? <Loader2 className="h-6 w-6 animate-spin mr-2" /> : <FileCheck className="h-6 w-6 mr-2" />}
-                  {isConverting ? "Procesando..." : "Convertir Texto"}
+                  {isConverting ? <Loader2 className="h-6 w-6 animate-spin" /> : <Sparkles className="h-6 w-6" />}
+                  {isConverting ? "Analizando..." : "Convertir con IA"}
                 </Button>
               </div>
             )}
@@ -355,9 +278,9 @@ export default function PdfToWordConverter() {
           <div className="flex items-start gap-3 bg-slate-100 p-4 rounded-2xl border border-slate-200">
             <AlertCircle className="h-5 w-5 text-slate-400 shrink-0 mt-0.5" />
             <div className="space-y-1">
-              <p className="text-xs font-bold text-slate-600 uppercase tracking-wider">Aviso de Formato</p>
+              <p className="text-xs font-bold text-slate-600 uppercase tracking-wider">Modo Inteligente</p>
               <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
-                Esta herramienta prioriza la fidelidad del texto y el espaciado. Las imágenes se omiten para mantener la estructura del documento limpia y editable.
+                Este modo utiliza modelos de visión avanzados para entender el diseño original. Es mucho más lento que el modo clásico pero respeta estilos como Times New Roman y Negritas.
               </p>
             </div>
           </div>
