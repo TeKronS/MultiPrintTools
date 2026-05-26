@@ -343,7 +343,7 @@ export default function ImageToPdfConverter() {
           {t.clearAll}
         </Button>
         {/* Espacio en blanco reservado para evitar que el botón flotante móvil tape contenido */}
-        <div className="h-20 sm:h-0" />
+        <div className="h-32 sm:h-0" />
       </div>
     </div>
   );
@@ -428,7 +428,7 @@ export default function ImageToPdfConverter() {
                 </div>
               </div>
             ) : (
-              <div className="flex flex-wrap gap-8 justify-center lg:justify-start pb-24">
+              <div className="grid grid-flow-col auto-cols-max gap-8 items-start pb-32">
                 {images.map((img, idx) => (
                   <div 
                     key={img.id} 
@@ -473,7 +473,7 @@ export default function ImageToPdfConverter() {
 
                     <div 
                       className="relative w-full bg-white shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-sm overflow-hidden border border-slate-200"
-                      style={{ aspectRatio: `${aspectRatio}` }}
+                      style={{ aspectRatio: `${aspectRatio}`, maxWidth: '200px' }}
                     >
                       <div 
                         className="absolute inset-0 bg-white" 
@@ -525,7 +525,7 @@ export default function ImageToPdfConverter() {
                 
                 <Button 
                   variant="outline" 
-                  className="w-full aspect-square border-2 border-dashed border-primary/20 hover:border-primary/40 hover:bg-white text-primary/60 font-black gap-2 rounded-xl transition-all flex flex-col justify-center max-w-[200px]"
+                  className="w-[200px] aspect-square border-2 border-dashed border-primary/20 hover:border-primary/40 hover:bg-white text-primary/60 font-black gap-2 rounded-xl transition-all flex flex-col justify-center"
                   onClick={() => fileInputRef.current?.click()}
                 >
                   <PlusCircle className="h-6 w-6" />
