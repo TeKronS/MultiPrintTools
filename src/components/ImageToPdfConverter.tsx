@@ -191,8 +191,6 @@ export default function ImageToPdfConverter() {
     }
   };
 
-  if (!mounted) return null;
-
   const renderSettingsContent = () => (
     <div className="space-y-3">
       <div className="flex items-center gap-2 mb-1">
@@ -200,7 +198,7 @@ export default function ImageToPdfConverter() {
         <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Configuración</h2>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-4">
         <div className="space-y-1">
           <Label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">{t.paperSize}</Label>
           <Select value={paperSize} onValueChange={setPaperSize}>
@@ -263,7 +261,7 @@ export default function ImageToPdfConverter() {
         </div>
       </div>
 
-      <Separator className="my-0.5 opacity-50" />
+      <Separator className="my-2 opacity-50" />
 
       <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 space-y-0.5">
         <div className="flex justify-between items-center">
@@ -276,7 +274,7 @@ export default function ImageToPdfConverter() {
         </div>
       </div>
 
-      <div className="pt-1 space-y-2">
+      <div className="pt-2 space-y-2">
         <Button 
           className="w-full h-10 bg-primary hover:bg-primary/90 text-white font-black gap-2 rounded-xl shadow-lg transition-transform active:scale-95 text-xs"
           onClick={exportPdf}
@@ -317,7 +315,7 @@ export default function ImageToPdfConverter() {
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <LanguageSelector language={lang} setLanguage={setLang} />
+          {mounted && <LanguageSelector language={lang} setLanguage={setLang} />}
           <Button 
             className="hidden sm:flex bg-primary hover:bg-primary/90 text-white font-black gap-2 rounded-xl shadow-md h-9 px-5 text-xs"
             onClick={exportPdf}
@@ -331,11 +329,11 @@ export default function ImageToPdfConverter() {
 
       <main className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
         {/* Left Column - Pages Thumbnails */}
-        <aside className="hidden md:flex w-[80px] bg-white border-r border-border flex-col items-center py-4 gap-2 overflow-y-auto shrink-0 shadow-inner z-10 scrollbar-hide">
+        <aside className="hidden md:flex w-[80px] bg-white border-r border-border flex-col items-center py-4 gap-4 overflow-y-auto shrink-0 shadow-inner z-10 scrollbar-hide">
           {images.map((img, idx) => (
             <div 
               key={img.id} 
-              className="relative w-12 aspect-[3/4] border border-slate-200 rounded-sm overflow-hidden bg-slate-50 shadow-sm transition-all hover:border-primary/50 group cursor-pointer"
+              className="relative w-10 aspect-[3/4] border border-slate-200 rounded-sm overflow-hidden bg-slate-50 shadow-sm transition-all hover:border-primary/50 group cursor-pointer shrink-0"
               title={img.name}
               onClick={() => {
                 document.getElementById(`page-${img.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -343,14 +341,14 @@ export default function ImageToPdfConverter() {
             >
               <img src={img.url} alt="" className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/10 transition-colors" />
-              <div className="absolute top-0 left-0 bg-primary/90 backdrop-blur-sm text-[8px] font-black text-white px-0.5 min-w-[14px] text-center rounded-br-[2px] shadow-sm">
+              <div className="absolute top-0 left-0 bg-primary/90 backdrop-blur-sm text-[7px] font-black text-white px-0.5 min-w-[12px] text-center rounded-br-[2px] shadow-sm">
                 {idx + 1}
               </div>
             </div>
           ))}
           <button 
             onClick={() => fileInputRef.current?.click()}
-            className="w-12 h-12 border border-dashed border-slate-300 rounded-sm flex items-center justify-center hover:bg-slate-50 hover:border-primary/50 transition-colors text-slate-400 shrink-0"
+            className="w-10 h-10 border border-dashed border-slate-300 rounded-sm flex items-center justify-center hover:bg-slate-50 hover:border-primary/50 transition-colors text-slate-400 shrink-0"
           >
             <Plus className="h-4 w-4" />
           </button>
@@ -379,12 +377,12 @@ export default function ImageToPdfConverter() {
                 />
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,200px))] gap-8 justify-center sm:justify-start">
                 {images.map((img, idx) => (
                   <div 
                     key={img.id} 
                     id={`page-${img.id}`}
-                    className="relative group w-full animate-fade-in"
+                    className="relative group w-full max-w-[200px] animate-fade-in"
                   >
                     <div className="absolute -top-3 -right-3 z-20 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                        <Button 
@@ -443,7 +441,7 @@ export default function ImageToPdfConverter() {
                 
                 <Button 
                   variant="outline" 
-                  className="w-full aspect-square sm:aspect-auto sm:h-auto border-2 border-dashed border-primary/20 hover:border-primary/40 hover:bg-white text-primary/60 font-black gap-2 rounded-xl transition-all flex flex-col justify-center min-h-[200px]"
+                  className="w-full aspect-square border-2 border-dashed border-primary/20 hover:border-primary/40 hover:bg-white text-primary/60 font-black gap-2 rounded-xl transition-all flex flex-col justify-center max-w-[200px]"
                   onClick={() => fileInputRef.current?.click()}
                 >
                   <PlusCircle className="h-6 w-6" />
