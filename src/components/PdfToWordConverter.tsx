@@ -24,8 +24,8 @@ import logo from "@/app/icono.png";
 import { Document, Packer, Paragraph, TextRun } from "docx";
 import { saveAs } from "file-saver";
 
-// Versión estable 3.x para máxima compatibilidad con navegadores y sin errores de sintaxis modernos
-const PDFJS_VERSION = "3.11.174";
+// Utilizamos la versión 2.16.105 que es la más estable y compatible (no usa 'static blocks' ni sintaxis que rompa Turbopack)
+const PDFJS_VERSION = "2.16.105";
 const PDFJS_CDN = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}/pdf.min.js`;
 const PDFJS_WORKER_CDN = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}/pdf.worker.min.js`;
 
@@ -45,12 +45,13 @@ export default function PdfToWordConverter() {
     setMounted(true);
     
     const loadPdfJs = () => {
-      // Si ya está cargado globalmente, marcar como listo
+      // Evitar carga duplicada
       if (typeof window !== "undefined" && (window as any).pdfjsLib) {
         setLibReady(true);
         return;
       }
 
+      // Cargar script principal
       const script = document.createElement("script");
       script.src = PDFJS_CDN;
       script.async = true;
@@ -62,7 +63,12 @@ export default function PdfToWordConverter() {
         }
       };
       script.onerror = () => {
-        console.error("No se pudo cargar el motor de PDF desde el CDN");
+        console.error("No se pudo cargar el motor de PDF. Revisa la conexión a internet.");
+        toast({
+          variant: "destructive",
+          title: "Error de conexión",
+          description: "No se pudieron cargar las librerías necesarias desde el CDN."
+        });
       };
       document.head.appendChild(script);
     };
@@ -70,7 +76,7 @@ export default function PdfToWordConverter() {
     if (typeof window !== "undefined") {
       loadPdfJs();
     }
-  }, []);
+  }, [toast]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -79,7 +85,7 @@ export default function PdfToWordConverter() {
     } else if (file) {
       toast({
         variant: "destructive",
-        title: "Error",
+        title: "Formato no válido",
         description: t.pdfFormatOnly
       });
     }
@@ -87,11 +93,14 @@ export default function PdfToWordConverter() {
 
   const convertToWord = async () => {
     const pdfjsLib = typeof window !== "undefined" ? (window as any).pdfjsLib : null;
-    if (!pdfFile || !pdfjsLib) {
+    
+    if (!pdfFile) return;
+    
+    if (!pdfjsLib) {
       toast({
         variant: "destructive",
-        title: "Error",
-        description: "El motor de conversión aún no está listo. Por favor, espera un momento."
+        title: "Motor no listo",
+        description: "El motor de conversión aún se está cargando. Inténtalo en unos segundos."
       });
       return;
     }
@@ -101,11 +110,12 @@ export default function PdfToWordConverter() {
 
     try {
       const arrayBuffer = await pdfFile.arrayBuffer();
+      // En v2.x el método es getDocument
       const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
       const pdf = await loadingTask.promise;
       
       const numPages = pdf.numPages;
-      const paragraphs: Paragraph[] = [];
+      const docParagraphs: Paragraph[] = [];
 
       for (let i = 1; i <= numPages; i++) {
         const page = await pdf.getPage(i);
@@ -114,11 +124,12 @@ export default function PdfToWordConverter() {
         let lastY = -1;
         let currentLine = "";
 
+        // Procesar items de texto
         textContent.items.forEach((item: any) => {
-          // Heurística simple para agrupar texto en párrafos/líneas basada en posición vertical
+          // Detectar saltos de línea basados en la posición vertical (transform[5])
           if (lastY !== -1 && Math.abs(item.transform[5] - lastY) > 5) {
             if (currentLine.trim()) {
-              paragraphs.push(new Paragraph({
+              docParagraphs.push(new Paragraph({
                 children: [new TextRun(currentLine)],
               }));
             }
@@ -129,15 +140,16 @@ export default function PdfToWordConverter() {
           lastY = item.transform[5];
         });
 
+        // Añadir la última línea de la página
         if (currentLine.trim()) {
-          paragraphs.push(new Paragraph({
+          docParagraphs.push(new Paragraph({
             children: [new TextRun(currentLine)],
           }));
         }
 
-        // Añadir espacio entre páginas
+        // Salto de página en Word
         if (i < numPages) {
-          paragraphs.push(new Paragraph({
+          docParagraphs.push(new Paragraph({
             children: [new TextRun({ text: "", break: 1 })],
           }));
         }
@@ -145,10 +157,11 @@ export default function PdfToWordConverter() {
         setProgress(10 + (Math.round((i / numPages) * 85)));
       }
 
+      // Crear documento DOCX
       const doc = new Document({
         sections: [{
           properties: {},
-          children: paragraphs,
+          children: docParagraphs,
         }],
       });
 
@@ -157,15 +170,15 @@ export default function PdfToWordConverter() {
       
       setProgress(100);
       toast({
-        title: "Éxito",
-        description: "Documento Word generado localmente."
+        title: "Conversión terminada",
+        description: "El archivo Word se ha generado y descargado correctamente."
       });
     } catch (error) {
       console.error("Error en conversión:", error);
       toast({
         variant: "destructive",
-        title: "Error",
-        description: "Error al procesar el PDF. Asegúrate de que el archivo no esté protegido."
+        title: "Error de procesamiento",
+        description: "No se pudo leer el PDF. Podría estar protegido o dañado."
       });
     } finally {
       setIsConverting(false);
@@ -208,11 +221,11 @@ export default function PdfToWordConverter() {
             </p>
           </div>
 
-          <Card className="border-4 border-dashed border-primary/20 p-8 sm:p-12 bg-white/50 backdrop-blur-sm rounded-[2.5rem] relative overflow-hidden group">
+          <Card className="border-4 border-dashed border-primary/20 p-8 sm:p-12 bg-white/50 backdrop-blur-sm rounded-[2.5rem] relative overflow-hidden group shadow-xl">
             {!libReady ? (
               <div className="flex flex-col items-center justify-center py-12 gap-4">
                 <Loader2 className="h-12 w-12 text-primary animate-spin" />
-                <p className="font-bold text-primary animate-pulse uppercase tracking-widest text-xs">Cargando motor local...</p>
+                <p className="font-bold text-primary animate-pulse uppercase tracking-widest text-[10px]">Iniciando motor local (v2.x)...</p>
               </div>
             ) : !pdfFile ? (
               <div 
@@ -224,7 +237,7 @@ export default function PdfToWordConverter() {
                 </div>
                 <div className="text-center space-y-2">
                   <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tight">{t.dropPdf}</h3>
-                  <p className="text-slate-500 font-bold">{t.pdfFormatOnly}</p>
+                  <p className="text-slate-500 font-bold text-sm">{t.pdfFormatOnly}</p>
                 </div>
                 <Button className="bg-primary hover:bg-primary/90 text-white font-black px-8 py-6 rounded-2xl text-lg shadow-xl uppercase tracking-widest transition-all active:scale-95">
                   {t.selectPdf}
@@ -240,17 +253,17 @@ export default function PdfToWordConverter() {
             ) : (
               <div className="space-y-8">
                 <div className="flex items-center gap-6 p-6 bg-primary/5 rounded-3xl border border-primary/10">
-                  <div className="p-4 bg-primary/10 rounded-2xl">
+                  <div className="p-4 bg-primary/10 rounded-2xl shadow-inner">
                     <FileType className="h-10 w-10 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h4 className="text-lg font-black text-slate-800 truncate">{pdfFile.name}</h4>
-                    <p className="text-sm font-bold text-slate-400">{(pdfFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{(pdfFile.size / 1024 / 1024).toFixed(2)} MB</p>
                   </div>
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="rounded-full text-slate-400 hover:text-destructive"
+                    className="rounded-full text-slate-400 hover:text-destructive hover:bg-destructive/10"
                     onClick={() => setPdfFile(null)}
                     disabled={isConverting}
                   >
@@ -260,11 +273,11 @@ export default function PdfToWordConverter() {
 
                 {isConverting && (
                   <div className="space-y-3">
-                    <div className="flex justify-between text-sm font-black text-primary uppercase tracking-widest">
-                      <span>Procesando PDF...</span>
+                    <div className="flex justify-between text-[10px] font-black text-primary uppercase tracking-widest">
+                      <span>Procesando localmente...</span>
                       <span>{progress}%</span>
                     </div>
-                    <Progress value={progress} className="h-3 bg-primary/10" />
+                    <Progress value={progress} className="h-3 bg-primary/10 rounded-full" />
                   </div>
                 )}
 
@@ -279,18 +292,23 @@ export default function PdfToWordConverter() {
                     ) : (
                       <FileCheck className="h-6 w-6 mr-2" />
                     )}
-                    {isConverting ? "Procesando..." : t.downloadDocx}
+                    {isConverting ? "Trabajando..." : t.downloadDocx}
                   </Button>
                 </div>
               </div>
             )}
           </Card>
 
-          <div className="flex items-center gap-4 p-4 bg-orange-50 border border-orange-100 rounded-2xl">
-            <AlertCircle className="h-5 w-5 text-orange-500 shrink-0" />
-            <p className="text-[11px] font-bold text-orange-700 leading-tight">
-              Seguridad Local: La conversión ocurre en tu dispositivo. Tus documentos nunca salen de tu navegador.
-            </p>
+          <div className="flex items-center gap-4 p-5 bg-orange-50/50 border border-orange-100 rounded-3xl shadow-sm">
+            <div className="p-2 bg-orange-100 rounded-full">
+              <AlertCircle className="h-5 w-5 text-orange-600 shrink-0" />
+            </div>
+            <div className="space-y-0.5">
+              <p className="text-[11px] font-black text-orange-800 uppercase tracking-tighter">Privacidad Total</p>
+              <p className="text-[10px] font-bold text-orange-700/80 leading-tight">
+                La conversión ocurre 100% en tu navegador. Tus archivos nunca se suben a ningún servidor.
+              </p>
+            </div>
           </div>
         </div>
       </main>
