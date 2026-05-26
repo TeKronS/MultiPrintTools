@@ -65,7 +65,15 @@ export const translations = {
     noImages: 'No images added yet',
     imagesPerPage: 'Images per Page',
     quantity: 'Quantity',
-    copies: 'copies'
+    copies: 'copies',
+    // PDF to Word
+    pdfToWordTitle: 'PDF to Word',
+    pdfToWordDesc: 'Extract text from your PDF files and convert them into editable Word documents (.docx).',
+    selectPdf: 'Select PDF file',
+    convertingPdf: 'Converting PDF to Word...',
+    downloadDocx: 'Download Word Document',
+    dropPdf: 'Drop your PDF here',
+    pdfFormatOnly: 'PDF files only'
   },
   es: {
     title: 'MURALIS',
@@ -130,6 +138,14 @@ export const translations = {
     noImages: 'Aún no hay imágenes',
     imagesPerPage: 'Imágenes por Página',
     quantity: 'Cantidad',
-    copies: 'copias'
+    copies: 'copias',
+    // PDF to Word
+    pdfToWordTitle: 'PDF a Word',
+    pdfToWordDesc: 'Extrae el texto de tus archivos PDF y conviértelos en documentos de Word editables (.docx).',
+    selectPdf: 'Seleccionar archivo PDF',
+    convertingPdf: 'Convirtiendo PDF a Word...',
+    downloadDocx: 'Descargar Documento Word',
+    dropPdf: 'Suelta tu PDF aquí',
+    pdfFormatOnly: 'Solo archivos PDF'
   }
 };

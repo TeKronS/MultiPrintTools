@@ -11,7 +11,8 @@ import {
   Calculator, 
   ArrowRight,
   Sparkles,
-  FileText
+  FileText,
+  FileType
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -41,17 +42,17 @@ export default function Home() {
       badge: "PRO"
     },
     {
-      title: t.resizerTitle,
-      description: t.resizerDesc,
-      icon: <ImageIcon className="h-8 w-8 text-orange-500" />,
-      href: "#",
-      status: "coming-soon",
-      badge: t.comingSoon
+      title: t.pdfToWordTitle,
+      description: t.pdfToWordDesc,
+      icon: <FileType className="h-8 w-8 text-orange-500" />,
+      href: "/pdf-to-word",
+      status: "active",
+      badge: "NEW"
     },
     {
-      title: t.costoTitle,
-      description: t.costoDesc,
-      icon: <Calculator className="h-8 w-8 text-emerald-500" />,
+      title: t.resizerTitle,
+      description: t.resizerDesc,
+      icon: <ImageIcon className="h-8 w-8 text-emerald-500" />,
       href: "#",
       status: "coming-soon",
       badge: t.comingSoon
