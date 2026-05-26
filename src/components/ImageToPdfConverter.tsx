@@ -191,6 +191,8 @@ export default function ImageToPdfConverter() {
     }
   };
 
+  if (!mounted) return null;
+
   const renderSettingsContent = () => (
     <div className="space-y-3">
       <div className="flex items-center gap-2 mb-1">
@@ -300,9 +302,9 @@ export default function ImageToPdfConverter() {
       <header className="h-16 border-b border-border bg-white flex items-center justify-between px-6 sticky top-0 z-50 shadow-sm">
         <div className="flex items-center gap-4">
           <Link href="/">
-            <Button variant="ghost" size="sm" className="gap-2 font-bold text-muted-foreground hover:text-primary">
+            <Button variant="ghost" size="sm" className="gap-2 font-bold text-muted-foreground hover:text-primary px-2">
               <ChevronLeft className="h-4 w-4" /> 
-              <span className="hidden sm:inline">Inicio</span>
+              <span className="hidden sm:inline text-xs">Inicio</span>
             </Button>
           </Link>
           <div className="flex items-center gap-3">
@@ -315,7 +317,7 @@ export default function ImageToPdfConverter() {
           </div>
         </div>
         <div className="flex items-center gap-4">
-          {mounted && <LanguageSelector language={lang} setLanguage={setLang} />}
+          <LanguageSelector language={lang} setLanguage={setLang} />
           <Button 
             className="hidden sm:flex bg-primary hover:bg-primary/90 text-white font-black gap-2 rounded-xl shadow-md h-9 px-5 text-xs"
             onClick={exportPdf}
@@ -327,7 +329,7 @@ export default function ImageToPdfConverter() {
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
+      <main className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
         {/* Left Column - Pages Thumbnails */}
         <aside className="hidden md:flex w-[80px] bg-white border-r border-border flex-col items-center py-4 gap-4 overflow-y-auto shrink-0 shadow-inner z-10 scrollbar-hide">
           {images.map((img, idx) => (
