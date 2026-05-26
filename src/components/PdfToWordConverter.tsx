@@ -28,7 +28,7 @@ const FILE_SAVER_VERSION = "2.0.5";
 const LIBS = [
   { id: 'pdfjs', url: `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}/pdf.min.js` },
   { id: 'pdfjs-worker', url: `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}/pdf.worker.min.js` },
-  { id: 'docx', url: `https://unpkg.com/docx@${DOCX_VERSION}/build/index.js` },
+  { id: 'docx', url: `https://cdn.jsdelivr.net/npm/docx@${DOCX_VERSION}/build/index.js` },
   { id: 'file-saver', url: `https://cdnjs.cloudflare.com/ajax/libs/file-saver.js/${FILE_SAVER_VERSION}/FileSaver.min.js` }
 ];
 
@@ -49,10 +49,16 @@ export default function PdfToWordConverter() {
     
     const loadScript = (url: string) => {
       return new Promise((resolve, reject) => {
+        // Evitamos duplicar scripts
+        if (document.querySelector(`script[src="${url}"]`)) {
+          resolve(true);
+          return;
+        }
+
         const script = document.createElement("script");
         script.src = url;
         script.async = true;
-        script.onload = resolve;
+        script.onload = () => resolve(true);
         script.onerror = (e) => {
           console.error(`Error cargando script: ${url}`, e);
           reject(e);
@@ -66,10 +72,10 @@ export default function PdfToWordConverter() {
       
       console.log("Iniciando carga de motores locales via CDN...");
       try {
-        // Cargamos secuencialmente para evitar conflictos
-        await loadScript(LIBS[0].url); // pdf.js
-        await loadScript(LIBS[2].url); // docx
-        await loadScript(LIBS[3].url); // file-saver
+        // Cargamos secuencialmente para asegurar disponibilidad
+        for (const lib of LIBS) {
+          await loadScript(lib.url);
+        }
         
         const pdfjsLib = (window as any).pdfjsLib;
         if (pdfjsLib) {
@@ -89,7 +95,7 @@ export default function PdfToWordConverter() {
     };
 
     loadAllLibs();
-  }, []);
+  }, [toast]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -107,12 +113,18 @@ export default function PdfToWordConverter() {
   const convertToWord = async () => {
     if (!pdfFile || !libsReady) return;
     
+    // Obtenemos las librerías desde el objeto window (CDN global)
     const pdfjsLib = (window as any).pdfjsLib;
     const docx = (window as any).docx;
     const saveAs = (window as any).saveAs;
 
     if (!pdfjsLib || !docx || !saveAs) {
       console.error("Librerías no encontradas en el objeto window.");
+      toast({
+        variant: "destructive",
+        title: "Error de sistema",
+        description: "Los motores locales no se inicializaron correctamente."
+      });
       return;
     }
 
@@ -122,7 +134,7 @@ export default function PdfToWordConverter() {
     try {
       const { Document, Packer, Paragraph, TextRun } = docx;
 
-      console.log("Leyendo PDF...");
+      console.log("Leyendo PDF localmente...");
       const arrayBuffer = await pdfFile.arrayBuffer();
       const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
       const pdf = await loadingTask.promise;
@@ -158,10 +170,17 @@ export default function PdfToWordConverter() {
           }));
         }
 
+        // Salto de página para el documento Word
+        if (i < numPages) {
+          docParagraphs.push(new Paragraph({
+            children: [new TextRun({ text: "", break: 1 })],
+          }));
+        }
+
         setProgress(10 + (Math.round((i / numPages) * 80)));
       }
 
-      console.log("Generando archivo .docx...");
+      console.log("Generando archivo Word (.docx)...");
       const doc = new Document({
         sections: [{
           properties: {},
