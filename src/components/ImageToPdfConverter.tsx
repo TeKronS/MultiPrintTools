@@ -189,19 +189,19 @@ export default function ImageToPdfConverter() {
     <div className="space-y-4">
       <div className="flex items-center gap-2 mb-2">
         <Settings2 className="h-4 w-4 text-primary" />
-        <h2 className="text-xs font-black uppercase tracking-widest text-slate-500">Configuración</h2>
+        <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Configuración</h2>
       </div>
 
       <div className="space-y-3">
         <div className="space-y-1">
           <Label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">{t.paperSize}</Label>
           <Select value={paperSize} onValueChange={setPaperSize}>
-            <SelectTrigger className="font-bold border-2 h-9">
+            <SelectTrigger className="font-bold border-2 h-9 text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {Object.keys(PAPER_DIMENSIONS).map(size => (
-                <SelectItem key={size} value={size} className="font-bold">{size}</SelectItem>
+                <SelectItem key={size} value={size} className="font-bold text-xs">{size}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -210,12 +210,12 @@ export default function ImageToPdfConverter() {
         <div className="space-y-1">
           <Label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">{t.orientation}</Label>
           <Select value={orientation} onValueChange={(v: any) => setOrientation(v)}>
-            <SelectTrigger className="font-bold border-2 h-9">
+            <SelectTrigger className="font-bold border-2 h-9 text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="portrait" className="font-bold">{t.portrait}</SelectItem>
-              <SelectItem value="landscape" className="font-bold">{t.landscape}</SelectItem>
+              <SelectItem value="portrait" className="font-bold text-xs">{t.portrait}</SelectItem>
+              <SelectItem value="landscape" className="font-bold text-xs">{t.landscape}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -223,12 +223,12 @@ export default function ImageToPdfConverter() {
         <div className="space-y-1">
           <Label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">{t.imageFit}</Label>
           <Select value={fitMode} onValueChange={(v: any) => setFitMode(v)}>
-            <SelectTrigger className="font-bold border-2 h-9">
+            <SelectTrigger className="font-bold border-2 h-9 text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="fit" className="font-bold">{t.fit}</SelectItem>
-              <SelectItem value="fill" className="font-bold">{t.fill}</SelectItem>
+              <SelectItem value="fit" className="font-bold text-xs">{t.fit}</SelectItem>
+              <SelectItem value="fill" className="font-bold text-xs">{t.fill}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -236,7 +236,7 @@ export default function ImageToPdfConverter() {
         <div className="space-y-1">
           <div className="flex justify-between">
             <Label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">{t.margins}</Label>
-            <span className="text-xs font-black text-primary">{margin} cm</span>
+            <span className="text-[10px] font-black text-primary">{margin} cm</span>
           </div>
           <div className="flex items-center gap-2 py-1">
             <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg shrink-0" onClick={() => setMargin(Math.max(0, margin - 0.5))}>
@@ -255,22 +255,22 @@ export default function ImageToPdfConverter() {
         </div>
       </div>
 
-      <Separator className="my-2" />
+      <Separator className="my-1 opacity-50" />
 
       <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 space-y-1">
         <div className="flex justify-between items-center">
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Resumen</span>
-          <span className="text-xs font-black text-primary">#{images.length}</span>
+          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Resumen</span>
+          <span className="text-[10px] font-black text-primary">#{images.length}</span>
         </div>
         <div className="flex justify-between items-center">
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Hojas Totales</span>
-          <span className="text-xs font-black text-slate-700">{images.length}</span>
+          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Hojas Totales</span>
+          <span className="text-[10px] font-black text-slate-700">{images.length}</span>
         </div>
       </div>
 
       <div className="pt-2 space-y-2">
         <Button 
-          className="w-full h-11 bg-primary hover:bg-primary/90 text-white font-black gap-2 rounded-xl shadow-lg transition-transform active:scale-95"
+          className="w-full h-11 bg-primary hover:bg-primary/90 text-white font-black gap-2 rounded-xl shadow-lg transition-transform active:scale-95 text-xs"
           onClick={exportPdf}
           disabled={images.length === 0 || isExporting}
         >
@@ -279,7 +279,7 @@ export default function ImageToPdfConverter() {
         </Button>
         <Button 
           variant="ghost" 
-          className="w-full text-slate-400 hover:text-destructive transition-colors font-bold text-[10px]"
+          className="w-full text-slate-400 hover:text-destructive transition-colors font-bold text-[9px] uppercase tracking-widest"
           onClick={() => setImages([])}
           disabled={images.length === 0}
         >
@@ -303,7 +303,7 @@ export default function ImageToPdfConverter() {
             <div className="w-8 h-8 relative rounded-lg overflow-hidden border">
               <Image src={logo} alt="Logo" fill className="object-contain" />
             </div>
-            <h1 className="text-xl font-headline font-black tracking-tighter text-primary">
+            <h1 className="text-xl font-headline font-black tracking-tighter text-primary uppercase">
               IMAGEN A PDF
             </h1>
           </div>
@@ -311,7 +311,7 @@ export default function ImageToPdfConverter() {
         <div className="flex items-center gap-4">
           <LanguageSelector language={lang} setLanguage={setLang} />
           <Button 
-            className="hidden sm:flex bg-primary hover:bg-primary/90 text-white font-black gap-2 rounded-xl shadow-md"
+            className="hidden sm:flex bg-primary hover:bg-primary/90 text-white font-black gap-2 rounded-xl shadow-md h-9 px-5 text-xs"
             onClick={exportPdf}
             disabled={images.length === 0 || isExporting}
           >
@@ -322,43 +322,44 @@ export default function ImageToPdfConverter() {
       </header>
 
       <main className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
-        {/* Left Column - Pages Thumbnails */}
-        <aside className="hidden md:flex w-[80px] bg-white border-r border-border flex-col items-center py-4 gap-3 overflow-y-auto shrink-0 shadow-inner z-10">
+        {/* Left Column - Pages Thumbnails (Miniaturized) */}
+        <aside className="hidden md:flex w-[64px] bg-white border-r border-border flex-col items-center py-4 gap-2 overflow-y-auto shrink-0 shadow-inner z-10 scrollbar-hide">
           {images.map((img, idx) => (
             <div 
               key={img.id} 
-              className="relative w-14 aspect-[3/4] border-2 border-slate-200 rounded-md overflow-hidden bg-slate-50 shadow-sm transition-all hover:border-primary/50 group cursor-pointer"
+              className="relative w-10 aspect-[3/4] border border-slate-200 rounded-sm overflow-hidden bg-slate-50 shadow-sm transition-all hover:border-primary/50 group cursor-pointer"
               title={img.name}
               onClick={() => {
                 document.getElementById(`page-${img.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
               }}
             >
               <img src={img.url} alt="" className="w-full h-full object-cover" />
-              <div className="absolute top-0 left-0 bg-primary/90 backdrop-blur-sm text-[8px] font-black text-white px-1 py-0.5 rounded-br-md shadow-sm">
+              <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/10 transition-colors" />
+              <div className="absolute top-0 left-0 bg-primary/90 backdrop-blur-sm text-[7px] font-black text-white px-0.5 min-w-[12px] text-center rounded-br-[2px] shadow-sm">
                 {idx + 1}
               </div>
             </div>
           ))}
           <button 
             onClick={() => fileInputRef.current?.click()}
-            className="w-14 h-14 border-2 border-dashed border-slate-300 rounded-md flex items-center justify-center hover:bg-slate-50 hover:border-primary/50 transition-colors text-slate-400"
+            className="w-10 h-10 border border-dashed border-slate-300 rounded-sm flex items-center justify-center hover:bg-slate-50 hover:border-primary/50 transition-colors text-slate-400 shrink-0"
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-3 w-3" />
           </button>
         </aside>
 
         {/* Workspace - Center: Vertical Page List */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-slate-100/50 scroll-smooth">
-          <div className="max-w-3xl mx-auto flex flex-col items-center gap-8">
+          <div className="max-w-3xl mx-auto flex flex-col items-center gap-8 pb-20 lg:pb-8">
             {images.length === 0 ? (
               <div 
                 onClick={() => fileInputRef.current?.click()}
-                className="flex flex-col items-center justify-center min-h-[400px] w-full border-4 border-dashed rounded-3xl border-primary/20 hover:border-primary/40 hover:bg-white transition-all cursor-pointer group"
+                className="flex flex-col items-center justify-center min-h-[400px] w-full border-4 border-dashed rounded-3xl border-primary/20 hover:border-primary/40 hover:bg-white transition-all cursor-pointer group bg-white/50"
               >
                 <div className="p-6 bg-primary/10 rounded-full group-hover:scale-110 transition-transform">
                   <Plus className="h-12 w-12 text-primary" />
                 </div>
-                <h3 className="mt-6 text-2xl font-headline font-black text-slate-800">{t.imgToPdfTitle}</h3>
+                <h3 className="mt-6 text-2xl font-headline font-black text-slate-800 uppercase tracking-tight">{t.imgToPdfTitle}</h3>
                 <p className="mt-2 text-slate-500 font-medium">{t.dragDrop}</p>
                 <input 
                   type="file" 
@@ -374,7 +375,7 @@ export default function ImageToPdfConverter() {
                 <div 
                   key={img.id} 
                   id={`page-${img.id}`}
-                  className="relative group w-full max-w-[500px]"
+                  className="relative group w-full max-w-[480px] animate-fade-in"
                 >
                   <div className="absolute -left-12 top-0 h-full flex flex-col gap-2 pt-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <Button 
@@ -407,11 +408,11 @@ export default function ImageToPdfConverter() {
 
                   <div className="mb-2 flex items-center justify-between">
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Página {idx + 1}</span>
-                    <span className="text-[10px] font-bold text-slate-400 truncate max-w-[200px]">{img.name}</span>
+                    <span className="text-[9px] font-bold text-slate-400 truncate max-w-[180px]">{img.name}</span>
                   </div>
 
                   <div 
-                    className="relative w-full bg-white shadow-[0_10px_30px_rgba(0,0,0,0.1)] rounded-sm overflow-hidden border border-slate-200"
+                    className="relative w-full bg-white shadow-[0_15px_40px_rgba(0,0,0,0.08)] rounded-sm overflow-hidden border border-slate-200"
                     style={{ aspectRatio: `${aspectRatio}` }}
                   >
                     <div 
@@ -435,11 +436,11 @@ export default function ImageToPdfConverter() {
             {images.length > 0 && (
               <Button 
                 variant="outline" 
-                className="w-full max-w-[500px] h-20 border-2 border-dashed border-primary/20 hover:border-primary/40 hover:bg-white text-primary/60 font-black gap-2 rounded-xl"
+                className="w-full max-w-[480px] h-24 border-2 border-dashed border-primary/20 hover:border-primary/40 hover:bg-white text-primary/60 font-black gap-2 rounded-xl transition-all"
                 onClick={() => fileInputRef.current?.click()}
               >
                 <PlusCircle className="h-5 w-5" />
-                {t.addImages}
+                <span className="uppercase tracking-widest text-xs">{t.addImages}</span>
                 <input type="file" ref={fileInputRef} multiple accept="image/*" onChange={handleFileSelect} className="hidden" />
               </Button>
             )}
@@ -447,7 +448,7 @@ export default function ImageToPdfConverter() {
         </div>
 
         {/* Sidebar Settings - Desktop Right */}
-        <aside className="hidden lg:block w-80 bg-white border-l border-border shadow-xl p-6 overflow-y-auto z-20">
+        <aside className="hidden lg:block w-72 bg-white border-l border-border shadow-xl p-5 overflow-y-auto z-20">
           {renderSettingsContent()}
         </aside>
 
@@ -465,7 +466,7 @@ export default function ImageToPdfConverter() {
             >
               <Settings2 className="h-6 w-6" />
             </Button>
-            <SheetContent side="right" className="w-[85%] sm:w-[400px] p-6 bg-white/95 backdrop-blur-xl shadow-2xl overflow-y-auto">
+            <SheetContent side="right" className="w-[85%] sm:w-[350px] p-5 bg-white/95 backdrop-blur-xl shadow-2xl overflow-y-auto">
               <SheetHeader className="sr-only">
                 <SheetTitle>Configuración</SheetTitle>
                 <SheetDescription>Ajustes de exportación a PDF</SheetDescription>
