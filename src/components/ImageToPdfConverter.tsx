@@ -203,7 +203,7 @@ export default function ImageToPdfConverter() {
         <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Configuración</h2>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-2">
         <div className="space-y-1">
           <Label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">{t.paperSize}</Label>
           <Select value={paperSize} onValueChange={setPaperSize}>
@@ -464,6 +464,20 @@ export default function ImageToPdfConverter() {
         <aside className="hidden lg:block w-72 bg-white border-l border-border shadow-xl p-5 overflow-y-auto shrink-0 z-20">
           {renderSettingsContent()}
         </aside>
+
+        {/* Mobile Export Button Overlay */}
+        {images.length > 0 && (
+          <div className="lg:hidden fixed bottom-6 left-6 right-24 z-[100] pointer-events-auto animate-in slide-in-from-bottom-10 duration-500">
+            <Button 
+              className="w-full h-14 bg-primary hover:bg-primary/90 text-white font-black gap-3 rounded-2xl shadow-2xl transition-all active:scale-95 text-sm uppercase tracking-widest border-4 border-white/10"
+              onClick={exportPdf}
+              disabled={isExporting}
+            >
+              {isExporting ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileDown className="h-5 w-5" />}
+              {isExporting ? t.generating : t.export}
+            </Button>
+          </div>
+        )}
 
         {/* Mobile Settings Toggle and Drawer */}
         <div className="lg:hidden fixed bottom-6 right-6 z-[100] pointer-events-auto">
