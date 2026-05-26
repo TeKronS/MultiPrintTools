@@ -13,7 +13,9 @@ import {
   X,
   PlusCircle,
   ArrowLeft,
-  ArrowRight
+  ArrowRight,
+  Smartphone,
+  Monitor
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -55,6 +57,7 @@ interface ImageData {
   file: File;
   name: string;
   quantity: number;
+  orientation?: 'portrait' | 'landscape';
 }
 
 export default function ImageToPdfConverter() {
@@ -78,11 +81,6 @@ export default function ImageToPdfConverter() {
   }, []);
 
   const paper = useMemo(() => PAPER_DIMENSIONS[paperSize], [paperSize]);
-  const aspectRatio = useMemo(() => {
-    return orientation === 'portrait' 
-      ? paper.width / paper.height 
-      : paper.height / paper.width;
-  }, [paper, orientation]);
 
   const expandedImagesList = useMemo(() => {
     const list: ImageData[] = [];
@@ -103,7 +101,8 @@ export default function ImageToPdfConverter() {
       url: URL.createObjectURL(file),
       file,
       name: file.name,
-      quantity: 1
+      quantity: 1,
+      orientation: orientation // Default to current global orientation
     }));
 
     setImages(prev => [...prev, ...newImages]);
@@ -116,6 +115,10 @@ export default function ImageToPdfConverter() {
 
   const updateQuantity = (id: string, qty: number) => {
     setImages(prev => prev.map(img => img.id === id ? { ...img, quantity: Math.max(1, qty) } : img));
+  };
+
+  const updateImageOrientation = (id: string, orient: 'portrait' | 'landscape') => {
+    setImages(prev => prev.map(img => img.id === id ? { ...img, orientation: orient } : img));
   };
 
   const moveImage = (index: number, direction: 'up' | 'down') => {
@@ -134,43 +137,59 @@ export default function ImageToPdfConverter() {
     setIsExporting(true);
 
     try {
+      const nPerPage = parseInt(imagesPerPage);
+      
+      // Initial PDF orientation depends on the first page if nPerPage is 1
+      const initialOrient = (nPerPage === 1 && expandedImagesList[0].orientation) 
+        ? expandedImagesList[0].orientation 
+        : orientation;
+
       const pdf = new jsPDF({
-        orientation: orientation === 'portrait' ? 'p' : 'l',
+        orientation: initialOrient === 'portrait' ? 'p' : 'l',
         unit: 'mm',
         format: paper.format as any
       });
 
-      const pageWidth = orientation === 'portrait' ? paper.width : paper.height;
-      const pageHeight = orientation === 'portrait' ? paper.height : paper.width;
-      const marginMm = margin * 10;
-      const usableWidth = pageWidth - (marginMm * 2);
-      const usableHeight = pageHeight - (marginMm * 2);
-
-      const nPerPage = parseInt(imagesPerPage);
-      
-      let gridRows = 1;
-      let gridCols = 1;
-      
-      if (nPerPage === 2) {
-        if (orientation === 'portrait') { gridRows = 2; gridCols = 1; }
-        else { gridRows = 1; gridCols = 2; }
-      } else if (nPerPage === 4) {
-        gridRows = 2; gridCols = 2;
-      } else if (nPerPage === 6) {
-        if (orientation === 'portrait') { gridRows = 3; gridCols = 2; }
-        else { gridRows = 2; gridCols = 3; }
-      } else if (nPerPage === 8) {
-        if (orientation === 'portrait') { gridRows = 4; gridCols = 2; }
-        else { gridRows = 2; gridCols = 4; }
-      }
-
-      const cellWidth = usableWidth / gridCols;
-      const cellHeight = usableHeight / gridRows;
-
       for (let i = 0; i < expandedImagesList.length; i += nPerPage) {
-        if (i > 0) pdf.addPage();
-
         const pageImages = expandedImagesList.slice(i, i + nPerPage);
+        
+        // Determine orientation for THIS page
+        let currentPageOrient = orientation;
+        if (nPerPage === 1) {
+          currentPageOrient = pageImages[0].orientation || orientation;
+        }
+
+        if (i > 0) {
+          pdf.addPage(paper.format as any, currentPageOrient === 'portrait' ? 'p' : 'l');
+        } else {
+          // If first page orientation is different from initial orientation set in constructor
+          // (Though we tried to match it above)
+        }
+
+        const pageWidth = currentPageOrient === 'portrait' ? paper.width : paper.height;
+        const pageHeight = currentPageOrient === 'portrait' ? paper.height : paper.width;
+        const marginMm = margin * 10;
+        const usableWidth = pageWidth - (marginMm * 2);
+        const usableHeight = pageHeight - (marginMm * 2);
+
+        let gridRows = 1;
+        let gridCols = 1;
+        
+        if (nPerPage === 2) {
+          if (currentPageOrient === 'portrait') { gridRows = 2; gridCols = 1; }
+          else { gridRows = 1; gridCols = 2; }
+        } else if (nPerPage === 4) {
+          gridRows = 2; gridCols = 2;
+        } else if (nPerPage === 6) {
+          if (currentPageOrient === 'portrait') { gridRows = 3; gridCols = 2; }
+          else { gridRows = 2; gridCols = 3; }
+        } else if (nPerPage === 8) {
+          if (currentPageOrient === 'portrait') { gridRows = 4; gridCols = 2; }
+          else { gridRows = 2; gridCols = 4; }
+        }
+
+        const cellWidth = usableWidth / gridCols;
+        const cellHeight = usableHeight / gridRows;
 
         for (let j = 0; j < pageImages.length; j++) {
           const imgData = pageImages[j];
@@ -256,7 +275,7 @@ export default function ImageToPdfConverter() {
         </div>
 
         <div className="space-y-0.5">
-          <Label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">{t.orientation}</Label>
+          <Label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">{t.orientation} Global</Label>
           <Select value={orientation} onValueChange={(v: any) => setOrientation(v)}>
             <SelectTrigger className="font-bold border-2 h-8 text-xs">
               <span className="truncate">{orientation === 'portrait' ? t.portrait : t.landscape}</span>
@@ -427,99 +446,137 @@ export default function ImageToPdfConverter() {
               </div>
             ) : (
               <div className="flex flex-wrap gap-8 items-start justify-center pb-32">
-                {images.map((img, idx) => (
-                  <div 
-                    key={img.id} 
-                    id={`page-${img.id}`}
-                    className="relative group w-full max-w-[200px] animate-fade-in"
-                  >
-                    <div className="absolute -top-3 -right-3 z-20 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button 
-                        size="icon" 
-                        variant="destructive" 
-                        className="h-7 w-7 rounded-lg shadow-lg" 
-                        onClick={() => removeImage(img.id)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                      <div className="flex flex-col gap-1">
-                        <Button 
-                          size="icon" 
-                          variant="secondary" 
-                          className="h-7 w-7 rounded-lg shadow-lg" 
-                          onClick={() => moveImage(idx, 'up')} 
-                          disabled={idx === 0}
-                        >
-                          <ArrowLeft className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button 
-                          size="icon" 
-                          variant="secondary" 
-                          className="h-7 w-7 rounded-lg shadow-lg" 
-                          onClick={() => moveImage(idx, 'down')} 
-                          disabled={idx === images.length - 1}
-                        >
-                          <ArrowRight className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </div>
+                {images.map((img, idx) => {
+                  const currentImgOrient = img.orientation || orientation;
+                  const currentAspectRatio = currentImgOrient === 'portrait' 
+                    ? paper.width / paper.height 
+                    : paper.height / paper.width;
 
-                    <div className="mb-2 flex items-center justify-between">
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Original {idx + 1}</span>
-                      <span className="text-[9px] font-bold text-slate-400 truncate max-w-[120px]">{img.name}</span>
-                    </div>
-
+                  return (
                     <div 
-                      className="relative w-full bg-white shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-sm overflow-hidden border border-slate-200"
-                      style={{ aspectRatio: `${aspectRatio}` }}
+                      key={img.id} 
+                      id={`page-${img.id}`}
+                      className="relative group w-full max-w-[200px] animate-fade-in"
                     >
+                      <div className="absolute -top-3 -right-3 z-20 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button 
+                          size="icon" 
+                          variant="destructive" 
+                          className="h-7 w-7 rounded-lg shadow-lg" 
+                          onClick={() => removeImage(img.id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                        <div className="flex flex-col gap-1">
+                          <Button 
+                            size="icon" 
+                            variant="secondary" 
+                            className="h-7 w-7 rounded-lg shadow-lg" 
+                            onClick={() => moveImage(idx, 'up')} 
+                            disabled={idx === 0}
+                          >
+                            <ArrowLeft className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button 
+                            size="icon" 
+                            variant="secondary" 
+                            className="h-7 w-7 rounded-lg shadow-lg" 
+                            onClick={() => moveImage(idx, 'down')} 
+                            disabled={idx === images.length - 1}
+                          >
+                            <ArrowRight className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="mb-2 flex items-center justify-between">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Original {idx + 1}</span>
+                        <span className="text-[9px] font-bold text-slate-400 truncate max-w-[120px]">{img.name}</span>
+                      </div>
+
                       <div 
-                        className="absolute inset-0 bg-white" 
-                        style={{ padding: `${margin}cm` }}
+                        className="relative w-full bg-white shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-sm overflow-hidden border border-slate-200"
+                        style={{ aspectRatio: `${currentAspectRatio}` }}
                       >
-                        <img 
-                          src={img.url} 
-                          alt={img.name} 
-                          className={cn(
-                            "w-full h-full",
-                            fitMode === 'fit' ? 'object-contain' : 'object-cover'
-                          )} 
-                        />
+                        <div 
+                          className="absolute inset-0 bg-white" 
+                          style={{ padding: `${margin}cm` }}
+                        >
+                          <img 
+                            src={img.url} 
+                            alt={img.name} 
+                            className={cn(
+                              "w-full h-full",
+                              fitMode === 'fit' ? 'object-contain' : 'object-cover'
+                            )} 
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="mt-3 bg-white p-2 rounded-xl border border-slate-100 shadow-sm space-y-3">
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between px-1">
+                            <Label className="text-[9px] font-black uppercase text-slate-400">{t.orientation}</Label>
+                            <span className="text-[9px] font-black text-primary uppercase">{currentImgOrient === 'portrait' ? t.portrait : t.landscape}</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-1">
+                            <Button 
+                              variant={currentImgOrient === 'portrait' ? 'default' : 'outline'} 
+                              size="sm" 
+                              className="h-7 px-0 rounded-lg"
+                              onClick={() => updateImageOrientation(img.id, 'portrait')}
+                            >
+                              <Smartphone className="h-3 w-3 mr-1" />
+                              <span className="text-[8px] font-black uppercase">{t.portrait}</span>
+                            </Button>
+                            <Button 
+                              variant={currentImgOrient === 'landscape' ? 'default' : 'outline'} 
+                              size="sm" 
+                              className="h-7 px-0 rounded-lg"
+                              onClick={() => updateImageOrientation(img.id, 'landscape')}
+                            >
+                              <Monitor className="h-3 w-3 mr-1" />
+                              <span className="text-[8px] font-black uppercase">{t.landscape}</span>
+                            </Button>
+                          </div>
+                        </div>
+
+                        <Separator className="opacity-50" />
+
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between px-1">
+                            <Label className="text-[9px] font-black uppercase text-slate-400">{t.quantity}</Label>
+                            <span className="text-[10px] font-black text-primary">{img.quantity} {t.copies}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button 
+                              variant="outline" 
+                              size="icon" 
+                              className="h-7 w-7 rounded-lg"
+                              onClick={() => updateQuantity(img.id, img.quantity - 1)}
+                            >
+                              <X className="h-3 w-3 rotate-45" />
+                            </Button>
+                            <Input 
+                              type="number" 
+                              value={img.quantity}
+                              onChange={(e) => updateQuantity(img.id, parseInt(e.target.value) || 1)}
+                              className="h-7 text-center font-black text-xs p-0 border-none bg-slate-50"
+                            />
+                            <Button 
+                              variant="outline" 
+                              size="icon" 
+                              className="h-7 w-7 rounded-lg"
+                              onClick={() => updateQuantity(img.id, img.quantity + 1)}
+                            >
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                    
-                    <div className="mt-3 bg-white p-2 rounded-xl border border-slate-100 shadow-sm space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-[9px] font-black uppercase text-slate-400">{t.quantity}</Label>
-                        <span className="text-[10px] font-black text-primary">{img.quantity} {t.copies}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="icon" 
-                          className="h-7 w-7 rounded-lg"
-                          onClick={() => updateQuantity(img.id, img.quantity - 1)}
-                        >
-                          <X className="h-3 w-3 rotate-45" />
-                        </Button>
-                        <Input 
-                          type="number" 
-                          value={img.quantity}
-                          onChange={(e) => updateQuantity(img.id, parseInt(e.target.value) || 1)}
-                          className="h-7 text-center font-black text-xs p-0 border-none bg-slate-50"
-                        />
-                        <Button 
-                          variant="outline" 
-                          size="icon" 
-                          className="h-7 w-7 rounded-lg"
-                          onClick={() => updateQuantity(img.id, img.quantity + 1)}
-                        >
-                          <Plus className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
                 
                 <Button 
                   variant="outline" 
