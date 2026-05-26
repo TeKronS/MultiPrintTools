@@ -25,14 +25,14 @@ import logo from "@/app/icono.png";
  * que causan conflictos con Turbopack/Next.js durante el build.
  */
 const PDFJS_VERSION = "2.16.105";
-const DOCX_VERSION = "7.8.2";
+const DOCX_VERSION = "7.1.0";
 const FILE_SAVER_VERSION = "2.0.5";
 
 const LIBS = [
   { id: 'pdfjs', url: `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}/pdf.min.js` },
   { id: 'pdfjs-worker', url: `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}/pdf.worker.min.js` },
-  { id: 'docx', url: `https://cdn.jsdelivr.net/npm/docx@${DOCX_VERSION}/build/index.js` },
-  { id: 'file-saver', url: `https://cdnjs.cloudflare.com/ajax/libs/file-saver.js/${FILE_SAVER_VERSION}/FileSaver.min.js` }
+  { id: 'docx', url: `https://unpkg.com/docx@${DOCX_VERSION}/build/index.js` },
+  { id: 'file-saver', url: `https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/${FILE_SAVER_VERSION}/FileSaver.min.js` }
 ];
 
 export default function PdfToWordConverter() {
@@ -73,14 +73,14 @@ export default function PdfToWordConverter() {
     };
 
     const loadAllLibs = async () => {
-      console.log("Iniciando carga de motores de reprografía...");
+      console.log("Iniciando carga de motores de reprografía local...");
       try {
-        // Carga secuencial para asegurar que docx y pdfjs estén disponibles en window
+        // Carga secuencial para asegurar disponibilidad
         for (const lib of LIBS) {
           await loadScript(lib.url);
         }
         
-        // Configuración específica de PDF.js v2.x
+        // Configuración de PDF.js
         if ((window as any).pdfjsLib) {
           (window as any).pdfjsLib.GlobalWorkerOptions.workerSrc = LIBS[1].url;
         }
@@ -92,7 +92,7 @@ export default function PdfToWordConverter() {
         toast({
           variant: "destructive",
           title: "Error de inicialización",
-          description: "No se pudieron cargar los motores locales. Revisa tu conexión."
+          description: "No se pudieron cargar los motores locales. Verifica tu conexión a internet."
         });
       }
     };
@@ -124,7 +124,7 @@ export default function PdfToWordConverter() {
       toast({
         variant: "destructive",
         title: "Error de motores",
-        description: "Los motores de conversión no están disponibles."
+        description: "Los motores de conversión no se inicializaron correctamente."
       });
       return;
     }
@@ -133,10 +133,9 @@ export default function PdfToWordConverter() {
     setProgress(5);
 
     try {
-      // API de docx v7.x (difiere ligeramente de v8.x/v9.x)
       const { Document, Packer, Paragraph, TextRun } = docx;
 
-      console.log("Leyendo PDF localmente...");
+      console.log("Extrayendo texto del PDF...");
       const arrayBuffer = await pdfFile.arrayBuffer();
       const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
       const pdf = await loadingTask.promise;
@@ -145,7 +144,6 @@ export default function PdfToWordConverter() {
       const docChildren: any[] = [];
 
       for (let i = 1; i <= numPages; i++) {
-        console.log(`Procesando página ${i}...`);
         const page = await pdf.getPage(i);
         const textContent = await page.getTextContent();
         
@@ -153,7 +151,6 @@ export default function PdfToWordConverter() {
         let currentLine = "";
 
         textContent.items.forEach((item: any) => {
-          // Detectar cambios de línea basados en la posición Y
           if (lastY !== -1 && Math.abs(item.transform[5] - lastY) > 5) {
             if (currentLine.trim()) {
               docChildren.push(new Paragraph({
@@ -167,14 +164,12 @@ export default function PdfToWordConverter() {
           lastY = item.transform[5];
         });
 
-        // Añadir última línea de la página
         if (currentLine.trim()) {
           docChildren.push(new Paragraph({
             children: [new TextRun(currentLine)],
           }));
         }
 
-        // Separador de página en Word
         if (i < numPages) {
           docChildren.push(new Paragraph({
             children: [new TextRun({ text: "", break: 1 })],
@@ -184,7 +179,7 @@ export default function PdfToWordConverter() {
         setProgress(10 + (Math.round((i / numPages) * 80)));
       }
 
-      console.log("Compilando archivo .docx...");
+      console.log("Generando archivo .docx local...");
       const doc = new Document({
         sections: [{
           properties: {},
@@ -198,14 +193,14 @@ export default function PdfToWordConverter() {
       setProgress(100);
       toast({
         title: "¡Éxito!",
-        description: "Documento convertido y descargado."
+        description: "El archivo Word ha sido generado y descargado."
       });
     } catch (error: any) {
-      console.error("Error en flujo de conversión:", error);
+      console.error("Fallo en la conversión local:", error);
       toast({
         variant: "destructive",
-        title: "Error local",
-        description: "Hubo un fallo procesando el PDF en tu navegador."
+        title: "Error de conversión",
+        description: "No se pudo procesar el PDF localmente."
       });
     } finally {
       setIsConverting(false);
@@ -252,7 +247,7 @@ export default function PdfToWordConverter() {
             {!libsReady ? (
               <div className="flex flex-col items-center justify-center py-12 gap-4">
                 <Loader2 className="h-12 w-12 text-primary animate-spin" />
-                <p className="font-bold text-primary animate-pulse uppercase tracking-widest text-[10px]">Iniciando motores locales...</p>
+                <p className="font-bold text-primary animate-pulse uppercase tracking-widest text-[10px]">Cargando motores de reprografía...</p>
               </div>
             ) : !pdfFile ? (
               <div 
@@ -301,7 +296,7 @@ export default function PdfToWordConverter() {
                 {isConverting && (
                   <div className="space-y-3">
                     <div className="flex justify-between text-[10px] font-black text-primary uppercase tracking-widest">
-                      <span>Procesando PDF localmente...</span>
+                      <span>Procesando en el navegador...</span>
                       <span>{progress}%</span>
                     </div>
                     <Progress value={progress} className="h-3 bg-primary/10 rounded-full" />
@@ -329,9 +324,9 @@ export default function PdfToWordConverter() {
               <FileCheck className="h-5 w-5 text-emerald-600 shrink-0" />
             </div>
             <div className="space-y-0.5">
-              <p className="text-[11px] font-black text-emerald-800 uppercase tracking-tighter">Privacidad Total</p>
+              <p className="text-[11px] font-black text-emerald-800 uppercase tracking-tighter">Seguridad Local</p>
               <p className="text-[10px] font-bold text-emerald-700/80 leading-tight">
-                Conversión 100% local en tu navegador. Tus archivos nunca salen de tu dispositivo.
+                La conversión ocurre 100% en tu equipo. Tus datos nunca se suben a ningún servidor.
               </p>
             </div>
           </div>
