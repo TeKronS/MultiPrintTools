@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
@@ -287,7 +288,9 @@ export default function ImageResizer() {
             <div className="w-8 h-8 relative rounded-lg overflow-hidden border">
               <Image src={logo} alt="Logo" fill className="object-contain" />
             </div>
-            <h1 className="text-xl font-headline font-black tracking-tighter text-emerald-600 uppercase">RESIZER PRO</h1>
+            <h1 className="text-xl font-headline font-black tracking-tighter text-emerald-600 uppercase">
+              {t.resizerTitle}
+            </h1>
           </div>
         </div>
         <div className="flex items-center gap-4">
