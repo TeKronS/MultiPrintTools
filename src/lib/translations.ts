@@ -99,7 +99,9 @@ export const translations = {
     fileName: 'File Name',
     fileSize: 'Size',
     remove: 'Remove',
-    mergeAction: 'Merge Files'
+    mergeAction: 'Merge Files',
+    outputFileName: 'Output Filename',
+    outputFileNamePlaceholder: 'Final file name...'
   },
   es: {
     title: 'MURALIS',
@@ -198,6 +200,8 @@ export const translations = {
     fileName: 'Nombre del Archivo',
     fileSize: 'Tamaño',
     remove: 'Eliminar',
-    mergeAction: 'Combinar Archivos'
+    mergeAction: 'Combinar Archivos',
+    outputFileName: 'Nombre del Archivo Final',
+    outputFileNamePlaceholder: 'Nombre del archivo...'
   }
 };

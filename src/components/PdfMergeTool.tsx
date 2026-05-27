@@ -17,12 +17,15 @@ import {
   FilePlus,
   Download,
   AlertCircle,
-  Copy
+  Copy,
+  FileType
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Language, translations } from "@/lib/translations";
 import { LanguageSelector } from "./LanguageSelector";
@@ -47,6 +50,7 @@ export default function PdfMergeTool() {
   const [files, setFiles] = useState<PdfFile[]>([]);
   const [isMerging, setIsMerging] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [outputName, setOutputName] = useState("");
 
   useEffect(() => {
     setMounted(true);
@@ -73,7 +77,6 @@ export default function PdfMergeTool() {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       processFiles(e.target.files);
-      // Reset value to allow selecting the same file again if needed
       e.target.value = "";
     }
   };
@@ -133,7 +136,12 @@ export default function PdfMergeTool() {
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `MultiPrintTools-Merged-${Date.now()}.pdf`;
+      
+      const fileName = outputName.trim() 
+        ? (outputName.toLowerCase().endsWith('.pdf') ? outputName : `${outputName}.pdf`)
+        : `MultiPrintTools-Merged-${Date.now()}.pdf`;
+        
+      link.download = fileName;
       link.click();
       
       toast({ title: "¡Éxito!", description: "Archivos combinados correctamente." });
@@ -283,7 +291,20 @@ export default function PdfMergeTool() {
             <Separator />
 
             {files.length > 0 && (
-              <div className="space-y-4">
+              <div className="space-y-5 animate-in slide-in-from-right-10 duration-500">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-2">
+                    <FileType className="h-3 w-3" />
+                    {t.outputFileName}
+                  </Label>
+                  <Input 
+                    placeholder={t.outputFileNamePlaceholder}
+                    value={outputName}
+                    onChange={(e) => setOutputName(e.target.value)}
+                    className="h-10 border-2 focus:border-indigo-500 font-bold text-sm rounded-xl"
+                  />
+                </div>
+
                 <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-3">
                   <div className="flex justify-between items-center">
                     <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Archivos</span>
@@ -314,7 +335,15 @@ export default function PdfMergeTool() {
 
         {/* Mobile Fixed Action Bar */}
         {files.length > 0 && (
-          <div className="md:hidden fixed bottom-6 left-6 right-6 z-[100] animate-in slide-in-from-bottom-10">
+          <div className="md:hidden fixed bottom-6 left-6 right-6 z-[100] animate-in slide-in-from-bottom-10 flex flex-col gap-3">
+            <div className="bg-white p-3 rounded-2xl shadow-2xl border-2 border-indigo-100">
+              <Input 
+                placeholder={t.outputFileNamePlaceholder}
+                value={outputName}
+                onChange={(e) => setOutputName(e.target.value)}
+                className="h-10 border-none bg-slate-50 font-bold text-sm rounded-xl text-center"
+              />
+            </div>
             <Button 
               className="w-full h-14 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-2xl shadow-2xl uppercase tracking-widest text-sm gap-3 border-4 border-white/10"
               onClick={mergePdfs}
