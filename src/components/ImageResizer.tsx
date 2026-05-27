@@ -304,7 +304,7 @@ export default function ImageResizer() {
       </header>
 
       <main className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
-        <div className="flex-1 overflow-y-auto p-4 sm:p-12 bg-muted/30 flex flex-col items-center relative">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-12 bg-muted/30 flex flex-col items-center justify-center relative">
           {!image ? (
             <div 
               onClick={() => fileInputRef.current?.click()}
@@ -312,17 +312,18 @@ export default function ImageResizer() {
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               className={cn(
-                "w-full max-w-xl aspect-square md:aspect-video bg-card border-4 border-dashed rounded-[3rem] flex flex-col items-center justify-center cursor-pointer transition-all group shadow-xl",
+                "w-full max-w-xl aspect-square md:aspect-video bg-card border-4 border-dashed rounded-[3rem] flex flex-col items-center justify-center cursor-pointer transition-all group shadow-xl p-8 sm:p-12 text-center",
                 isDragging ? "border-emerald-500 bg-emerald-500/10 scale-[1.02]" : "border-border hover:border-emerald-300"
               )}
             >
-              <div className="p-10 bg-emerald-50 dark:bg-emerald-500/10 rounded-full group-hover:scale-110 transition-transform">
-                <ImageIcon className="h-20 w-20 text-emerald-500" />
+              <div className="p-8 sm:p-10 bg-emerald-50 dark:bg-emerald-500/10 rounded-full group-hover:scale-110 transition-transform">
+                <ImageIcon className="h-16 w-16 sm:h-20 sm:w-20 text-emerald-500" />
               </div>
-              <h3 className="mt-8 text-2xl font-headline font-black text-foreground uppercase tracking-tight">{t.resizerTitle}</h3>
-              <p className="mt-2 text-muted-foreground font-medium">{t.dragDrop}</p>
-              <div className="mt-6 flex items-center gap-2 text-emerald-600/60 font-black text-[10px] uppercase tracking-[0.2em]">
-                <ShieldCheck className="h-4 w-4" /> {t.privacyNote}
+              <h3 className="mt-8 text-xl sm:text-2xl font-headline font-black text-foreground uppercase tracking-tight">{t.resizerTitle}</h3>
+              <p className="mt-2 text-muted-foreground font-medium text-sm sm:text-base">{t.dragDrop}</p>
+              <div className="mt-8 flex items-center justify-center gap-2 text-emerald-600/60 font-black text-[10px] uppercase tracking-[0.2em] max-w-[85%]">
+                <ShieldCheck className="h-4 w-4 shrink-0" /> 
+                <span className="leading-tight">{t.privacyNote}</span>
               </div>
               <input type="file" ref={fileInputRef} accept="image/*" onChange={handleFileSelect} className="hidden" />
             </div>
