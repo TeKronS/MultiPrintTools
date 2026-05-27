@@ -312,7 +312,7 @@ export default function ImageResizer() {
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               className={cn(
-                "w-full max-w-xl aspect-square md:aspect-video bg-card border-4 border-dashed rounded-[3rem] flex flex-col items-center justify-center cursor-pointer transition-all group shadow-xl p-8 sm:p-12 text-center",
+                "w-full max-w-xl aspect-square md:aspect-[4/3] bg-card border-4 border-dashed rounded-[3rem] flex flex-col items-center justify-center cursor-pointer transition-all group shadow-xl p-8 sm:p-16 text-center",
                 isDragging ? "border-emerald-500 bg-emerald-500/10 scale-[1.02]" : "border-border hover:border-emerald-300"
               )}
             >
