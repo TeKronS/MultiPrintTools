@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
@@ -59,15 +58,17 @@ export default function ImageResizer() {
   const [lockAspect, setLockAspect] = useState(true);
   const [isResizing, setIsResizing] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const processFile = (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      toast({ variant: "destructive", title: "Error", description: "El archivo debe ser una imagen." });
+      return;
+    }
     const url = URL.createObjectURL(file);
     const img = new window.Image();
     img.src = url;
@@ -83,6 +84,28 @@ export default function ImageResizer() {
       setTargetWidth(Math.round(img.width / pixelsPerCm * 10) / 10);
       setTargetHeight(Math.round(img.height / pixelsPerCm * 10) / 10);
     };
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) processFile(file);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) processFile(file);
   };
 
   const handleWidthChange = (val: string) => {
@@ -280,7 +303,13 @@ export default function ImageResizer() {
           {!image ? (
             <div 
               onClick={() => fileInputRef.current?.click()}
-              className="w-full max-w-xl aspect-square md:aspect-video bg-white border-4 border-dashed border-emerald-100 rounded-[3rem] flex flex-col items-center justify-center cursor-pointer hover:border-emerald-300 transition-all group shadow-xl shadow-emerald-500/5"
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={cn(
+                "w-full max-w-xl aspect-square md:aspect-video bg-white border-4 border-dashed rounded-[3rem] flex flex-col items-center justify-center cursor-pointer transition-all group shadow-xl shadow-emerald-500/5",
+                isDragging ? "border-emerald-500 bg-emerald-50/50 scale-[1.02]" : "border-emerald-100 hover:border-emerald-300"
+              )}
             >
               <div className="p-10 bg-emerald-50 rounded-full group-hover:scale-110 transition-transform">
                 <ImageIcon className="h-20 w-20 text-emerald-500" />
