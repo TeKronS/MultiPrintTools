@@ -226,18 +226,7 @@ export default function ImageResizer() {
           </Select>
         </div>
 
-        <div className="pt-2">
-          <Button 
-            className="w-full h-11 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-xl shadow-lg shadow-emerald-500/20 text-xs gap-3 transition-all active:scale-95"
-            onClick={startResizing}
-            disabled={!image || isResizing}
-          >
-            {isResizing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-            {isResizing ? t.resizing : t.downloadImage}
-          </Button>
-        </div>
-
-        <div className="p-2 rounded-lg bg-emerald-50/50 border border-dashed border-emerald-200">
+        <div className="p-2 mt-2 rounded-lg bg-emerald-50/50 border border-dashed border-emerald-200">
           <div className="flex items-center gap-2 mb-0.5">
             <ShieldCheck className="h-3 w-3 text-emerald-600" />
             <span className="text-[8px] font-black text-emerald-700 uppercase tracking-widest">{t.localProcessing}</span>
@@ -248,6 +237,17 @@ export default function ImageResizer() {
         </div>
       </div>
     </div>
+  );
+
+  const downloadButton = (
+    <Button 
+      className="w-full h-11 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-xl shadow-lg shadow-emerald-500/20 text-xs gap-3 transition-all active:scale-95"
+      onClick={startResizing}
+      disabled={!image || isResizing}
+    >
+      {isResizing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+      {isResizing ? t.resizing : t.downloadImage}
+    </Button>
   );
 
   return (
@@ -276,7 +276,7 @@ export default function ImageResizer() {
       </header>
 
       <main className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
-        <div className="flex-1 overflow-y-auto p-4 sm:p-12 bg-slate-100/50 flex flex-col items-center">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-12 bg-slate-100/50 flex flex-col items-center relative">
           {!image ? (
             <div 
               onClick={() => fileInputRef.current?.click()}
@@ -293,7 +293,7 @@ export default function ImageResizer() {
               <input type="file" ref={fileInputRef} accept="image/*" onChange={handleFileSelect} className="hidden" />
             </div>
           ) : (
-            <div className="w-full max-w-4xl space-y-8 animate-fade-in pb-20 md:pb-0">
+            <div className="w-full max-w-4xl space-y-8 animate-fade-in pb-32 md:pb-0">
               <div className="relative group rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-white bg-white">
                 <img 
                   src={image.url} 
@@ -348,25 +348,35 @@ export default function ImageResizer() {
           )}
         </div>
 
-        {/* Desktop Sidebar */}
-        <aside className="hidden md:block w-72 bg-white border-l border-border p-5 overflow-y-auto shrink-0 shadow-2xl z-20">
-          {renderSettingsContent()}
+        {/* Desktop Sidebar with fixed bottom action */}
+        <aside className="hidden md:flex w-72 bg-white border-l border-border flex-col shrink-0 shadow-2xl z-20">
+          <div className="flex-1 overflow-y-auto p-5 pb-2">
+            {renderSettingsContent()}
+          </div>
+          {image && (
+            <div className="p-5 pt-2 border-t bg-slate-50/50">
+              {downloadButton}
+            </div>
+          )}
         </aside>
 
-        {/* Mobile Toggle Button and Sheet */}
+        {/* Mobile Fixed Download Bar and Settings Toggle */}
         {image && (
-          <div className="md:hidden fixed bottom-6 right-6 z-[100] pointer-events-auto">
+          <div className="md:hidden fixed bottom-6 left-6 right-6 z-[100] flex gap-3 pointer-events-auto">
+            <div className="flex-1">
+              {downloadButton}
+            </div>
             <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
               <Button 
                 size="icon" 
-                className="h-14 w-14 rounded-full shadow-2xl bg-emerald-500 text-white hover:bg-emerald-600 transition-all active:scale-95 border-4 border-white"
+                className="h-11 w-11 shrink-0 rounded-full shadow-2xl bg-slate-800 text-white hover:bg-slate-900 transition-all active:scale-95 border-4 border-white"
                 onPointerDown={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   setIsMenuOpen(!isMenuOpen);
                 }}
               >
-                <Settings2 className="h-6 w-6" />
+                <Settings2 className="h-5 w-5" />
               </Button>
               <SheetContent side="right" className="w-[85%] sm:w-[350px] p-5 bg-white/95 backdrop-blur-xl shadow-2xl overflow-y-auto">
                 <SheetHeader className="sr-only">
@@ -374,6 +384,9 @@ export default function ImageResizer() {
                   <SheetDescription>Ajustes de redimensionado de imagen</SheetDescription>
                 </SheetHeader>
                 {renderSettingsContent()}
+                <div className="mt-6">
+                  {downloadButton}
+                </div>
               </SheetContent>
             </Sheet>
           </div>
