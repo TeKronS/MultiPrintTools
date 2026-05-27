@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, useDeferredValue } from "react";
@@ -455,10 +456,10 @@ export default function MuralisEditor() {
           }
           pdf.setFontSize(7);
           pdf.setTextColor(180);
-          pdf.text(`MULTIPRINTTOOLS | MURALIS | PANEL ${r+1}-${c+1} | ${activePaperSize} (${activeOrientation === 'portrait' ? 'P' : 'L'})`, activeMarginH * 10, paper.height - (activeMarginV * 5));
+          pdf.text(`MULTIPRINTTOOLS | ${t.muralisTitle.toUpperCase()} | PANEL ${r+1}-${c+1} | ${activePaperSize} (${activeOrientation === 'portrait' ? 'P' : 'L'})`, activeMarginH * 10, paper.height - (activeMarginV * 5));
         }
       }
-      pdf.save(`muralis-grid-${Date.now()}.pdf`);
+      pdf.save(`mural-grid-${Date.now()}.pdf`);
       toast({ title: t.export, description: "PDF generado con éxito." });
     } catch (e) {
       toast({ variant: "destructive", title: "Error", description: "No se pudo generar el PDF." });
@@ -786,13 +787,13 @@ export default function MuralisEditor() {
             <div className="w-6 h-6 lg:w-8 lg:h-8 relative overflow-hidden rounded-lg shadow-sm bg-white border border-border/10">
               <Image 
                 src={logo} 
-                alt="MultiprintTools Logo" 
+                alt="Logo" 
                 fill 
                 className="object-contain"
               />
             </div>
-            <h1 className="text-lg lg:text-xl font-headline font-black tracking-tighter text-primary">
-              MURALIS<span className="text-accent">.</span>
+            <h1 className="text-lg lg:text-xl font-headline font-black tracking-tighter text-primary uppercase">
+              {t.muralisTitle}<span className="text-accent">.</span>
             </h1>
           </div>
           <Separator orientation="vertical" className="h-8 hidden lg:block" />
@@ -817,8 +818,8 @@ export default function MuralisEditor() {
                 <ImageUploader onImageUpload={handleImageUpload} language={lang} t={t} />
               </div>
               <div className="order-2 space-y-2">
-                <h2 className="text-2xl lg:text-3xl font-headline font-black tracking-tighter">Preparar nuevo mural</h2>
-                <p className="text-muted-foreground font-medium text-sm lg:text-base">Sube una imagen de alta resolución para generar tu cuadrícula.</p>
+                <h2 className="text-2xl lg:text-3xl font-headline font-black tracking-tighter">{lang === 'es' ? 'Preparar nuevo mural' : 'Prepare new mural'}</h2>
+                <p className="text-muted-foreground font-medium text-sm lg:text-base">{lang === 'es' ? 'Sube una imagen de alta resolución para generar tu cuadrícula.' : 'Upload a high-resolution image to generate your grid.'}</p>
               </div>
             </div>
           ) : (
@@ -886,7 +887,7 @@ export default function MuralisEditor() {
                     onClick={handleExport}
                     disabled={!image || isExporting}
                   >
-                    {isExporting ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileDown className="h-5 w-5" />}
+                    {isExporting ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileDown className="h-4 w-4" />}
                     {isExporting ? "Generando PDF..." : t.export}
                   </Button>
                 </div>
