@@ -21,8 +21,8 @@ export const translations = {
     reset: 'Reset',
     scale: 'Scale',
     physicalDimensions: 'Target Dimensions',
-    width: 'Width (cm)',
-    height: 'Height (cm)',
+    width: 'Width',
+    height: 'Height',
     units: 'Units',
     totalPanels: 'Total Panels',
     language: 'Language',
@@ -73,7 +73,20 @@ export const translations = {
     convertingPdf: 'Converting PDF to Word...',
     downloadDocx: 'Download Word Document',
     dropPdf: 'Drop your PDF here',
-    pdfFormatOnly: 'PDF files only'
+    pdfFormatOnly: 'PDF files only',
+    // Resizer Pro specific
+    targetDpi: 'Target DPI',
+    originalSize: 'Original Size',
+    newSize: 'New Size',
+    downloadImage: 'Download Image',
+    keepAspectRatio: 'Keep Aspect Ratio',
+    unitsCm: 'Centimeters (cm)',
+    unitsIn: 'Inches (in)',
+    resizing: 'Resizing...',
+    quality: 'Print Quality',
+    low: 'Draft (72 dpi)',
+    medium: 'Standard (150 dpi)',
+    high: 'Professional (300 dpi)'
   },
   es: {
     title: 'MURALIS',
@@ -94,8 +107,8 @@ export const translations = {
     reset: 'Restablecer',
     scale: 'Escala',
     physicalDimensions: 'Dimensiones Reales',
-    width: 'Ancho (cm)',
-    height: 'Alto (cm)',
+    width: 'Ancho',
+    height: 'Alto',
     units: 'Unidades',
     totalPanels: 'Paneles Totales',
     language: 'Idioma',
@@ -146,6 +159,19 @@ export const translations = {
     convertingPdf: 'Convirtiendo PDF a Word...',
     downloadDocx: 'Descargar Documento Word',
     dropPdf: 'Suelta tu PDF aquí',
-    pdfFormatOnly: 'Solo archivos PDF'
+    pdfFormatOnly: 'Solo archivos PDF',
+    // Resizer Pro specific
+    targetDpi: 'DPI Objetivo',
+    originalSize: 'Tamaño Original',
+    newSize: 'Nuevo Tamaño',
+    downloadImage: 'Descargar Imagen',
+    keepAspectRatio: 'Mantener Proporción',
+    unitsCm: 'Centímetros (cm)',
+    unitsIn: 'Pulgadas (in)',
+    resizing: 'Redimensionando...',
+    quality: 'Calidad de Impresión',
+    low: 'Borrador (72 dpi)',
+    medium: 'Estándar (150 dpi)',
+    high: 'Profesional (300 dpi)'
   }
 };

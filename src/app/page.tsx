@@ -12,7 +12,8 @@ import {
   ArrowRight,
   Sparkles,
   FileText,
-  FileType
+  FileType,
+  Maximize
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +35,14 @@ export default function Home() {
       badge: t.popular
     },
     {
+      title: t.resizerTitle,
+      description: t.resizerDesc,
+      icon: <Maximize className="h-8 w-8 text-emerald-500" />,
+      href: "/resizer",
+      status: "active",
+      badge: t.popular
+    },
+    {
       title: t.imgToPdfTitle,
       description: t.imgToPdfDesc,
       icon: <FileText className="h-8 w-8 text-blue-500" />,
@@ -48,14 +57,6 @@ export default function Home() {
       href: "/pdf-to-word",
       status: "active",
       badge: "NEW"
-    },
-    {
-      title: t.resizerTitle,
-      description: t.resizerDesc,
-      icon: <ImageIcon className="h-8 w-8 text-emerald-500" />,
-      href: "#",
-      status: "coming-soon",
-      badge: t.comingSoon
     }
   ];
 
