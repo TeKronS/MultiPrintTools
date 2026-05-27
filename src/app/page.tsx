@@ -13,7 +13,8 @@ import {
   Sparkles,
   FileText,
   FileType,
-  Maximize
+  Maximize,
+  Copy
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -41,6 +42,14 @@ export default function Home() {
       href: "/resizer",
       status: "active",
       badge: t.popular
+    },
+    {
+      title: t.pdfMasterTitle,
+      description: t.pdfMasterDesc,
+      icon: <Copy className="h-8 w-8 text-indigo-500" />,
+      href: "/pdf-merge",
+      status: "active",
+      badge: "PRO"
     },
     {
       title: t.imgToPdfTitle,

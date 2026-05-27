@@ -46,7 +46,7 @@ export const translations = {
     muralisTitle: 'Muralis',
     muralisDesc: 'Grid generator for giant murals. Split any image into printable sheets with technical overlaps.',
     pdfMasterTitle: 'PDF Master',
-    pdfMasterDesc: 'Merge, split and optimize PDF files for mass printing. Includes automatic numbering.',
+    pdfMasterDesc: 'Merge multiple PDF files into one. Fast, local and private.',
     resizerTitle: 'Resizer Pro',
     resizerDesc: 'Resize images to specific DPI for large formats without losing visual quality.',
     costoTitle: 'Costo Print',
@@ -88,7 +88,18 @@ export const translations = {
     medium: 'Standard (150 dpi)',
     high: 'Professional (300 dpi)',
     localProcessing: '100% Local Processing',
-    privacyNote: 'Your images never leave this device. Private and fast.'
+    privacyNote: 'Your images never leave this device. Private and fast.',
+    // PDF Merge
+    mergeTitle: 'PDF Master',
+    mergeSubtitle: 'Merge PDF Files',
+    addFiles: 'Add PDF Files',
+    merging: 'Merging...',
+    downloadMerged: 'Download Merged PDF',
+    order: 'Order',
+    fileName: 'File Name',
+    fileSize: 'Size',
+    remove: 'Remove',
+    mergeAction: 'Merge Files'
   },
   es: {
     title: 'MURALIS',
@@ -134,7 +145,7 @@ export const translations = {
     muralisTitle: 'Muralis',
     muralisDesc: 'Generador de cuadrículas para murales gigantes. Divide cualquier imagen en hojas imprimibles con solapes técnicos.',
     pdfMasterTitle: 'PDF Master',
-    pdfMasterDesc: 'Combina, separa y optimiza archivos PDF para impresión masiva. Incluye numeración automática.',
+    pdfMasterDesc: 'Combina varios archivos PDF en uno solo. Rápido, local y privado.',
     resizerTitle: 'Resizer Pro',
     resizerDesc: 'Cambia el tamaño de imágenes a DPI específico para gigantografías sin pérdida de calidad visual.',
     costoTitle: 'Costo Print',
@@ -176,6 +187,17 @@ export const translations = {
     medium: 'Estándar (150 dpi)',
     high: 'Profesional (300 dpi)',
     localProcessing: 'Procesamiento 100% Local',
-    privacyNote: 'Tus imágenes nunca salen de este dispositivo. Privado y rápido.'
+    privacyNote: 'Tus imágenes nunca salen de este dispositivo. Privado y rápido.',
+    // PDF Merge
+    mergeTitle: 'PDF Master',
+    mergeSubtitle: 'Combinar Archivos PDF',
+    addFiles: 'Añadir Archivos PDF',
+    merging: 'Combinando...',
+    downloadMerged: 'Descargar PDF Combinado',
+    order: 'Orden',
+    fileName: 'Nombre del Archivo',
+    fileSize: 'Tamaño',
+    remove: 'Eliminar',
+    mergeAction: 'Combinar Archivos'
   }
 };
