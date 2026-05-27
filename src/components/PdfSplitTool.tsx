@@ -369,15 +369,7 @@ export default function PdfSplitTool() {
         <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-muted/30 flex flex-col items-center">
           <div className="w-full max-w-6xl space-y-6">
             {!pdfFile ? (
-              <div className="max-w-2xl mx-auto w-full pt-12">
-                <div className="text-center space-y-2 mb-8">
-                  <Badge className="bg-rose-500/10 text-rose-600 border-rose-200 hover:bg-rose-200/20 font-black px-3 py-1">
-                    <Zap className="h-3 w-3 mr-2" /> {t.localProcessing}
-                  </Badge>
-                  <h2 className="text-3xl font-headline font-black tracking-tighter text-foreground uppercase">
-                    {t.splitSubtitle}
-                  </h2>
-                </div>
+              <div className="max-w-2xl mx-auto w-full pt-4 space-y-12">
                 <div 
                   onClick={() => fileInputRef.current?.click()}
                   onDragOver={handleDragOver}
@@ -393,6 +385,15 @@ export default function PdfSplitTool() {
                   </div>
                   <h3 className="mt-6 text-xl font-headline font-black text-foreground uppercase tracking-tight">Seleccionar PDF</h3>
                   <p className="mt-2 text-muted-foreground font-medium">{t.dragDrop}</p>
+                </div>
+
+                <div className="text-center space-y-2">
+                  <Badge className="bg-rose-500/10 text-rose-600 border-rose-200 hover:bg-rose-200/20 font-black px-3 py-1">
+                    <Zap className="h-3 w-3 mr-2" /> {t.localProcessing}
+                  </Badge>
+                  <h2 className="text-3xl font-headline font-black tracking-tighter text-foreground uppercase">
+                    {t.splitSubtitle}
+                  </h2>
                 </div>
               </div>
             ) : (
