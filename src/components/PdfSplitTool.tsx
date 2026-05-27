@@ -34,8 +34,11 @@ import * as pdfjsLib from "pdfjs-dist";
 import logo from "@/app/icono.png";
 import { cn } from "@/lib/utils";
 
-// Configure pdfjs worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// Configuración del worker para PDF.js v4.0+
+// Usamos unpkg y la extensión .mjs para asegurar compatibilidad con módulos ESM
+if (typeof window !== 'undefined') {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+}
 
 interface PageThumbnail {
   index: number;
@@ -55,7 +58,6 @@ export default function PdfSplitTool() {
   const [isDragging, setIsDragging] = useState(false);
   const [outputName, setOutputName] = useState("");
   
-  // New preview and selection states
   const [thumbnails, setThumbnails] = useState<PageThumbnail[]>([]);
   const [selectedPages, setSelectedPages] = useState<Set<number>>(new Set());
   const [isLoadingPages, setIsLoadingPages] = useState(false);
@@ -65,7 +67,6 @@ export default function PdfSplitTool() {
     setMounted(true);
   }, []);
 
-  // Sync pageRange input with selectedPages Set
   useEffect(() => {
     if (totalPages > 0) {
       const indices = Array.from(selectedPages).sort((a, b) => a - b);
@@ -74,7 +75,6 @@ export default function PdfSplitTool() {
         return;
       }
 
-      // Group into ranges
       const ranges: string[] = [];
       let start = indices[0];
       let end = indices[0];
@@ -318,7 +318,6 @@ export default function PdfSplitTool() {
               </div>
             ) : (
               <div className="animate-in fade-in duration-500 pb-32">
-                {/* File Header */}
                 <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between mb-8 bg-white p-6 rounded-[2rem] border border-rose-100 shadow-sm">
                   <div className="flex items-center gap-4">
                     <div className="p-3 bg-rose-50 rounded-2xl">
@@ -374,7 +373,6 @@ export default function PdfSplitTool() {
                           >
                             <img src={thumb.url} alt={`Página ${thumb.index + 1}`} className="w-full h-full object-cover" />
                             
-                            {/* Selection Overlay */}
                             <div className={cn(
                               "absolute inset-0 transition-opacity duration-300 flex items-center justify-center",
                               isSelected ? "bg-rose-500/10" : "bg-black/0 group-hover:bg-black/5"
@@ -386,7 +384,6 @@ export default function PdfSplitTool() {
                               )}
                             </div>
 
-                            {/* Page Indicator */}
                             <div className={cn(
                               "absolute bottom-2 right-2 px-2 py-0.5 rounded-lg text-[10px] font-black tracking-tighter shadow-sm",
                               isSelected ? "bg-rose-500 text-white" : "bg-white/90 text-slate-600"
@@ -395,7 +392,6 @@ export default function PdfSplitTool() {
                             </div>
                           </div>
                           
-                          {/* Floating Actions */}
                           <div className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                             <Button 
                               size="icon" 
@@ -419,7 +415,6 @@ export default function PdfSplitTool() {
           </div>
         </div>
 
-        {/* Sidebar Desktop */}
         <aside className="hidden lg:flex w-80 bg-white border-l border-border flex-col shrink-0 shadow-2xl z-20">
           <div className="flex-1 overflow-y-auto p-8 space-y-8">
             <div className="space-y-4">
@@ -491,7 +486,6 @@ export default function PdfSplitTool() {
           </div>
         </aside>
 
-        {/* Mobile Fixed Action Bar */}
         {pdfFile && selectedPages.size > 0 && (
           <div className="lg:hidden fixed bottom-6 left-6 right-6 z-[100] animate-in slide-in-from-bottom-10 flex flex-col gap-2">
             <div className="bg-white/90 backdrop-blur-md p-3 rounded-2xl border border-rose-100 shadow-2xl flex items-center justify-between">
