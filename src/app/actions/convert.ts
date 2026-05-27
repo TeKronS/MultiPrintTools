@@ -7,10 +7,10 @@ const cloudConvert = new CloudConvert(process.env.CLOUDCONVERT_API_KEY || '');
 
 export async function convertPdfToDocx(formData: FormData) {
   const file = formData.get('file') as File;
-  if (!file) throw new Error('No file provided');
+  if (!file) throw new Error('No se ha proporcionado ningún archivo');
 
   if (!process.env.CLOUDCONVERT_API_KEY) {
-    throw new Error('API Key de CloudConvert no configurada. Por favor, añádela a .env');
+    throw new Error('API Key de CloudConvert no configurada. Por favor, añádela a tu archivo .env');
   }
 
   try {
@@ -23,7 +23,7 @@ export async function convertPdfToDocx(formData: FormData) {
           operation: 'convert',
           input: 'import-my-file',
           output_format: 'docx',
-          engine: 'officeguide', // Motor de alta calidad para preservar diseño
+          engine: 'officeguide', // Este motor es el que mejor respeta el diseño original
         },
         'export-my-file': {
           operation: 'export/url',
@@ -37,13 +37,13 @@ export async function convertPdfToDocx(formData: FormData) {
     
     await cloudConvert.tasks.upload(uploadTask, buffer, file.name);
 
-    // Esperar a que el trabajo termine (poll)
+    // Esperar a que el trabajo termine (polling)
     let finishedJob = await cloudConvert.jobs.wait(job.id!);
     
     const exportTask = finishedJob.tasks.filter(task => task.operation === 'export/url' && task.status === 'finished')[0];
     
     if (!exportTask || !exportTask.result || !exportTask.result.files) {
-      throw new Error('La exportación falló');
+      throw new Error('La exportación del archivo falló en el servidor');
     }
 
     return {

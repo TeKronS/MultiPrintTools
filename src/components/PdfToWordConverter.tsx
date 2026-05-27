@@ -9,13 +9,12 @@ import {
   FileType, 
   Loader2, 
   X,
-  FileCheck,
   ShieldCheck,
   Zap,
   Type,
-  AlignLeft,
   CloudLightning,
-  Download
+  Download,
+  AlertCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -39,7 +38,6 @@ export default function PdfToWordConverter() {
   const [progress, setProgress] = useState(0);
   const [statusText, setStatusText] = useState("");
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
-  const [convertedName, setConvertedName] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -51,6 +49,8 @@ export default function PdfToWordConverter() {
       setPdfFile(file);
       setProgress(0);
       setDownloadUrl(null);
+    } else if (file) {
+      toast({ variant: "destructive", title: "Formato no válido", description: "Por favor selecciona un archivo PDF." });
     }
   };
 
@@ -59,34 +59,33 @@ export default function PdfToWordConverter() {
 
     setIsConverting(true);
     setProgress(10);
-    setStatusText("Subiendo archivo a la nube...");
+    setStatusText("Subiendo archivo...");
 
     try {
       const formData = new FormData();
       formData.append('file', pdfFile);
 
-      // Simulación de progreso mientras la API trabaja
+      // Simulación visual de progreso para dar feedback al usuario
       const progressInterval = setInterval(() => {
-        setProgress(prev => (prev < 90 ? prev + 1 : prev));
-      }, 500);
+        setProgress(prev => (prev < 95 ? prev + 1 : prev));
+      }, 300);
 
       const result = await convertPdfToDocx(formData);
       
       clearInterval(progressInterval);
       setProgress(100);
       setDownloadUrl(result.url);
-      setConvertedName(result.name);
       
       toast({ 
         title: "¡Conversión Exitosa!", 
-        description: "Tu documento está listo para descargar con calidad profesional." 
+        description: "El diseño original se ha preservado con alta fidelidad." 
       });
     } catch (error: any) {
       console.error(error);
       toast({ 
         variant: "destructive", 
-        title: "Error de API", 
-        description: error.message || "Asegúrate de tener la API Key en el archivo .env" 
+        title: "Error de Conversión", 
+        description: error.message || "Asegúrate de que tu API Key de CloudConvert sea válida." 
       });
     } finally {
       setIsConverting(false);
@@ -125,7 +124,7 @@ export default function PdfToWordConverter() {
               CALIDAD DE ESTUDIO GRÁFICO
             </h2>
             <p className="text-slate-500 font-medium max-w-md mx-auto">
-              Utilizamos motores de conversión de alta fidelidad para respetar fuentes, tablas y diseños complejos.
+              Utilizamos tecnología líder para respetar fuentes, tablas y diseños complejos de tus documentos.
             </p>
           </div>
 
@@ -137,7 +136,7 @@ export default function PdfToWordConverter() {
                 </div>
                 <div className="text-center space-y-2">
                   <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Seleccionar PDF</h3>
-                  <p className="text-slate-500 font-bold text-sm">Convierte conservando imágenes y formato exacto.</p>
+                  <p className="text-slate-500 font-bold text-sm">Convierte respetando el diseño exacto.</p>
                 </div>
                 <Button className="bg-primary hover:bg-primary/90 text-white font-black px-8 py-6 rounded-2xl text-lg uppercase tracking-widest shadow-xl">
                   Elegir Archivo
@@ -176,6 +175,7 @@ export default function PdfToWordConverter() {
                       <span>{progress}%</span>
                     </div>
                     <Progress value={progress} className="h-3 bg-primary/10 rounded-full" />
+                    <p className="text-center text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Esto puede tardar unos segundos dependiendo del tamaño del archivo.</p>
                   </div>
                 )}
 
@@ -196,6 +196,7 @@ export default function PdfToWordConverter() {
                       onClick={() => {
                         setPdfFile(null);
                         setDownloadUrl(null);
+                        setProgress(0);
                       }}
                     >
                       Convertir otro archivo
@@ -227,9 +228,14 @@ export default function PdfToWordConverter() {
               <Type className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
               <div className="space-y-1">
                 <p className="text-[10px] font-black text-amber-700 uppercase tracking-wider">Fuentes Originales</p>
-                <p className="text-[11px] text-amber-600/80 font-medium">Detectamos Times New Roman y Arial para que el Word sea 100% editable.</p>
+                <p className="text-[11px] text-amber-600/80 font-medium">Detectamos tipografías profesionales para que el Word sea 100% editable.</p>
               </div>
             </div>
+          </div>
+
+          <div className="flex items-center justify-center gap-2 text-slate-400">
+            <AlertCircle className="h-4 w-4" />
+            <p className="text-[10px] font-bold uppercase tracking-widest">Los archivos se eliminan automáticamente tras 24 horas.</p>
           </div>
         </div>
       </main>
