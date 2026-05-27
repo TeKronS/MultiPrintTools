@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useCallback, useRef, useMemo, useEffect } from "react";
@@ -34,13 +35,13 @@ import {
 } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Input } from "@/components/ui/input";
 import { jsPDF } from "jspdf";
 import { useToast } from "@/hooks/use-toast";
 import { Language, translations } from "@/lib/translations";
 import { LanguageSelector } from "./LanguageSelector";
 import logo from "@/app/icono.png";
 import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
 
 const PAPER_DIMENSIONS: Record<string, { width: number; height: number; format: string }> = {
   'Carta': { width: 215.9, height: 279.4, format: 'letter' },
@@ -115,9 +116,9 @@ export default function ImageToPdfConverter() {
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
+    if (e.target.files && e.target.files.length > 0) {
       processFiles(e.target.files);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      e.target.value = '';
     }
   };
 
@@ -463,14 +464,6 @@ export default function ImageToPdfConverter() {
                   </div>
                   <h3 className="mt-8 text-2xl font-headline font-black text-slate-800 uppercase tracking-tight">{t.imgToPdfTitle}</h3>
                   <p className="mt-2 text-slate-500 font-medium">{t.dragDrop}</p>
-                  <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    multiple 
-                    accept="image/*" 
-                    onChange={handleFileSelect} 
-                    className="hidden" 
-                  />
                 </div>
               </div>
             ) : (
@@ -614,7 +607,6 @@ export default function ImageToPdfConverter() {
                 >
                   <PlusCircle className="h-6 w-6" />
                   <span className="uppercase tracking-widest text-[10px]">{t.addImages}</span>
-                  <input type="file" ref={fileInputRef} multiple accept="image/*" onChange={handleFileSelect} className="hidden" />
                 </Button>
               </div>
             )}
@@ -661,6 +653,15 @@ export default function ImageToPdfConverter() {
           </Sheet>
         </div>
       </main>
+
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        multiple 
+        accept="image/*" 
+        onChange={handleFileSelect} 
+        className="hidden" 
+      />
     </div>
   );
 }

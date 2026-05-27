@@ -71,9 +71,10 @@ export default function PdfMergeTool() {
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
+    if (e.target.files && e.target.files.length > 0) {
       processFiles(e.target.files);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+      // Reset value to allow selecting the same file again if needed
+      e.target.value = "";
     }
   };
 
@@ -194,7 +195,6 @@ export default function PdfMergeTool() {
                 </div>
                 <h3 className="mt-6 text-xl font-headline font-black text-slate-800 uppercase tracking-tight">{t.addFiles}</h3>
                 <p className="mt-2 text-slate-500 font-medium">{t.dragDrop}</p>
-                <input type="file" ref={fileInputRef} multiple accept="application/pdf" onChange={handleFileSelect} className="hidden" />
               </div>
             ) : (
               <div className="space-y-4 animate-in fade-in duration-500 pb-32">
