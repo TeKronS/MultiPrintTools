@@ -1,4 +1,3 @@
-
 export type Language = 'en' | 'es';
 
 export const translations = {
@@ -110,7 +109,14 @@ export const translations = {
     pageRangePlaceholder: 'e.g. 1, 3-5, 8',
     splitAction: 'Extract Pages',
     splitting: 'Extracting...',
-    invalidRange: 'Please enter a valid page range.'
+    invalidRange: 'Please enter a valid page range.',
+    // PDF to Image
+    pdfToImgTitle: 'PDF to Image',
+    pdfToImgDesc: 'Convert PDF pages into high-quality JPEG or PNG images locally.',
+    exportImages: 'Export as Images',
+    convertingToImg: 'Converting to images...',
+    format: 'Format',
+    qualityImg: 'Image Quality'
   },
   es: {
     title: 'MURALIS',
@@ -220,6 +226,13 @@ export const translations = {
     pageRangePlaceholder: 'Ej: 1, 3-5, 8',
     splitAction: 'Extraer Páginas',
     splitting: 'Extrayendo...',
-    invalidRange: 'Por favor ingresa un rango de páginas válido.'
+    invalidRange: 'Por favor ingresa un rango de páginas válido.',
+    // PDF to Image
+    pdfToImgTitle: 'PDF a Imagen',
+    pdfToImgDesc: 'Convierte las páginas de tu PDF en imágenes JPEG o PNG de alta calidad localmente.',
+    exportImages: 'Exportar como Imágenes',
+    convertingToImg: 'Convirtiendo a imágenes...',
+    format: 'Formato',
+    qualityImg: 'Calidad de Imagen'
   }
 };

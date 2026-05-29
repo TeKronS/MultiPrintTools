@@ -11,7 +11,8 @@ import {
   FileType,
   Maximize,
   Copy,
-  Scissors
+  Scissors,
+  FileImage
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -58,9 +59,17 @@ export default function Home() {
       badge: "NEW"
     },
     {
+      title: t.pdfToImgTitle,
+      description: t.pdfToImgDesc,
+      icon: <FileImage className="h-8 w-8 text-blue-500" />,
+      href: "/pdf-to-img",
+      status: "active",
+      badge: "NEW"
+    },
+    {
       title: t.imgToPdfTitle,
       description: t.imgToPdfDesc,
-      icon: <FileText className="h-8 w-8 text-blue-500" />,
+      icon: <FileText className="h-8 w-8 text-emerald-500" />,
       href: "/image-to-pdf",
       status: "active",
       badge: "NEW"
