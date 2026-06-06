@@ -15,7 +15,9 @@ export const metadata: Metadata = {
     'cambiar dpi imagen', 'poster maker', 'gigantografías', 'pdf a word', 'mural grid generator',
     'tiled printing', 'impresión de gran formato', 'herramientas para imprentas', 'imprimir posters gigantes',
     'diseño gráfico', 'herramientas pdf gratis', 'gestión de documentos', 'diseño de murales', 'imprimir en casa',
-    'herramientas de impresión', 'unir archivos pdf', 'separar hojas pdf', 'convertir imagen a pdf'
+    'herramientas de impresión', 'unir archivos pdf', 'separar hojas pdf', 'convertir imagen a pdf',
+    'imprimir poster en varias hojas', 'dividir foto para pared', 'hojas carta', 'hojas oficio', 'hojas A4',
+    'combinar pdf privado', 'extraer paginas pdf sin subir', 'convertir imagen a pdf alta calidad'
   ],
   authors: [{ name: 'Tekron Web Studio' }],
   creator: 'Tekron Web Studio',
@@ -27,6 +29,39 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: '/icono.png',
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'es_ES',
+    url: 'https://tekron-web-studio.vercel.app/',
+    siteName: 'MultiPrintTools',
+    title: 'MultiPrintTools | Suite Profesional de Reprografía',
+    description: 'Herramientas locales para impresión y gestión de PDF. Privacidad total: tus archivos nunca salen de tu equipo.',
+    images: [
+      {
+        url: 'https://picsum.photos/seed/seo-preview/1200/630',
+        width: 1200,
+        height: 630,
+        alt: 'MultiPrintTools Preview',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'MultiPrintTools | Suite Profesional de Reprografía',
+    description: 'Optimiza tus trabajos de impresión y PDF con procesamiento local y privado.',
+    images: ['https://picsum.photos/seed/seo-preview/1200/630'],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
   },
 };
 

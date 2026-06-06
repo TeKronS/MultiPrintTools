@@ -9,7 +9,8 @@ export const metadata: Metadata = {
     "dividir imagen para imprimir", "crear poster gigante", "mural maker", "tiled printing", 
     "dividir fotos en hojas a4", "poster wall maker", "gigantografías", "hojas carta", 
     "hojas oficio", "dividir fotos en hojas carta", "imprimir posters en casa", 
-    "decoración de pared DIY", "mosaico de fotos para pared", "imprimir imagen grande en varias hojas"
+    "decoración de pared DIY", "mosaico de fotos para pared", "imprimir imagen grande en varias hojas",
+    "dividir imagen en cuadrícula", "imprimir fotos gigantes con impresora común", "muralista digital"
   ],
 };
 
