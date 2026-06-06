@@ -1,8 +1,13 @@
 
-"use client";
-
+import type { Metadata } from "next";
 import dynamic from "next/dynamic";
 import { Loader2 } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "Separar PDF | Extraer Páginas de Documentos PDF",
+  description: "Extrae rangos de páginas o selecciona hojas específicas de un PDF para crear un nuevo documento. Rápido, con vista previa interactiva y procesamiento 100% local.",
+  keywords: ["separar paginas pdf", "extraer hojas pdf", "dividir pdf online local", "cortar pdf"],
+};
 
 const PdfSplitTool = dynamic(
   () => import("@/components/PdfSplitTool"),

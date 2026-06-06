@@ -1,7 +1,13 @@
-"use client";
 
+import type { Metadata } from "next";
 import dynamic from "next/dynamic";
 import { Loader2 } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "Convertir PDF a Imagen | Exportar Páginas a JPEG/PNG",
+  description: "Convierte cada página de tu documento PDF en una imagen de alta resolución. Selecciona calidad y formato (JPEG/PNG) localmente sin subir tus archivos a la nube.",
+  keywords: ["pdf a jpg gratis", "convertir pdf a png", "extraer imagenes de pdf", "pdf a imagen alta calidad"],
+};
 
 const PdfToImageConverter = dynamic(
   () => import("@/components/PdfToImageConverter"),
