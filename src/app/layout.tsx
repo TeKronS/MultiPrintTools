@@ -6,14 +6,16 @@ import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
   title: {
-    default: 'MultiPrintTools | Herramientas Profesionales de Reprografía',
+    default: 'MultiPrintTools | Herramientas Profesionales de Impresión y PDF',
     template: '%s | MultiPrintTools'
   },
-  description: 'Toolkit digital para expertos en impresión. Divide imágenes para murales, combina PDFs, cambia DPI de imágenes y convierte documentos. Procesamiento 100% local y privado.',
+  description: 'Toolkit digital gratuito para expertos en impresión. Divide imágenes para murales y pósters, combina y separa PDFs, cambia DPI de fotos y convierte documentos. Procesamiento 100% local, rápido y privado.',
   keywords: [
     'reprografía', 'artes gráficas', 'dividir imagen para imprimir', 'unir pdf online', 
     'cambiar dpi imagen', 'poster maker', 'gigantografías', 'pdf a word', 'mural grid generator',
-    'tiled printing', 'impresión de gran formato', 'herramientas para imprentas'
+    'tiled printing', 'impresión de gran formato', 'herramientas para imprentas', 'imprimir posters gigantes',
+    'diseño gráfico', 'herramientas pdf gratis', 'gestión de documentos', 'diseño de murales', 'imprimir en casa',
+    'herramientas de impresión', 'unir archivos pdf', 'separar hojas pdf', 'convertir imagen a pdf'
   ],
   authors: [{ name: 'Tekron Web Studio' }],
   creator: 'Tekron Web Studio',
