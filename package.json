@@ -1,7 +1,8 @@
-
 {
   "name": "multiprint-tools",
-  "version": "0.1.0",
+  "version": "1.0.0",
+  "description": "Suite profesional de herramientas digitales para reprografía y gestión de PDF con procesamiento local.",
+  "author": "Tekron Web Studio",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack -p 9002",
