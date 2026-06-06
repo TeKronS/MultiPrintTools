@@ -18,13 +18,13 @@ MultiPrintTools es una suite de herramientas digitales de alto rendimiento dise�
 - **Repositorio GitHub:** [https://github.com/TeKronS/MultiPrintTools](https://github.com/TeKronS/MultiPrintTools)
 
 ## 🚀 Herramientas Incluidas
-- **Cuadrícula para Murales:** Divide imágenes de alta resolución en paneles imprimibles con solapes precisos.
-- **Combinar PDF:** Une múltiples archivos PDF en uno solo de forma local y privada.
-- **Separar PDF:** Extrae páginas específicas de documentos PDF con vista previa interactiva.
-- **Redimensionar Imagen:** Ajusta DPI y dimensiones para gigantografías sin pérdida de calidad.
-- **Imagen a PDF:** Convierte colecciones de imágenes en documentos PDF profesionales.
-- **PDF a Imagen:** Convierte páginas de PDF en imágenes JPEG/PNG de alta calidad.
-- **PDF a Word NEW:** Conversión de alta fidelidad preservando el diseño original.
+- **Cuadrícula para Murales:** Divide imágenes de alta resolución en paneles imprimibles con solapes precisos para pósters gigantes y murales (Carta, Oficio, A4).
+- **Combinar PDF:** Une múltiples archivos PDF en uno solo de forma local y privada, sin subir datos a la nube.
+- **Separar PDF:** Extrae páginas específicas o rangos de documentos PDF con vista previa interactiva.
+- **Redimensionar Imagen:** Ajusta DPI y dimensiones reales (cm/in) para gigantografías sin pérdida de nitidez.
+- **Imagen a PDF:** Convierte colecciones de imágenes en documentos PDF profesionales con control de márgenes y orientación.
+- **PDF a Imagen:** Exporta páginas de PDF a imágenes JPEG/PNG de alta calidad (300 DPI) para diseño gráfico.
+- **PDF a Word NEW:** Conversión de alta fidelidad preservando el diseño, tablas y fuentes originales.
 
 ---
 *Diseñado y desarrollado por Tekron Web Studio - Herramientas para el mundo real.*
