@@ -5,6 +5,7 @@ import { ThemeProvider } from '@/components/ThemeProvider';
 import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://tekron-web-studio.vercel.app/'),
   title: {
     default: 'MultiPrintTools | Herramientas Profesionales de Impresión y PDF',
     template: '%s | MultiPrintTools'
