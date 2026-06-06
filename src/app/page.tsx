@@ -103,9 +103,6 @@ export default function Home() {
         <div className="flex items-center gap-2 md:gap-4">
           <ThemeToggle />
           <LanguageSelector language={lang} setLanguage={setLang} />
-          <Link href="#" className="hidden sm:block text-xs md:text-sm font-bold text-muted-foreground hover:text-primary transition-colors">
-            {t.support}
-          </Link>
         </div>
       </header>
 
