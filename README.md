@@ -1,7 +1,7 @@
 # MultiPrintTools | Suite Profesional de Reprografía
 **Desarrollado por Tekron Web Studio (2026)**
 
-MultiPrintTools es una suite de herramientas digitales de alto rendimiento diseñada específicamente para la industria de la impresión y artes gráficas 
+MultiPrintTools es una suite de herramientas digitales de alto rendimiento diseñada específicamente para la industria de la impresión, artes gráficas y trabajo de oficina.
 
 ## 📋 Información del Proyecto
 
@@ -24,7 +24,7 @@ MultiPrintTools es una suite de herramientas digitales de alto rendimiento dise�
 - **Redimensionar Imagen:** Ajusta DPI y dimensiones reales (cm/in) para gigantografías sin pérdida de nitidez.
 - **Imagen a PDF:** Convierte colecciones de imágenes en documentos PDF profesionales con control de márgenes y orientación.
 - **PDF a Imagen:** Exporta páginas de PDF a imágenes JPEG/PNG de alta calidad (300 DPI) para diseño gráfico.
-- **PDF a Word NEW:** Conversión de alta fidelidad preservando el diseño, tablas y fuentes originales.
+- **PDF a Word:** Conversión de alta fidelidad preservando el diseño, tablas y fuentes originales mediante procesamiento seguro.
 
 ---
 *Diseñado y desarrollado por Tekron Web Studio - Herramientas para el mundo real.*
