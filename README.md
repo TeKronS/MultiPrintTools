@@ -1,7 +1,7 @@
 # MultiPrintTools | Suite Profesional de Reprografía
 **Desarrollado por Tekron Web Studio (2026)**
 
-MultiPrintTools es una suite de herramientas digitales de alto rendimiento diseñada específicamente para la industria de la impresión y artes gráficas.
+MultiPrintTools es una suite de herramientas digitales de alto rendimiento diseñada específicamente para la industria de la impresión y artes gráficas 
 
 ## 📋 Información del Proyecto
 
