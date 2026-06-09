@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useDeferredValue } from "react";
+import { useState, useEffect, useDeferredValue, useMemo } from "react";
 import Image from "next/image";
 import { Language, translations } from "@/lib/translations";
 import { LanguageSelector } from "./LanguageSelector";
@@ -412,7 +412,11 @@ export default function MuralisEditor() {
       const offsetX_mm = (totalGridW - finalW_mm) / 2;
       const offsetY_mm = (totalGridH - finalH_mm) / 2;
 
-      const pxPerMm = img.width / finalW_mm;
+      // Mejorar calidad: renderizar a 300 DPI (alta resolución profesional)
+      const targetDPI = 300;
+      const outputPxPerMm = targetDPI / 25.4;
+      const sourcePxPerMm = img.width / finalW_mm;
+
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       if (!ctx) throw new Error("Canvas fail");
@@ -430,18 +434,36 @@ export default function MuralisEditor() {
           const visibleW_mm = Math.min(effectiveSheetW + overlapMm - drawInSheetX_mm, finalW_mm - Math.max(0, sheetLeft_mm - offsetX_mm));
           const visibleH_mm = Math.min(effectiveSheetH + overlapMm - drawInSheetY_mm, finalH_mm - Math.max(0, sheetTop_mm - offsetY_mm));
 
-          const sx = Math.max(0, (sheetLeft_mm - offsetX_mm) * pxPerMm);
-          const sy = Math.max(0, (sheetTop_mm - offsetY_mm) * pxPerMm);
-          const sw = visibleW_mm * pxPerMm;
-          const sh = visibleH_mm * pxPerMm;
+          // Coordenadas en la imagen de origen
+          const sx = Math.max(0, (sheetLeft_mm - offsetX_mm) * sourcePxPerMm);
+          const sy = Math.max(0, (sheetTop_mm - offsetY_mm) * sourcePxPerMm);
+          const sw = visibleW_mm * sourcePxPerMm;
+          const sh = visibleH_mm * sourcePxPerMm;
+
+          // Coordenadas en el canvas de destino de alta resolución
+          const dw = visibleW_mm * outputPxPerMm;
+          const dh = visibleH_mm * outputPxPerMm;
 
           if (sw > 0 && sh > 0) {
-            canvas.width = Math.max(1, sw);
-            canvas.height = Math.max(1, sh);
+            canvas.width = Math.max(1, dw);
+            canvas.height = Math.max(1, dh);
+            
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            
             ctx.fillStyle = "white";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
-            pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', (activeMarginH * 10) + drawInSheetX_mm, (activeMarginV * 10) + drawInSheetY_mm, visibleW_mm, visibleH_mm);
+            
+            ctx.drawImage(img, sx, sy, sw, sh, 0, 0, dw, dh);
+            
+            pdf.addImage(
+              canvas.toDataURL('image/jpeg', 0.95), 
+              'JPEG', 
+              (activeMarginH * 10) + drawInSheetX_mm, 
+              (activeMarginV * 10) + drawInSheetY_mm, 
+              visibleW_mm, 
+              visibleH_mm
+            );
           }
 
           pdf.setDrawColor(220);
@@ -460,7 +482,7 @@ export default function MuralisEditor() {
         }
       }
       pdf.save(`mural-grid-${Date.now()}.pdf`);
-      toast({ title: t.export, description: "PDF generado con éxito." });
+      toast({ title: t.export, description: "Documento exportado en alta resolución." });
     } catch (e) {
       toast({ variant: "destructive", title: "Error", description: "No se pudo generar el PDF." });
     } finally {

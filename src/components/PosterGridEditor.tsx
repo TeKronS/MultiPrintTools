@@ -411,7 +411,11 @@ export default function PosterGridEditor() {
       const offsetX_mm = (totalGridW - finalW_mm) / 2;
       const offsetY_mm = (totalGridH - finalH_mm) / 2;
 
-      const pxPerMm = img.width / finalW_mm;
+      // Mejorar calidad: calculamos píxeles por mm basándonos en 300 DPI (profesional)
+      const targetDPI = 300;
+      const outputPxPerMm = targetDPI / 25.4;
+      const sourcePxPerMm = img.width / finalW_mm;
+
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       if (!ctx) throw new Error("Canvas fail");
@@ -429,18 +433,39 @@ export default function PosterGridEditor() {
           const visibleW_mm = Math.min(effectiveSheetW + overlapMm - drawInSheetX_mm, finalW_mm - Math.max(0, sheetLeft_mm - offsetX_mm));
           const visibleH_mm = Math.min(effectiveSheetH + overlapMm - drawInSheetY_mm, finalH_mm - Math.max(0, sheetTop_mm - offsetY_mm));
 
-          const sx = Math.max(0, (sheetLeft_mm - offsetX_mm) * pxPerMm);
-          const sy = Math.max(0, (sheetTop_mm - offsetY_mm) * pxPerMm);
-          const sw = visibleW_mm * pxPerMm;
-          const sh = visibleH_mm * pxPerMm;
+          // Coordenadas de origen en la imagen original
+          const sx = Math.max(0, (sheetLeft_mm - offsetX_mm) * sourcePxPerMm);
+          const sy = Math.max(0, (sheetTop_mm - offsetY_mm) * sourcePxPerMm);
+          const sw = visibleW_mm * sourcePxPerMm;
+          const sh = visibleH_mm * sourcePxPerMm;
+
+          // Coordenadas de destino en el canvas de alta resolución (300 DPI)
+          const dw = visibleW_mm * outputPxPerMm;
+          const dh = visibleH_mm * outputPxPerMm;
 
           if (sw > 0 && sh > 0) {
-            canvas.width = Math.max(1, sw);
-            canvas.height = Math.max(1, sh);
+            canvas.width = Math.max(1, dw);
+            canvas.height = Math.max(1, dh);
+            
+            // Habilitar suavizado de imagen de alta calidad
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            
             ctx.fillStyle = "white";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
-            pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', (activeMarginH * 10) + drawInSheetX_mm, (activeMarginV * 10) + drawInSheetY_mm, visibleW_mm, visibleH_mm);
+            
+            // Renderizar el fragmento escalado
+            ctx.drawImage(img, sx, sy, sw, sh, 0, 0, dw, dh);
+            
+            // Agregar al PDF con las dimensiones reales en mm
+            pdf.addImage(
+              canvas.toDataURL('image/jpeg', 0.95), 
+              'JPEG', 
+              (activeMarginH * 10) + drawInSheetX_mm, 
+              (activeMarginV * 10) + drawInSheetY_mm, 
+              visibleW_mm, 
+              visibleH_mm
+            );
           }
 
           pdf.setDrawColor(220);
@@ -455,11 +480,11 @@ export default function PosterGridEditor() {
           }
           pdf.setFontSize(7);
           pdf.setTextColor(180);
-          pdf.text(`MULTIPRINTTOOLS | POSTER GRID | PANEL ${r+1}-${c+1} | ${activePaperSize} (${activeOrientation === 'portrait' ? 'P' : 'L'})`, activeMarginH * 10, paper.height - (activeMarginV * 5));
+          pdf.text(`MULTIPRINTTOOLS | CUADRÍCULA POSTER | PANEL ${r+1}-${c+1} | ${activePaperSize} (${activeOrientation === 'portrait' ? 'P' : 'L'})`, activeMarginH * 10, paper.height - (activeMarginV * 5));
         }
       }
       pdf.save(`poster-grid-${Date.now()}.pdf`);
-      toast({ title: t.export, description: "PDF generado con éxito." });
+      toast({ title: t.export, description: "PDF generado en alta resolución con éxito." });
     } catch (e) {
       toast({ variant: "destructive", title: "Error", description: "No se pudo generar el PDF." });
     } finally {
