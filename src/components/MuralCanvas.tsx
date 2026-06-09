@@ -197,13 +197,13 @@ export const MuralCanvas = memo(function MuralCanvas({
                           </div>
                           
                           {c < cols - 1 && (
-                            <div className="absolute right-0 top-0 bottom-0 bg-accent/5 border-r border-dashed border-accent/20" 
+                            <div className="absolute right-0 top-0 bottom-0 bg-amber-500/5 border-r border-dashed border-amber-500/20" 
                                  style={{ width: `${overlap * 10}px` }}>
-                              <div className="absolute top-1 right-1 text-[7px] font-black text-accent uppercase tracking-wider bg-white/80 px-1 rounded">Solape</div>
+                              <div className="absolute top-1 right-1 text-[7px] font-black text-amber-600 uppercase tracking-wider bg-white/80 px-1 rounded">Solape</div>
                             </div>
                           )}
                           {r < rows - 1 && (
-                            <div className="absolute bottom-0 left-0 right-0 bg-accent/5 border-b border-dashed border-accent/20" 
+                            <div className="absolute bottom-0 left-0 right-0 bg-amber-500/5 border-b border-dashed border-amber-500/20" 
                                  style={{ height: `${overlap * 10}px` }} />
                           )}
                         </>

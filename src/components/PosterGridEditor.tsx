@@ -552,9 +552,9 @@ export default function PosterGridEditor() {
           <div className="flex items-center gap-2 mb-1">
             <Maximize2 className="h-3.5 w-3.5 text-primary" />
             <Label className="text-[10px] font-black uppercase tracking-tighter text-muted-foreground">{t.finalMeasures}</Label>
-            <div className="ml-auto flex items-center gap-1 bg-accent/10 px-1.5 py-0.5 rounded">
-              <Zap className="h-2.5 w-2.5 text-accent" />
-              <span className="text-[8px] font-black text-accent uppercase">{lang === 'es' ? 'Auto-Optimización' : 'Auto-Optimization'}</span>
+            <div className="ml-auto flex items-center gap-1 bg-amber-500/10 px-1.5 py-0.5 rounded">
+              <Zap className="h-2.5 w-2.5 text-amber-600" />
+              <span className="text-[8px] font-black text-amber-600 uppercase">{lang === 'es' ? 'Auto-Optimización' : 'Auto-Optimization'}</span>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -682,10 +682,10 @@ export default function PosterGridEditor() {
             <Label className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-2 bg-card px-2 py-0.5 rounded-md shadow-sm border border-border/10">
               <Scissors className="h-3 w-3" /> {t.overlap}
             </Label>
-            <span className="text-xs font-black text-accent bg-card px-2 py-0.5 rounded-md shadow-sm border border-border/10">{currentOverlap} cm</span>
+            <span className="text-xs font-black text-amber-600 bg-card px-2 py-0.5 rounded-md shadow-sm border border-border/10">{currentOverlap} cm</span>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 hover:bg-accent/10 hover:text-accent" onClick={() => {
+            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 hover:bg-amber-500/10 hover:text-amber-600" onClick={() => {
               const newVal = Math.max(0, parseFloat((currentOverlap - 0.1).toFixed(1)));
               if (isMobile) setDraftOverlap(newVal); else setOverlap(newVal);
             }}>
@@ -696,7 +696,7 @@ export default function PosterGridEditor() {
               onValueChange={(v) => { if (isMobile) setDraftOverlap(v[0]); else setOverlap(v[0]); }} 
               min={0} max={10} step={0.1} className="flex-1" 
             />
-            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 hover:bg-accent/10 hover:text-accent" onClick={() => {
+            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 hover:bg-amber-500/10 hover:text-amber-600" onClick={() => {
               const newVal = Math.min(10, parseFloat((currentOverlap + 0.1).toFixed(1)));
               if (isMobile) setDraftOverlap(newVal); else setOverlap(newVal);
             }}>
@@ -786,7 +786,7 @@ export default function PosterGridEditor() {
           <Separator className="opacity-20" />
           <div className="flex justify-between items-center">
             <span className="text-[8px] font-bold text-muted-foreground uppercase">{t.blankSpace}</span>
-            <span className={cn("text-[10px] font-black", Number(info.blankW) > 0 || Number(info.blankH) > 0 ? "text-accent" : "text-muted-foreground")}>
+            <span className={cn("text-[10px] font-black", Number(info.blankW) > 0 || Number(info.blankH) > 0 ? "text-amber-600" : "text-muted-foreground")}>
               +{info.blankW}w / +{info.blankH}h cm
             </span>
           </div>
@@ -817,7 +817,7 @@ export default function PosterGridEditor() {
               />
             </div>
             <h1 className="text-lg lg:text-xl font-headline font-black tracking-tighter text-primary uppercase">
-              CUADRÍCULA POSTER<span className="text-accent">.</span>
+              CUADRÍCULA POSTER<span className="text-amber-600">.</span>
             </h1>
           </div>
           <Separator orientation="vertical" className="h-8 hidden lg:block" />
@@ -864,7 +864,7 @@ export default function PosterGridEditor() {
                       <div className="flex flex-col">
                         <span className="text-[6px] lg:text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">Paneles</span>
                         <div className="flex items-center gap-1.5 lg:gap-2">
-                          <Layers className="h-2.5 w-2.5 lg:h-3.5 lg:w-3.5 text-accent" />
+                          <Layers className="h-2.5 w-2.5 lg:h-3.5 lg:w-3.5 text-amber-600" />
                           <span className="text-xs lg:text-base font-black text-foreground">{rows * cols} <span className="hidden sm:inline">{lang === 'es' ? 'HOJAS' : 'SHEETS'}</span></span>
                         </div>
                       </div>
