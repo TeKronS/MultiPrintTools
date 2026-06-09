@@ -2,7 +2,7 @@ export type Language = 'en' | 'es';
 
 export const translations = {
   en: {
-    title: 'MURALIS',
+    title: 'POSTER GRID',
     upload: 'Upload Image',
     dragDrop: 'Drag and drop your image here',
     gridSettings: 'Grid Settings',
@@ -26,7 +26,7 @@ export const translations = {
     totalPanels: 'Total Panels',
     language: 'Language',
     savePrompt: 'Save your project before exporting',
-    emptyState: 'Upload an image to start creating your mural grid',
+    emptyState: 'Upload an image to start creating your poster grid',
     guides: 'Show Print Guides',
     finalMeasures: 'Target Dimensions',
     blankSpace: 'Blank Space',
@@ -42,8 +42,8 @@ export const translations = {
     footerRights: '© 2026 Tekron Web Studio - Tools for the real world.',
     newTools: 'New tools every month',
     openApp: 'Open Application',
-    muralisTitle: 'Mural Grid Generator',
-    muralisDesc: 'Grid generator for giant murals. Split any image into printable sheets with technical overlaps.',
+    muralisTitle: 'Poster Grid Generator',
+    muralisDesc: 'Grid generator for giant posters. Split any image into printable sheets with technical overlaps.',
     pdfMasterTitle: 'PDF Merger',
     pdfMasterDesc: 'Merge multiple PDF files into one. Fast, local and private.',
     resizerTitle: 'Image Resizer',
@@ -119,7 +119,7 @@ export const translations = {
     qualityImg: 'Image Quality'
   },
   es: {
-    title: 'MURALIS',
+    title: 'CUADRÍCULA POSTER',
     upload: 'Cargar Imagen',
     dragDrop: 'Arrastra y suelta tu imagen aquí',
     gridSettings: 'Ajustes de Cuadrícula',
@@ -143,7 +143,7 @@ export const translations = {
     totalPanels: 'Paneles Totales',
     language: 'Idioma',
     savePrompt: 'Guarda tu proyecto antes de exportar',
-    emptyState: 'Carga una imagen para comenzar a crear tu mural',
+    emptyState: 'Carga una imagen para comenzar a crear tu poster',
     guides: 'Mostrar Guías de Impresión',
     finalMeasures: 'Dimensiones Reales',
     blankSpace: 'Espacio en Blanco',
@@ -159,8 +159,8 @@ export const translations = {
     footerRights: '© 2026 Tekron Web Studio - Herramientas para el mundo real.',
     newTools: 'Nuevas herramientas cada mes',
     openApp: 'Abrir Aplicación',
-    muralisTitle: 'Cuadrícula para Murales',
-    muralisDesc: 'Generador de cuadrículas para murales gigantes. Divide cualquier imagen en hojas imprimibles con solapes técnicos.',
+    muralisTitle: 'Cuadrícula para Poster',
+    muralisDesc: 'Generador de cuadrículas para posters gigantes. Divide cualquier imagen en hojas imprimibles con solapes técnicos.',
     pdfMasterTitle: 'Combinar PDF',
     pdfMasterDesc: 'Combina varios archivos PDF en uno solo. Rápido, local y privado.',
     resizerTitle: 'Redimensionar Imagen',

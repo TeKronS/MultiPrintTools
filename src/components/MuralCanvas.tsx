@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useRef, useState, useMemo, memo } from "react";
@@ -66,7 +65,6 @@ export const MuralCanvas = memo(function MuralCanvas({
     const totalGridW = (cols * effectiveW) + overlapMm;
     const totalGridH = (rows * effectiveH) + overlapMm;
     
-    // Las dimensiones de dibujo son exactamente las que vienen del target (en mm)
     const drawW = imageWidth * 10;
     const drawH = imageHeight * 10;
 
@@ -163,7 +161,7 @@ export const MuralCanvas = memo(function MuralCanvas({
           <div className="relative" style={{ width: `${dimensions.drawW}px`, height: `${dimensions.drawH}px` }}>
             <img 
               src={imageUrl} 
-              alt="Mural" 
+              alt="Poster Grid" 
               className="w-full h-full object-cover block" 
               draggable={false}
             />
@@ -237,4 +235,3 @@ export const MuralCanvas = memo(function MuralCanvas({
     </div>
   );
 });
-

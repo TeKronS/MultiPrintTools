@@ -30,7 +30,7 @@ export default function Home() {
       title: t.muralisTitle,
       description: t.muralisDesc,
       icon: <Layers className="h-8 w-8 text-primary" />,
-      href: "/muralis",
+      href: "/poster",
       status: "active",
       badge: t.popular
     },
