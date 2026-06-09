@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useDeferredValue, useMemo } from "react";
@@ -126,9 +127,14 @@ export default function PosterGridEditor() {
 
       const printableW = paper.width - (marginH_mm * 2);
       const printableH = paper.height - (marginV_mm * 2);
+      
+      // El área efectiva es el tamaño imprimible menos el solape
+      // (ya que el solape es lo que se repite de la siguiente hoja)
       const effectiveW = printableW - overlap_mm;
       const effectiveH = printableH - overlap_mm;
 
+      // Cálculo de cuántas hojas se necesitan para cubrir la dimensión total
+      // La última hoja no necesita un "siguiente solape", por eso restamos overlap_mm al total antes de dividir
       const c = Math.ceil((targetW_mm - overlap_mm) / effectiveW);
       const r = Math.ceil((targetH_mm - overlap_mm) / effectiveH);
       
@@ -143,6 +149,7 @@ export default function PosterGridEditor() {
     const pResults = calcForOrientation('portrait');
     const lResults = calcForOrientation('landscape');
 
+    // Elegir la orientación que use menos hojas para ahorrar material
     return pResults.total <= lResults.total ? pResults : lResults;
   };
 
@@ -168,9 +175,8 @@ export default function PosterGridEditor() {
     const newW_mm = newH_mm * aspect;
 
     const printableW = paper.width - (mH * 20);
-    const overlapMmX = ov * 10;
-    const effectiveW = printableW - overlapMmX;
-    const neededCols = Math.ceil((newW_mm - overlapMmX) / effectiveW);
+    const effectiveW = printableW - overlapMm;
+    const neededCols = Math.ceil((newW_mm - overlapMm) / effectiveW);
 
     const setR = isDraft ? setDraftRows : setRows;
     const setC = isDraft ? setDraftCols : setCols;
@@ -205,9 +211,8 @@ export default function PosterGridEditor() {
     const newH_mm = newW_mm / aspect;
 
     const printableH = paper.height - (mV * 20);
-    const overlapMmY = ov * 10;
-    const effectiveH = printableH - overlapMmY;
-    const neededRows = Math.ceil((newH_mm - overlapMmY) / effectiveH);
+    const effectiveH = printableH - overlapMm;
+    const neededRows = Math.ceil((newH_mm - overlapMm) / effectiveH);
 
     const setR = isDraft ? setDraftRows : setRows;
     const setC = isDraft ? setDraftCols : setCols;
@@ -218,6 +223,30 @@ export default function PosterGridEditor() {
     setR(Math.max(1, neededRows));
     setW((newW_mm / 10).toFixed(1));
     setH((newH_mm / 10).toFixed(1));
+  };
+
+  // Función para sincronizar la cuadrícula cuando cambian ajustes técnicos (solape/márgenes)
+  // manteniendo fijas las dimensiones finales deseadas
+  const syncGridFromTechnicalSettings = (isDraft: boolean) => {
+    if (!image) return;
+    const curWidthStr = isDraft ? draftTargetWidth : targetWidth;
+    const curHeightStr = isDraft ? draftTargetHeight : targetHeight;
+    const pSize = isDraft ? draftPaperSize : paperSize;
+    const ov = isDraft ? draftOverlap : overlap;
+    const mV = isDraft ? draftMarginV : marginV;
+    const mH = isDraft ? draftMarginH : marginH;
+
+    const opt = calculateOptimizedGrid(parseFloat(curWidthStr), parseFloat(curHeightStr), pSize, ov, mV, mH);
+    
+    if (isDraft) {
+      setDraftRows(opt.rows);
+      setDraftCols(opt.cols);
+      setDraftOrientation(opt.orientation);
+    } else {
+      setRows(opt.rows);
+      setCols(opt.cols);
+      setOrientation(opt.orientation);
+    }
   };
 
   const handleWidthChange = (val: string, isDraft: boolean) => {
@@ -411,7 +440,6 @@ export default function PosterGridEditor() {
       const offsetX_mm = (totalGridW - finalW_mm) / 2;
       const offsetY_mm = (totalGridH - finalH_mm) / 2;
 
-      // Mejorar calidad: calculamos píxeles por mm basándonos en 300 DPI (profesional)
       const targetDPI = 300;
       const outputPxPerMm = targetDPI / 25.4;
       const sourcePxPerMm = img.width / finalW_mm;
@@ -433,13 +461,11 @@ export default function PosterGridEditor() {
           const visibleW_mm = Math.min(effectiveSheetW + overlapMm - drawInSheetX_mm, finalW_mm - Math.max(0, sheetLeft_mm - offsetX_mm));
           const visibleH_mm = Math.min(effectiveSheetH + overlapMm - drawInSheetY_mm, finalH_mm - Math.max(0, sheetTop_mm - offsetY_mm));
 
-          // Coordenadas de origen en la imagen original
           const sx = Math.max(0, (sheetLeft_mm - offsetX_mm) * sourcePxPerMm);
           const sy = Math.max(0, (sheetTop_mm - offsetY_mm) * sourcePxPerMm);
           const sw = visibleW_mm * sourcePxPerMm;
           const sh = visibleH_mm * sourcePxPerMm;
 
-          // Coordenadas de destino en el canvas de alta resolución (300 DPI)
           const dw = visibleW_mm * outputPxPerMm;
           const dh = visibleH_mm * outputPxPerMm;
 
@@ -447,17 +473,14 @@ export default function PosterGridEditor() {
             canvas.width = Math.max(1, dw);
             canvas.height = Math.max(1, dh);
             
-            // Habilitar suavizado de imagen de alta calidad
             ctx.imageSmoothingEnabled = true;
             ctx.imageSmoothingQuality = 'high';
             
             ctx.fillStyle = "white";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
-            // Renderizar el fragmento escalado
             ctx.drawImage(img, sx, sy, sw, sh, 0, 0, dw, dh);
             
-            // Agregar al PDF con las dimensiones reales en mm
             pdf.addImage(
               canvas.toDataURL('image/jpeg', 0.95), 
               'JPEG', 
@@ -638,14 +661,12 @@ export default function PosterGridEditor() {
           <div className="space-y-2">
             <Label className="text-[10px] font-black uppercase text-muted-foreground bg-card px-2 py-0.5 rounded-md shadow-sm border border-border/10 mb-0.5 inline-block">{t.paperSize}</Label>
             <Select value={currentPaperSize} onValueChange={(v) => {
-              if (isMobile) setDraftPaperSize(v); else setPaperSize(v);
-              const curWVal = isMobile ? draftTargetWidth : targetWidth;
-              const curHVal = isMobile ? draftTargetHeight : targetHeight;
-              const opt = calculateOptimizedGrid(parseFloat(curWVal), parseFloat(curHVal), v, currentOverlap, isMobile ? draftMarginV : marginV, isMobile ? draftMarginH : marginH);
               if (isMobile) {
-                setDraftRows(opt.rows); setDraftCols(opt.cols); setDraftOrientation(opt.orientation);
+                setDraftPaperSize(v);
+                setTimeout(() => syncGridFromTechnicalSettings(true), 0);
               } else {
-                setRows(opt.rows); setCols(opt.cols); setOrientation(opt.orientation);
+                setPaperSize(v);
+                setTimeout(() => syncGridFromTechnicalSettings(false), 0);
               }
             }}>
               <SelectTriggerUI className="h-8 rounded-lg text-xs font-bold bg-card shadow-sm border border-border/10"><SelectValue /></SelectTriggerUI>
@@ -658,14 +679,12 @@ export default function PosterGridEditor() {
           <div className="space-y-2">
             <Label className="text-[10px] font-black uppercase text-muted-foreground bg-card px-2 py-0.5 rounded-md shadow-sm border border-border/10 mb-0.5 inline-block">{t.orientation}</Label>
             <Select value={currentOrientation} onValueChange={(v: any) => {
-              if (isMobile) setDraftOrientation(v); else setOrientation(v);
-              const curWVal = isMobile ? draftTargetWidth : targetWidth;
-              const curHVal = isMobile ? draftTargetHeight : targetHeight;
-              const opt = calculateOptimizedGrid(parseFloat(curWVal), parseFloat(curHVal), currentPaperSize, currentOverlap, isMobile ? draftMarginV : marginV, isMobile ? draftMarginH : marginH);
               if (isMobile) {
-                setDraftRows(opt.rows); setDraftCols(opt.cols);
+                setDraftOrientation(v);
+                setTimeout(() => syncGridFromTechnicalSettings(true), 0);
               } else {
-                setRows(opt.rows); setCols(opt.cols);
+                setOrientation(v);
+                setTimeout(() => syncGridFromTechnicalSettings(false), 0);
               }
             }}>
               <SelectTriggerUI className="h-8 rounded-lg text-xs font-bold bg-card shadow-sm border border-border/10"><SelectValue /></SelectTriggerUI>
@@ -688,17 +707,22 @@ export default function PosterGridEditor() {
             <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 hover:bg-amber-500/10 hover:text-amber-600" onClick={() => {
               const newVal = Math.max(0, parseFloat((currentOverlap - 0.1).toFixed(1)));
               if (isMobile) setDraftOverlap(newVal); else setOverlap(newVal);
+              syncGridFromTechnicalSettings(!!isMobile);
             }}>
               <Minus className="h-3 w-3" />
             </Button>
             <Slider 
               value={[currentOverlap]} 
-              onValueChange={(v) => { if (isMobile) setDraftOverlap(v[0]); else setOverlap(v[0]); }} 
+              onValueChange={(v) => { 
+                if (isMobile) setDraftOverlap(v[0]); else setOverlap(v[0]); 
+                syncGridFromTechnicalSettings(!!isMobile);
+              }} 
               min={0} max={10} step={0.1} className="flex-1" 
             />
             <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 hover:bg-amber-500/10 hover:text-amber-600" onClick={() => {
               const newVal = Math.min(10, parseFloat((currentOverlap + 0.1).toFixed(1)));
               if (isMobile) setDraftOverlap(newVal); else setOverlap(newVal);
+              syncGridFromTechnicalSettings(!!isMobile);
             }}>
               <Plus className="h-3 w-3" />
             </Button>
@@ -716,17 +740,22 @@ export default function PosterGridEditor() {
             <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 hover:bg-primary/10 hover:text-primary" onClick={() => {
               const newVal = Math.max(0, currentMarginV - 0.5);
               if (isMobile) setDraftMarginV(newVal); else setMarginV(newVal);
+              syncGridFromTechnicalSettings(!!isMobile);
             }}>
               <Minus className="h-3 w-3" />
             </Button>
             <Slider 
               value={[currentMarginV]} 
-              onValueChange={(v) => { if (isMobile) setDraftMarginV(v[0]); else setMarginV(v[0]); }} 
+              onValueChange={(v) => { 
+                if (isMobile) setDraftMarginV(v[0]); else setMarginV(v[0]); 
+                syncGridFromTechnicalSettings(!!isMobile);
+              }} 
               min={0} max={5} step={0.5} className="flex-1" 
             />
             <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 hover:bg-primary/10 hover:text-primary" onClick={() => {
               const newVal = Math.min(5, currentMarginV + 0.5);
               if (isMobile) setDraftMarginV(newVal); else setMarginV(newVal);
+              syncGridFromTechnicalSettings(!!isMobile);
             }}>
               <Plus className="h-3 w-3" />
             </Button>
@@ -744,17 +773,22 @@ export default function PosterGridEditor() {
             <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 hover:bg-primary/10 hover:text-primary" onClick={() => {
               const newVal = Math.max(0, currentMarginH - 0.5);
               if (isMobile) setDraftMarginH(newVal); else setMarginH(newVal);
+              syncGridFromTechnicalSettings(!!isMobile);
             }}>
               <Minus className="h-3 w-3" />
             </Button>
             <Slider 
               value={[currentMarginH]} 
-              onValueChange={(v) => { if (isMobile) setDraftMarginH(v[0]); else setMarginH(v[0]); }} 
+              onValueChange={(v) => { 
+                if (isMobile) setDraftMarginH(v[0]); else setMarginH(v[0]); 
+                syncGridFromTechnicalSettings(!!isMobile);
+              }} 
               min={0} max={5} step={0.5} className="flex-1" 
             />
             <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 hover:bg-primary/10 hover:text-primary" onClick={() => {
               const newVal = Math.min(5, currentMarginH + 0.5);
               if (isMobile) setDraftMarginH(newVal); else setMarginH(newVal);
+              syncGridFromTechnicalSettings(!!isMobile);
             }}>
               <Plus className="h-3 w-3" />
             </Button>
