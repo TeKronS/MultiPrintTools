@@ -2,14 +2,13 @@ import type { Metadata } from "next";
 import PosterGridEditor from "@/components/PosterGridEditor";
 
 export const metadata: Metadata = {
-  title: "Cuadrícula para Poster | Dividir Imágenes para Pósters Gigantes (Carta, Oficio, A4)",
-  description: "Herramienta técnica para dividir cualquier imagen en paneles imprimibles. Crea pósters gigantes y decoraciones DIY dividiendo fotos en hojas Carta, Oficio o A4 con solapes técnicos precisos. Ideal para impresiones en casa.",
+  title: "Cuadrícula para Poster Pro | Generador Automático de Murales Imprimibles",
+  description: "La herramienta líder para automatizar la creación de posters gigantes. Divide cualquier imagen en hojas Carta, Oficio o A4 con solapes técnicos y márgenes automáticos. Resultados profesionales en segundos.",
   keywords: [
-    "dividir imagen para imprimir", "crear poster gigante", "poster maker", "tiled printing", 
-    "dividir fotos en hojas a4", "poster wall maker", "gigantografías", "hojas carta", 
-    "hojas oficio", "dividir fotos en hojas carta", "imprimir posters en casa", 
-    "decoración de pared DIY", "mosaico de fotos para pared", "imprimir imagen grande en varias hojas",
-    "dividir imagen en cuadrícula", "imprimir fotos gigantes con impresora común"
+    "automatizar poster gigante", "dividir imagen para imprimir", "poster maker profesional", 
+    "tiled printing automation", "generador de murales automático", "imprimir fotos grandes en casa",
+    "dividir fotos en hojas carta automático", "hojas oficio impresión poster", "reprografía digital avanzada",
+    "poster wall maker automático", "mosaico de fotos para pared profesional"
   ],
 };
 

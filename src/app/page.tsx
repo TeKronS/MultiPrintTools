@@ -12,7 +12,8 @@ import {
   Maximize,
   Copy,
   Scissors,
-  FileImage
+  FileImage,
+  Zap
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -29,10 +30,11 @@ export default function Home() {
     {
       title: t.muralisTitle,
       description: t.muralisDesc,
-      icon: <Layers className="h-8 w-8 text-primary" />,
+      icon: <Layers className="h-8 w-8 text-white" />,
       href: "/poster",
       status: "active",
-      badge: t.popular
+      badge: t.popular,
+      featured: true
     },
     {
       title: t.resizerTitle,
@@ -40,7 +42,7 @@ export default function Home() {
       icon: <Maximize className="h-8 w-8 text-emerald-500" />,
       href: "/resizer",
       status: "active",
-      badge: t.popular
+      badge: "PRO"
     },
     {
       title: t.mergeTitle,
@@ -80,7 +82,7 @@ export default function Home() {
       icon: <FileType className="h-8 w-8 text-orange-500" />,
       href: "/pdf-to-word",
       status: "active",
-      badge: "NEW"
+      badge: "HOT"
     }
   ];
 
@@ -108,8 +110,8 @@ export default function Home() {
 
       <main className="max-w-7xl mx-auto px-4 md:px-8 py-8 md:py-16">
         <div className="max-w-3xl mb-10 md:mb-16 space-y-3 md:space-y-4 text-center sm:text-left">
-          <Badge variant="secondary" className="px-3 py-1 text-[10px] font-black uppercase tracking-widest bg-primary/10 text-primary border-none">
-            {t.heroBadge}
+          <Badge variant="secondary" className="px-3 py-1 text-[10px] font-black uppercase tracking-widest bg-primary/10 text-primary border-none flex items-center w-fit mx-auto sm:mx-0 gap-2">
+            <Zap className="h-3 w-3" /> {t.heroBadge}
           </Badge>
           <h1 className="text-4xl md:text-6xl font-headline font-black tracking-tighter leading-[1] md:leading-[0.9] text-foreground">
             {t.heroTitlePrefix}<span className="text-primary">{t.heroTitleSuffix}</span>
@@ -126,10 +128,10 @@ export default function Home() {
               href={tool.href}
               className={tool.status === 'coming-soon' ? 'pointer-events-none' : ''}
             >
-              <Card className={`group relative h-full transition-all duration-300 border-2 bg-card ${tool.status === 'active' ? 'hover:border-primary hover:shadow-2xl hover:shadow-primary/10 cursor-pointer' : 'opacity-60 bg-muted/30 border-dashed'}`}>
+              <Card className={`group relative h-full transition-all duration-300 border-2 bg-card ${tool.status === 'active' ? 'hover:border-primary hover:shadow-2xl hover:shadow-primary/10 cursor-pointer' : 'opacity-60 bg-muted/30 border-dashed'} ${tool.featured ? 'border-primary ring-4 ring-primary/5' : ''}`}>
                 <CardHeader className="flex flex-row items-start justify-between space-y-0 p-5 md:p-8">
                   <div className="space-y-3 md:space-y-4 flex-1 min-w-0 pr-4">
-                    <div className={`p-3 md:p-4 rounded-xl md:rounded-2xl inline-flex transition-transform group-hover:scale-110 duration-300 ${tool.status === 'active' ? 'bg-primary/10' : 'bg-muted'}`}>
+                    <div className={`p-3 md:p-4 rounded-xl md:rounded-2xl inline-flex transition-transform group-hover:scale-110 duration-300 ${tool.featured ? 'bg-primary shadow-lg shadow-primary/20' : tool.status === 'active' ? 'bg-primary/10' : 'bg-muted'}`}>
                       <div className="w-6 h-6 md:w-8 md:h-8 flex items-center justify-center">
                         {tool.icon}
                       </div>
@@ -137,7 +139,7 @@ export default function Home() {
                     <div className="space-y-1.5 md:space-y-2">
                       <div className="flex flex-wrap items-center gap-2">
                         <CardTitle className="text-xl md:text-2xl font-headline font-black leading-tight truncate text-foreground">{tool.title}</CardTitle>
-                        <Badge variant={tool.status === 'active' ? 'default' : 'outline'} className="font-bold text-[9px] md:text-[10px] uppercase tracking-wider shrink-0">
+                        <Badge variant={tool.featured ? 'default' : tool.status === 'active' ? 'secondary' : 'outline'} className={`font-bold text-[9px] md:text-[10px] uppercase tracking-wider shrink-0 ${tool.featured ? 'bg-primary text-white' : ''}`}>
                           {tool.badge}
                         </Badge>
                       </div>
@@ -147,8 +149,8 @@ export default function Home() {
                     </div>
                   </div>
                   {tool.status === 'active' && (
-                    <div className="bg-primary/10 p-2 rounded-full transform group-hover:translate-x-1 transition-transform shrink-0 mt-1">
-                      <ArrowRight className="h-4 w-4 md:h-5 md:w-5 text-primary" />
+                    <div className={`p-2 rounded-full transform group-hover:translate-x-1 transition-transform shrink-0 mt-1 ${tool.featured ? 'bg-primary text-white' : 'bg-primary/10 text-primary'}`}>
+                      <ArrowRight className="h-4 w-4 md:h-5 md:w-5" />
                     </div>
                   )}
                 </CardHeader>

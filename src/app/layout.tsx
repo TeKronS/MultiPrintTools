@@ -1,4 +1,3 @@
-
 import type {Metadata} from 'next';
 import './globals.css';
 import { ThemeProvider } from '@/components/ThemeProvider';
@@ -7,18 +6,16 @@ import { Toaster } from '@/components/ui/toaster';
 export const metadata: Metadata = {
   metadataBase: new URL('https://tekron-web-studio.vercel.app/'),
   title: {
-    default: 'MultiPrintTools | Herramientas Profesionales de Impresión y PDF',
+    default: 'MultiPrintTools | Cuadrícula para Poster y Automatización de Impresión',
     template: '%s | MultiPrintTools'
   },
-  description: 'Toolkit digital gratuito para expertos en impresión. Divide imágenes para murales y pósters, combina y separa PDFs, cambia DPI de fotos y convierte documentos. Procesamiento 100% local, rápido y privado.',
+  description: 'La suite definitiva para automatizar tu flujo de trabajo en reprografía. Generador automático de cuadrículas para posters gigantes, gestión de PDFs y optimización de imágenes 100% local y privada.',
   keywords: [
-    'reprografía', 'artes gráficas', 'dividir imagen para imprimir', 'unir pdf online', 
-    'cambiar dpi imagen', 'poster maker', 'gigantografías', 'pdf a word', 'mural grid generator',
-    'tiled printing', 'impresión de gran formato', 'herramientas para imprentas', 'imprimir posters gigantes',
-    'diseño gráfico', 'herramientas pdf gratis', 'gestión de documentos', 'diseño de murales', 'imprimir en casa',
-    'herramientas de impresión', 'unir archivos pdf', 'separar hojas pdf', 'convertir imagen a pdf',
-    'imprimir poster en varias hojas', 'dividir foto para pared', 'hojas carta', 'hojas oficio', 'hojas A4',
-    'combinar pdf privado', 'extraer paginas pdf sin subir', 'convertir imagen a pdf alta calidad'
+    'automatización de impresión', 'cuadrícula para poster gigante', 'reprografía profesional', 
+    'dividir imagen para imprimir automático', 'tiled printing automation', 'herramientas para imprentas',
+    'crear gigantografías rápido', 'unir pdf sin internet', 'poster maker professional',
+    'gestión de documentos automatizada', 'diseño de murales técnicos', 'imprimir poster varias hojas',
+    'reprographics workflow', 'software de impresión local', 'privacidad en documentos'
   ],
   authors: [{ name: 'Tekron Web Studio' }],
   creator: 'Tekron Web Studio',
@@ -36,21 +33,21 @@ export const metadata: Metadata = {
     locale: 'es_ES',
     url: 'https://tekron-web-studio.vercel.app/',
     siteName: 'MultiPrintTools',
-    title: 'MultiPrintTools | Suite Profesional de Reprografía',
-    description: 'Herramientas locales para impresión y gestión de PDF. Privacidad total: tus archivos nunca salen de tu equipo.',
+    title: 'MultiPrintTools | Automatización de Reprografía y Posters',
+    description: 'Optimiza y automatiza tus trabajos de impresión con procesamiento local. La herramienta estrella para crear posters gigantes de forma técnica y rápida.',
     images: [
       {
         url: 'https://picsum.photos/seed/seo-preview/1200/630',
         width: 1200,
         height: 630,
-        alt: 'MultiPrintTools Preview',
+        alt: 'MultiPrintTools - Cuadrícula para Poster y Automatización',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'MultiPrintTools | Suite Profesional de Reprografía',
-    description: 'Optimiza tus trabajos de impresión y PDF con procesamiento local y privado.',
+    title: 'MultiPrintTools | Suite de Automatización de Impresión',
+    description: 'Crea posters gigantes automáticamente y gestiona tus archivos PDF con privacidad total.',
     images: ['https://picsum.photos/seed/seo-preview/1200/630'],
   },
   robots: {
