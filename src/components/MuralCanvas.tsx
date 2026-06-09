@@ -14,6 +14,7 @@ interface MuralCanvasProps {
   paperSize: string;
   orientation: 'portrait' | 'landscape';
   showGuides: boolean;
+  showOutline?: boolean;
   imageWidth?: number;
   imageHeight?: number;
 }
@@ -38,6 +39,7 @@ export const MuralCanvas = memo(function MuralCanvas({
   paperSize,
   orientation,
   showGuides,
+  showOutline = false,
   imageWidth = 1,
   imageHeight = 1
 }: MuralCanvasProps) {
@@ -184,7 +186,10 @@ export const MuralCanvas = memo(function MuralCanvas({
                     <>
                       {!isDense ? (
                         <>
-                          <div className="absolute inset-0 border-black/5" 
+                          <div className={cn(
+                                "absolute inset-0",
+                                showOutline ? "border border-black/20" : "border-black/5"
+                               )} 
                                style={{ 
                                  borderTopWidth: `${marginV * 10}px`,
                                  borderBottomWidth: `${marginV * 10}px`,

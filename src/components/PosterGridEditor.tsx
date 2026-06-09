@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useDeferredValue, useMemo } from "react";
@@ -21,7 +20,8 @@ import {
   ChevronLeft,
   Maximize2,
   Ruler,
-  Zap
+  Zap,
+  Square
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -75,6 +75,7 @@ export default function PosterGridEditor() {
   const [paperSize, setPaperSize] = useState('Carta');
   const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait');
   const [showGuides, setShowGuides] = useState(true);
+  const [showOutline, setShowOutline] = useState(false);
 
   const [targetWidth, setTargetWidth] = useState<string>('0');
   const [targetHeight, setTargetHeight] = useState<string>('0');
@@ -87,6 +88,7 @@ export default function PosterGridEditor() {
   const [draftPaperSize, setDraftPaperSize] = useState('Carta');
   const [draftOrientation, setDraftOrientation] = useState<'portrait' | 'landscape'>('portrait');
   const [draftShowGuides, setDraftShowGuides] = useState(true);
+  const [draftShowOutline, setDraftShowOutline] = useState(false);
   const [draftTargetWidth, setDraftTargetWidth] = useState<string>('0');
   const [draftTargetHeight, setDraftTargetHeight] = useState<string>('0');
 
@@ -374,6 +376,7 @@ export default function PosterGridEditor() {
       setDraftPaperSize(paperSize);
       setDraftOrientation(orientation);
       setDraftShowGuides(showGuides);
+      setDraftShowOutline(showOutline);
       setDraftTargetWidth(targetWidth);
       setDraftTargetHeight(targetHeight);
     } else {
@@ -385,6 +388,7 @@ export default function PosterGridEditor() {
       setPaperSize(draftPaperSize);
       setOrientation(draftOrientation);
       setShowGuides(draftShowGuides);
+      setShowOutline(draftShowOutline);
       setTargetWidth(draftTargetWidth);
       setTargetHeight(draftTargetHeight);
     }
@@ -408,6 +412,7 @@ export default function PosterGridEditor() {
       const activeOrientation = isMenuOpen ? draftOrientation : orientation;
       const activeTargetW = parseFloat(isMenuOpen ? draftTargetWidth : targetWidth);
       const activeTargetH = parseFloat(isMenuOpen ? draftTargetHeight : targetHeight);
+      const activeShowOutline = isMenuOpen ? draftShowOutline : showOutline;
 
       const paperBase = PAPER_DIMENSIONS[activePaperSize];
       const paper = activeOrientation === 'portrait' 
@@ -475,14 +480,23 @@ export default function PosterGridEditor() {
             
             ctx.drawImage(img, sx, sy, sw, sh, 0, 0, dw, dh);
             
+            const panelX = (activeMarginH * 10) + drawInSheetX_mm;
+            const panelY = (activeMarginV * 10) + drawInSheetY_mm;
+
             pdf.addImage(
               canvas.toDataURL('image/jpeg', 0.95), 
               'JPEG', 
-              (activeMarginH * 10) + drawInSheetX_mm, 
-              (activeMarginV * 10) + drawInSheetY_mm, 
+              panelX, 
+              panelY, 
               visibleW_mm, 
               visibleH_mm
             );
+
+            if (activeShowOutline) {
+              pdf.setDrawColor(200);
+              pdf.setLineWidth(0.1);
+              pdf.rect(panelX, panelY, visibleW_mm, visibleH_mm);
+            }
           }
 
           pdf.setDrawColor(220);
@@ -550,6 +564,7 @@ export default function PosterGridEditor() {
     currentPaperSize: string,
     currentOrientation: 'portrait' | 'landscape',
     currentShowGuides: boolean,
+    currentShowOutline: boolean,
     curWidth: string,
     curHeight: string,
     info: any,
@@ -789,9 +804,19 @@ export default function PosterGridEditor() {
           </div>
         </div>
 
-        <div className="flex items-center justify-between pt-0.5">
-          <Label className="text-[10px] font-black uppercase text-muted-foreground cursor-pointer bg-card px-2 py-0.5 rounded-md shadow-sm border border-border/10" htmlFor={isMobile ? "draft-guides" : "guides"}>{t.guides}</Label>
-          <Switch id={isMobile ? "draft-guides" : "guides"} checked={currentShowGuides} onCheckedChange={isMobile ? setDraftShowGuides : setShowGuides} className="bg-muted" />
+        <div className="space-y-3 pt-2">
+          <div className="flex items-center justify-between">
+            <Label className="text-[10px] font-black uppercase text-muted-foreground cursor-pointer flex items-center gap-2 bg-card px-2 py-0.5 rounded-md shadow-sm border border-border/10" htmlFor={isMobile ? "draft-guides" : "guides"}>
+              <Layers className="h-3 w-3" /> {t.guides}
+            </Label>
+            <Switch id={isMobile ? "draft-guides" : "guides"} checked={currentShowGuides} onCheckedChange={isMobile ? setDraftShowGuides : setShowGuides} className="bg-muted" />
+          </div>
+          <div className="flex items-center justify-between">
+            <Label className="text-[10px] font-black uppercase text-muted-foreground cursor-pointer flex items-center gap-2 bg-card px-2 py-0.5 rounded-md shadow-sm border border-border/10" htmlFor={isMobile ? "draft-outline" : "outline"}>
+              <Square className="h-3 w-3" /> {t.outline}
+            </Label>
+            <Switch id={isMobile ? "draft-outline" : "outline"} checked={currentShowOutline} onCheckedChange={isMobile ? setDraftShowOutline : setShowOutline} className="bg-muted" />
+          </div>
         </div>
       </div>
 
@@ -928,7 +953,8 @@ export default function PosterGridEditor() {
                     marginH={deferredMarginH}
                     paperSize={paperSize} 
                     orientation={orientation}
-                    showGuides={showGuides} 
+                    showGuides={showGuides}
+                    showOutline={showOutline}
                     imageWidth={parseFloat(targetWidth)} 
                     imageHeight={parseFloat(targetHeight)} 
                   />
@@ -959,6 +985,7 @@ export default function PosterGridEditor() {
             paperSize, 
             orientation,
             showGuides,
+            showOutline,
             targetWidth, targetHeight,
             physicalInfo
           )}
@@ -1010,6 +1037,7 @@ export default function PosterGridEditor() {
                   draftPaperSize, 
                   draftOrientation,
                   draftShowGuides,
+                  draftShowOutline,
                   draftTargetWidth, draftTargetHeight,
                   draftInfo,
                   true
