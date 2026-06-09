@@ -26,6 +26,7 @@ export default function Home() {
   const [lang, setLang] = useState<Language>('es');
   const t = translations[lang];
 
+  // Herramientas ordenadas por relevancia estratégica y volumen de búsqueda SEO
   const tools = [
     {
       title: t.muralisTitle,
