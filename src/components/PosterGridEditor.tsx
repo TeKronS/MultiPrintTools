@@ -66,11 +66,12 @@ export default function PosterGridEditor() {
   const [lang, setLang] = useState<Language>('es');
   const [image, setImage] = useState<{ url: string; file: File; width: number; height: number } | null>(null);
   
+  // Valores por defecto solicitados: MargenV 1.2, MargenH 0.7, Solape 1.0
   const [rows, setRows] = useState(2);
   const [cols, setCols] = useState(2);
-  const [overlap, setOverlap] = useState(1.5); 
-  const [marginV, setMarginV] = useState(1); 
-  const [marginH, setMarginH] = useState(1); 
+  const [overlap, setOverlap] = useState(1); 
+  const [marginV, setMarginV] = useState(1.2); 
+  const [marginH, setMarginH] = useState(0.7); 
   const [paperSize, setPaperSize] = useState('Carta');
   const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait');
   const [showGuides, setShowGuides] = useState(true);
@@ -80,9 +81,9 @@ export default function PosterGridEditor() {
 
   const [draftRows, setDraftRows] = useState(2);
   const [draftCols, setDraftCols] = useState(2);
-  const [draftOverlap, setDraftOverlap] = useState(1.5);
-  const [draftMarginV, setDraftMarginV] = useState(1);
-  const [draftMarginH, setDraftMarginH] = useState(1);
+  const [draftOverlap, setDraftOverlap] = useState(1);
+  const [draftMarginV, setDraftMarginV] = useState(1.2);
+  const [draftMarginH, setDraftMarginH] = useState(0.7);
   const [draftPaperSize, setDraftPaperSize] = useState('Carta');
   const [draftOrientation, setDraftOrientation] = useState<'portrait' | 'landscape'>('portrait');
   const [draftShowGuides, setDraftShowGuides] = useState(true);
@@ -128,13 +129,9 @@ export default function PosterGridEditor() {
       const printableW = paper.width - (marginH_mm * 2);
       const printableH = paper.height - (marginV_mm * 2);
       
-      // El área efectiva es el tamaño imprimible menos el solape
-      // (ya que el solape es lo que se repite de la siguiente hoja)
       const effectiveW = printableW - overlap_mm;
       const effectiveH = printableH - overlap_mm;
 
-      // Cálculo de cuántas hojas se necesitan para cubrir la dimensión total
-      // La última hoja no necesita un "siguiente solape", por eso restamos overlap_mm al total antes de dividir
       const c = Math.ceil((targetW_mm - overlap_mm) / effectiveW);
       const r = Math.ceil((targetH_mm - overlap_mm) / effectiveH);
       
@@ -149,7 +146,6 @@ export default function PosterGridEditor() {
     const pResults = calcForOrientation('portrait');
     const lResults = calcForOrientation('landscape');
 
-    // Elegir la orientación que use menos hojas para ahorrar material
     return pResults.total <= lResults.total ? pResults : lResults;
   };
 
@@ -225,8 +221,6 @@ export default function PosterGridEditor() {
     setH((newH_mm / 10).toFixed(1));
   };
 
-  // Función para sincronizar la cuadrícula cuando cambian ajustes técnicos (solape/márgenes)
-  // manteniendo fijas las dimensiones finales deseadas
   const syncGridFromTechnicalSettings = (isDraft: boolean) => {
     if (!image) return;
     const curWidthStr = isDraft ? draftTargetWidth : targetWidth;
@@ -290,7 +284,7 @@ export default function PosterGridEditor() {
     const num = Math.max(0, parseFloat(val));
     if (isNaN(num)) {
       if (isDraft) setDraftTargetHeight(val);
-      else setTargetHeight(val);
+      else setTargetWidth(val);
       return;
     }
 
@@ -738,7 +732,7 @@ export default function PosterGridEditor() {
           </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 hover:bg-primary/10 hover:text-primary" onClick={() => {
-              const newVal = Math.max(0, currentMarginV - 0.5);
+              const newVal = Math.max(0, parseFloat((currentMarginV - 0.1).toFixed(1)));
               if (isMobile) setDraftMarginV(newVal); else setMarginV(newVal);
               syncGridFromTechnicalSettings(!!isMobile);
             }}>
@@ -750,10 +744,10 @@ export default function PosterGridEditor() {
                 if (isMobile) setDraftMarginV(v[0]); else setMarginV(v[0]); 
                 syncGridFromTechnicalSettings(!!isMobile);
               }} 
-              min={0} max={5} step={0.5} className="flex-1" 
+              min={0} max={5} step={0.1} className="flex-1" 
             />
             <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 hover:bg-primary/10 hover:text-primary" onClick={() => {
-              const newVal = Math.min(5, currentMarginV + 0.5);
+              const newVal = Math.min(5, parseFloat((currentMarginV + 0.1).toFixed(1)));
               if (isMobile) setDraftMarginV(newVal); else setMarginV(newVal);
               syncGridFromTechnicalSettings(!!isMobile);
             }}>
@@ -771,7 +765,7 @@ export default function PosterGridEditor() {
           </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 hover:bg-primary/10 hover:text-primary" onClick={() => {
-              const newVal = Math.max(0, currentMarginH - 0.5);
+              const newVal = Math.max(0, parseFloat((currentMarginH - 0.1).toFixed(1)));
               if (isMobile) setDraftMarginH(newVal); else setMarginH(newVal);
               syncGridFromTechnicalSettings(!!isMobile);
             }}>
@@ -783,10 +777,10 @@ export default function PosterGridEditor() {
                 if (isMobile) setDraftMarginH(v[0]); else setMarginH(v[0]); 
                 syncGridFromTechnicalSettings(!!isMobile);
               }} 
-              min={0} max={5} step={0.5} className="flex-1" 
+              min={0} max={5} step={0.1} className="flex-1" 
             />
             <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 hover:bg-primary/10 hover:text-primary" onClick={() => {
-              const newVal = Math.min(5, currentMarginH + 0.5);
+              const newVal = Math.min(5, parseFloat((currentMarginH + 0.1).toFixed(1)));
               if (isMobile) setDraftMarginH(newVal); else setMarginH(newVal);
               syncGridFromTechnicalSettings(!!isMobile);
             }}>
