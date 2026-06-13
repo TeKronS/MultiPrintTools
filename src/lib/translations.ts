@@ -1,3 +1,4 @@
+
 export type Language = 'en' | 'es';
 
 export const translations = {
@@ -44,7 +45,7 @@ export const translations = {
     newTools: 'New tools every month',
     openApp: 'Launch App',
     muralisTitle: 'Poster Grid Pro',
-    muralisDesc: 'Our flagship tool. Automate the process of splitting large images into technical printable sheets with perfect overlaps.',
+    muralisDesc: 'The leading tool to split image for printing. Automate the process of splitting large images into technical printable sheets.',
     pdfMasterTitle: 'PDF Merger',
     pdfMasterDesc: 'Merge multiple PDF files into one. Fast, local and private.',
     resizerTitle: 'Image Resizer',
@@ -162,7 +163,7 @@ export const translations = {
     newTools: 'Nuevas herramientas cada mes',
     openApp: 'Abrir Aplicación',
     muralisTitle: 'Cuadrícula para Poster Pro',
-    muralisDesc: 'Nuestra herramienta estrella. Automatiza el proceso de dividir imágenes grandes en hojas técnicas con solapes perfectos.',
+    muralisDesc: 'La mejor herramienta para dividir imagen para imprimir. Automatiza el proceso de dividir fotos en hojas técnicas con solapes perfectos.',
     pdfMasterTitle: 'Combinar PDF',
     pdfMasterDesc: 'Combina varios archivos PDF en uno solo. Rápido, local y privado.',
     resizerTitle: 'Redimensionar Imagen',

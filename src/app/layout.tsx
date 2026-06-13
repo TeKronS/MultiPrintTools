@@ -1,3 +1,4 @@
+
 import type {Metadata} from 'next';
 import './globals.css';
 import { ThemeProvider } from '@/components/ThemeProvider';
@@ -6,16 +7,15 @@ import { Toaster } from '@/components/ui/toaster';
 export const metadata: Metadata = {
   metadataBase: new URL('https://tekron-web-studio.vercel.app/'),
   title: {
-    default: 'MultiPrintTools | Cuadrícula para Poster y Automatización de Impresión',
+    default: 'MultiPrintTools | Dividir Imagen para Imprimir y Automatización',
     template: '%s | MultiPrintTools'
   },
-  description: 'La suite definitiva para automatizar tu flujo de trabajo en reprografía. Generador automático de cuadrículas para posters gigantes, gestión de PDFs y optimización de imágenes 100% local y privada.',
+  description: 'La suite definitiva para automatizar tu flujo de trabajo en reprografía. Herramienta profesional para dividir imagen para imprimir en varias hojas, gestión de PDFs y optimización de imágenes.',
   keywords: [
-    'automatización de impresión', 'cuadrícula para poster gigante', 'reprografía profesional', 
-    'dividir imagen para imprimir automático', 'tiled printing automation', 'herramientas para imprentas',
-    'crear gigantografías rápido', 'unir pdf sin internet', 'poster maker professional',
-    'gestión de documentos automatizada', 'diseño de murales técnicos', 'imprimir poster varias hojas',
-    'reprographics workflow', 'software de impresión local', 'privacidad en documentos'
+    'dividir imagen para imprimir', 'dividir imagen en varias hojas', 'automatización de impresión', 
+    'cuadrícula para poster gigante', 'reprografía profesional', 'dividir foto en hojas a4',
+    'tiled printing automation', 'herramientas para imprentas', 'crear gigantografías rápido', 
+    'unir pdf sin internet', 'poster maker professional', 'mosaico de fotos para pared'
   ],
   authors: [{ name: 'Tekron Web Studio' }],
   creator: 'Tekron Web Studio',
@@ -33,33 +33,22 @@ export const metadata: Metadata = {
     locale: 'es_ES',
     url: 'https://tekron-web-studio.vercel.app/',
     siteName: 'MultiPrintTools',
-    title: 'MultiPrintTools | Automatización de Reprografía y Posters',
-    description: 'Optimiza y automatiza tus trabajos de impresión con procesamiento local. La herramienta estrella para crear posters gigantes de forma técnica y rápida.',
+    title: 'MultiPrintTools | Dividir Imagen para Imprimir Posters',
+    description: 'La herramienta estrella para dividir imagen para imprimir de forma técnica y rápida. Optimiza tus trabajos con procesamiento local.',
     images: [
       {
         url: 'https://picsum.photos/seed/seo-preview/1200/630',
         width: 1200,
         height: 630,
-        alt: 'MultiPrintTools - Cuadrícula para Poster y Automatización',
+        alt: 'MultiPrintTools - Dividir Imagen para Imprimir',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'MultiPrintTools | Suite de Automatización de Impresión',
-    description: 'Crea posters gigantes automáticamente y gestiona tus archivos PDF con privacidad total.',
+    title: 'Dividir Imagen para Imprimir | MultiPrintTools',
+    description: 'Crea posters gigantes dividiendo fotos en varias hojas automáticamente con privacidad total.',
     images: ['https://picsum.photos/seed/seo-preview/1200/630'],
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
-    },
   },
 };
 
