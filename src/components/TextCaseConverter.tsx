@@ -9,7 +9,7 @@ import {
   Copy, 
   Trash2, 
   Check, 
-  ShieldCheck,
+  ShieldCheck, 
   Zap,
   AlignLeft,
   WholeWord
@@ -67,24 +67,24 @@ export default function TextCaseConverter() {
 
   return (
     <div className="flex flex-col h-screen bg-background font-body overflow-hidden transition-colors duration-300">
-      <header className="h-16 shrink-0 border-b border-border bg-background/80 backdrop-blur-md flex items-center justify-between px-6 z-50 shadow-sm">
-        <div className="flex items-center gap-4">
+      <header className="h-16 shrink-0 border-b border-border bg-background/80 backdrop-blur-md flex items-center justify-between px-4 sm:px-6 z-50 shadow-sm">
+        <div className="flex items-center gap-2 sm:gap-4">
           <Link href="/">
-            <Button variant="ghost" size="sm" className="gap-2 font-bold text-muted-foreground px-2">
+            <Button variant="ghost" size="sm" className="gap-2 font-bold text-muted-foreground px-1 sm:px-2">
               <ChevronLeft className="h-4 w-4" /> 
               <span className="hidden sm:inline text-xs">Inicio</span>
             </Button>
           </Link>
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 relative rounded-lg overflow-hidden border bg-white dark:bg-slate-200">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="w-6 h-6 sm:w-8 sm:h-8 relative rounded-lg overflow-hidden border bg-white dark:bg-slate-200 shrink-0">
               <Image src={logo} alt="Logo" fill className="object-contain" />
             </div>
-            <h1 className="text-xl font-headline font-black tracking-tighter text-amber-600 uppercase">
+            <h1 className="text-sm sm:text-xl font-headline font-black tracking-tighter text-amber-600 uppercase truncate max-w-[150px] sm:max-w-none">
               {t.textToolsTitle}
             </h1>
           </div>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           <ThemeToggle />
           <LanguageSelector language={lang} setLanguage={setLang} />
         </div>
