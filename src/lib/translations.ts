@@ -118,7 +118,19 @@ export const translations = {
     exportImages: 'Export as Images',
     convertingToImg: 'Converting to images...',
     format: 'Format',
-    qualityImg: 'Image Quality'
+    qualityImg: 'Image Quality',
+    // Text Tools
+    textToolsTitle: 'Case Converter',
+    textToolsDesc: 'Change text case to uppercase, lowercase, sentence case, or capitalize words instantly.',
+    uppercase: 'Uppercase',
+    lowercase: 'Lowercase',
+    sentenceCase: 'Sentence case',
+    capitalize: 'Capitalize Words',
+    copy: 'Copy',
+    copied: 'Copied!',
+    clear: 'Clear',
+    characters: 'Characters',
+    words: 'Words'
   },
   es: {
     title: 'CUADRÍCULA POSTER PRO',
@@ -236,6 +248,18 @@ export const translations = {
     exportImages: 'Exportar como Imágenes',
     convertingToImg: 'Convirtiendo a imágenes...',
     format: 'Formato',
-    qualityImg: 'Calidad de Imagen'
+    qualityImg: 'Calidad de Imagen',
+    // Text Tools
+    textToolsTitle: 'Convertidor de Mayúsculas',
+    textToolsDesc: 'Cambia el formato de tu texto a mayúsculas, minúsculas, mayúscula después de punto o capitalizado.',
+    uppercase: 'MAYÚSCULAS',
+    lowercase: 'minúsculas',
+    sentenceCase: 'Tipo oración',
+    capitalize: 'Capitalizar Palabras',
+    copy: 'Copiar',
+    copied: '¡Copiado!',
+    clear: 'Limpiar',
+    characters: 'Caracteres',
+    words: 'Palabras'
   }
 };

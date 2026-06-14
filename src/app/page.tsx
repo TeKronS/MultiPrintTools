@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -13,7 +14,8 @@ import {
   Copy,
   Scissors,
   FileImage,
-  Zap
+  Zap,
+  Type
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -44,6 +46,14 @@ export default function Home() {
       href: "/resizer",
       status: "active",
       badge: "PRO"
+    },
+    {
+      title: t.textToolsTitle,
+      description: t.textToolsDesc,
+      icon: <Type className="h-8 w-8 text-amber-500" />,
+      href: "/text-tools",
+      status: "active",
+      badge: "UTILITY"
     },
     {
       title: t.mergeTitle,
