@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -93,16 +92,9 @@ export default function TextCaseConverter() {
 
       <main className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
         <div className="flex-1 overflow-y-auto p-4 sm:p-12 bg-muted/30 flex flex-col items-center">
-          <div className="w-full max-w-4xl space-y-6">
-            <div className="text-center space-y-2 mb-8">
-              <Badge className="bg-amber-500/10 text-amber-600 border-amber-200 font-black px-3 py-1">
-                <Zap className="h-3 w-3 mr-2" /> {t.localProcessing}
-              </Badge>
-              <h2 className="text-3xl font-headline font-black tracking-tighter text-foreground uppercase">
-                {t.textToolsDesc}
-              </h2>
-            </div>
-
+          <div className="w-full max-w-4xl space-y-8">
+            
+            {/* Area de Texto principal */}
             <div className="relative group rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-card bg-card">
               <Textarea 
                 placeholder={lang === 'es' ? "Pega tu texto aquí..." : "Paste your text here..."}
@@ -132,6 +124,7 @@ export default function TextCaseConverter() {
               </div>
             </div>
 
+            {/* Opciones de conversión */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <Button 
                 variant="outline" 
@@ -165,6 +158,16 @@ export default function TextCaseConverter() {
               >
                 {t.capitalize}
               </Button>
+            </div>
+
+            {/* Título y descripción ahora después de las opciones y más pequeño */}
+            <div className="text-center space-y-2 pt-4">
+              <Badge className="bg-amber-500/10 text-amber-600 border-amber-200 font-black px-3 py-1">
+                <Zap className="h-3 w-3 mr-2" /> {t.localProcessing}
+              </Badge>
+              <h2 className="text-xl font-headline font-black tracking-tighter text-foreground/80 uppercase">
+                {t.textToolsDesc}
+              </h2>
             </div>
           </div>
         </div>
