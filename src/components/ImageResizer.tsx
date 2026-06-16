@@ -50,7 +50,7 @@ export default function ImageResizer() {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [image, setImage] = useState<{ url: string; width: number; height: number; name: string } | null>(null);
+  const [image, setImage] = useState<{ url: string; width: number; height: number; name: string; type: string } | null>(null);
   const [targetWidth, setTargetWidth] = useState<number>(0);
   const [targetHeight, setTargetHeight] = useState<number>(0);
   const [dpi, setDpi] = useState<number>(300);
@@ -77,7 +77,8 @@ export default function ImageResizer() {
         url, 
         width: img.width, 
         height: img.height, 
-        name: file.name 
+        name: file.name,
+        type: file.type
       });
 
       const pixelsPerCm = 300 / 2.54;
@@ -147,15 +148,23 @@ export default function ImageResizer() {
 
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
+      
+      // Limpiar canvas para asegurar transparencia
+      ctx.clearRect(0, 0, finalPixelW, finalPixelH);
       ctx.drawImage(img, 0, 0, finalPixelW, finalPixelH);
 
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+      // Usar PNG para preservar transparencia si el original la tiene o para máxima calidad
+      // Si el usuario subió un PNG o WebP, mantenemos el formato que soporta transparencia
+      const outputFormat = (image.type === 'image/png' || image.type === 'image/webp') ? image.type : 'image/png';
+      const extension = outputFormat.split('/')[1];
+      
+      const dataUrl = canvas.toDataURL(outputFormat, 1.0);
       const link = document.createElement('a');
       link.href = dataUrl;
-      link.download = `Resized-${targetWidth}${unit}-${dpi}dpi-${image.name}`;
+      link.download = `Resized-${targetWidth}${unit}-${dpi}dpi-${image.name.split('.')[0]}.${extension}`;
       link.click();
 
-      toast({ title: "Imagen lista", description: "Tu imagen redimensionada se ha descargado." });
+      toast({ title: "Imagen lista", description: "Tu imagen redimensionada se ha descargado preservando la transparencia." });
     } catch (e) {
       toast({ variant: "destructive", title: "Error", description: "Ocurrió un error al redimensionar." });
     } finally {
