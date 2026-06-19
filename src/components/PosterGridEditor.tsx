@@ -21,7 +21,8 @@ import {
   Maximize2,
   Ruler,
   Zap,
-  Square
+  Square,
+  Hash
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -159,6 +160,63 @@ export default function PosterGridEditor() {
     const pResults = calcForOrientation('portrait');
     const lResults = calcForOrientation('landscape');
     return pResults.total <= lResults.total ? pResults : lResults;
+  };
+
+  const calculateGridFromTotalSheets = (total: number, isDraft: boolean) => {
+    if (!image) return;
+    const aspect = image.width / image.height;
+    const pS = isDraft ? draftPaperSize : paperSize;
+    const orient = isDraft ? draftOrientation : orientation;
+    const ov = isDraft ? draftOverlap : overlap;
+    const mV = isDraft ? draftMarginV : marginV;
+    const mH = isDraft ? draftMarginH : marginH;
+    
+    const paperBase = PAPER_DIMENSIONS[pS];
+    const p = orient === 'portrait' 
+      ? { w: Math.min(paperBase.width, paperBase.height), h: Math.max(paperBase.width, paperBase.height) } 
+      : { w: Math.max(paperBase.width, paperBase.height), h: Math.min(paperBase.width, paperBase.height) };
+
+    const { appliedMH, appliedMV } = getAppliedMargins(orient, mV, mH);
+    const printableW = p.w - (appliedMH * 20);
+    const printableH = p.h - (appliedMV * 20);
+
+    const pairs: [number, number][] = [];
+    for (let i = 1; i <= Math.sqrt(total); i++) {
+      if (total % i === 0) {
+        pairs.push([i, total / i]);
+        if (i !== total / i) pairs.push([total / i, i]);
+      }
+    }
+
+    let bestPair = pairs[0];
+    let minDiff = Infinity;
+
+    pairs.forEach(([r, c]) => {
+      const gridW = (c * (printableW - ov * 10)) + ov * 10;
+      const gridH = (r * (printableH - ov * 10)) + ov * 10;
+      const diff = Math.abs((gridW / gridH) - aspect);
+      if (diff < minDiff) {
+        minDiff = diff;
+        bestPair = [r, c];
+      }
+    });
+
+    const [newRows, newCols] = bestPair;
+    const overlapMm = ov * 10;
+    const newW_mm = (newCols * (printableW - overlapMm)) + overlapMm;
+    const newH_mm = (newRows * (printableH - overlapMm)) + overlapMm;
+
+    if (isDraft) {
+      setDraftRows(newRows);
+      setDraftCols(newCols);
+      setDraftTargetWidth((newW_mm / 10).toFixed(1));
+      setDraftTargetHeight((newH_mm / 10).toFixed(1));
+    } else {
+      setRows(newRows);
+      setCols(newCols);
+      setTargetWidth((newW_mm / 10).toFixed(1));
+      setTargetHeight((newH_mm / 10).toFixed(1));
+    }
   };
 
   const syncGridFromTechnicalSettings = (isDraft: boolean) => {
@@ -466,6 +524,26 @@ export default function PosterGridEditor() {
           </div>
           <p className="text-[9px] text-muted-foreground font-medium leading-tight">{t.optimizationNote}</p>
         </div>
+
+        <div className="bg-card p-4 rounded-xl border border-primary/10 shadow-sm space-y-3">
+          <div className="flex items-center gap-2 mb-1">
+            <Hash className="h-3.5 w-3.5 text-primary" />
+            <Label className="text-[10px] font-black uppercase tracking-tighter text-muted-foreground">{t.totalSheets}</Label>
+            <span className="ml-auto text-[8px] font-black text-primary uppercase">{t.evenNumbersOnly}</span>
+          </div>
+          <Input 
+            type="number" 
+            value={currentRows * currentCols} 
+            onChange={(e) => {
+              const val = parseInt(e.target.value) || 2;
+              if (val % 2 === 0) calculateGridFromTotalSheets(val, !!isMobile);
+            }} 
+            min="2" 
+            step="2" 
+            className="h-9 font-black text-sm text-primary bg-primary/5 border-primary/20" 
+          />
+        </div>
+
         <div className="space-y-2">
           <div className="flex justify-between items-center">
             <Label className="text-[10px] font-black uppercase text-muted-foreground bg-card px-2 py-0.5 rounded-md shadow-sm border border-border/10">{t.rows}</Label>
