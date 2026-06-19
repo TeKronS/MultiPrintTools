@@ -7,15 +7,16 @@ import { Toaster } from '@/components/ui/toaster';
 export const metadata: Metadata = {
   metadataBase: new URL('https://tekron-web-studio.vercel.app/'),
   title: {
-    default: 'MultiPrintTools | Dividir Imagen para Imprimir y Automatización',
+    default: 'MultiPrintTools | Split Image for Poster Printing & Automation',
     template: '%s | MultiPrintTools'
   },
-  description: 'La suite definitiva para automatizar tu flujo de trabajo en reprografía. Herramienta profesional para dividir imagen para imprimir en varias hojas, gestión de PDFs y optimización de imágenes.',
+  description: 'Ultimate suite to split image for poster printing and automate reprography workflows. Professional tools for tiled printing, PDF management, and image optimization.',
   keywords: [
-    'dividir imagen para imprimir', 'dividir imagen en varias hojas', 'automatización de impresión', 
+    'split image for poster printing', 'tiled printing automation', 'dividir imagen para imprimir', 
+    'dividir imagen en varias hojas', 'reprography automation', 'poster grid maker',
     'cuadrícula para poster gigante', 'reprografía profesional', 'dividir foto en hojas a4',
-    'tiled printing automation', 'herramientas para imprentas', 'crear gigantografías rápido', 
-    'unir pdf sin internet', 'poster maker professional', 'mosaico de fotos para pared'
+    'herramientas para imprentas', 'crear gigantografías rápido', 'unir pdf sin internet', 
+    'poster maker professional', 'mosaico de fotos para pared'
   ],
   authors: [{ name: 'Tekron Web Studio' }],
   creator: 'Tekron Web Studio',
@@ -33,21 +34,21 @@ export const metadata: Metadata = {
     locale: 'es_ES',
     url: 'https://tekron-web-studio.vercel.app/',
     siteName: 'MultiPrintTools',
-    title: 'MultiPrintTools | Dividir Imagen para Imprimir Posters',
-    description: 'La herramienta estrella para dividir imagen para imprimir de forma técnica y rápida. Optimiza tus trabajos con procesamiento local.',
+    title: 'MultiPrintTools | Split Image for Poster Printing',
+    description: 'The flagship tool to split images for printing technical posters. Optimize your workflow with local processing.',
     images: [
       {
         url: 'https://picsum.photos/seed/seo-preview/1200/630',
         width: 1200,
         height: 630,
-        alt: 'MultiPrintTools - Dividir Imagen para Imprimir',
+        alt: 'MultiPrintTools - Split Image for Poster Printing',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Dividir Imagen para Imprimir | MultiPrintTools',
-    description: 'Crea posters gigantes dividiendo fotos en varias hojas automáticamente con privacidad total.',
+    title: 'Split Image for Poster Printing | MultiPrintTools',
+    description: 'Create giant posters by splitting photos into multiple sheets automatically with total privacy.',
     images: ['https://picsum.photos/seed/seo-preview/1200/630'],
   },
 };
