@@ -57,8 +57,12 @@ export const MuralCanvas = memo(function MuralCanvas({
   const isDense = useMemo(() => (rows * cols) > 30, [rows, cols]);
 
   const dimensions = useMemo(() => {
-    const printableW = paper.width - (marginH * 20);
-    const printableH = paper.height - (marginV * 20);
+    // Aplicar márgenes físicos vinculados a la hoja (no se invierten)
+    const appliedMH = orientation === 'portrait' ? marginH : marginV;
+    const appliedMV = orientation === 'portrait' ? marginV : marginH;
+
+    const printableW = paper.width - (appliedMH * 20);
+    const printableH = paper.height - (appliedMV * 20);
     const overlapMm = overlap * 10;
     
     const effectiveW = printableW - overlapMm;
@@ -76,9 +80,11 @@ export const MuralCanvas = memo(function MuralCanvas({
       drawW,
       drawH,
       printableW,
-      printableH
+      printableH,
+      appliedMH,
+      appliedMV
     };
-  }, [paper, rows, cols, overlap, marginV, marginH, imageWidth, imageHeight]);
+  }, [paper, rows, cols, overlap, marginV, marginH, imageWidth, imageHeight, orientation]);
 
   useEffect(() => {
     if (!containerRef.current || !imageUrl) return;
@@ -191,10 +197,10 @@ export const MuralCanvas = memo(function MuralCanvas({
                                 showOutline ? "border border-black/20" : "border-black/5"
                                )} 
                                style={{ 
-                                 borderTopWidth: `${marginV * 10}px`,
-                                 borderBottomWidth: `${marginV * 10}px`,
-                                 borderLeftWidth: `${marginH * 10}px`,
-                                 borderRightWidth: `${marginH * 10}px`
+                                 borderTopWidth: `${dimensions.appliedMV * 10}px`,
+                                 borderBottomWidth: `${dimensions.appliedMV * 10}px`,
+                                 borderLeftWidth: `${dimensions.appliedMH * 10}px`,
+                                 borderRightWidth: `${dimensions.appliedMH * 10}px`
                                }} />
                                
                           <div className="absolute top-2 left-2 bg-white/95 backdrop-blur-md px-1.5 py-0.5 rounded border border-primary/20 shadow-sm z-20">

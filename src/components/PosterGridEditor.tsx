@@ -108,6 +108,16 @@ export default function PosterGridEditor() {
 
   const t = translations[lang];
 
+  // Helper para calcular márgenes físicos aplicados según orientación
+  const getAppliedMargins = (orient: 'portrait' | 'landscape', mV: number, mH: number) => {
+    // Si es vertical: H es horizontal (L/R) y V es vertical (T/B)
+    // Si es horizontal: Mantenemos la referencia física solicitada por el usuario
+    return {
+      appliedMH: orient === 'portrait' ? mH : mV,
+      appliedMV: orient === 'portrait' ? mV : mH
+    };
+  };
+
   const calculateOptimizedGrid = (
     w_cm: number, 
     h_cm: number, 
@@ -120,16 +130,16 @@ export default function PosterGridEditor() {
     const targetW_mm = w_cm * 10;
     const targetH_mm = h_cm * 10;
     const overlap_mm = ov_cm * 10;
-    const marginV_mm = mV_cm * 10;
-    const marginH_mm = mH_cm * 10;
 
     const calcForOrientation = (orient: 'portrait' | 'landscape') => {
       const paper = orient === 'portrait' 
         ? { width: Math.min(paperBase.width, paperBase.height), height: Math.max(paperBase.width, paperBase.height) }
         : { width: Math.max(paperBase.width, paperBase.height), height: Math.min(paperBase.width, paperBase.height) };
 
-      const printableW = paper.width - (marginH_mm * 2);
-      const printableH = paper.height - (marginV_mm * 2);
+      const { appliedMH, appliedMV } = getAppliedMargins(orient, mV_cm, mH_cm);
+
+      const printableW = paper.width - (appliedMH * 20);
+      const printableH = paper.height - (appliedMV * 20);
       
       const effectiveW = printableW - overlap_mm;
       const effectiveH = printableH - overlap_mm;
@@ -164,7 +174,9 @@ export default function PosterGridEditor() {
       ? { width: Math.min(paperBase.width, paperBase.height), height: Math.max(paperBase.width, paperBase.height) }
       : { width: Math.max(paperBase.width, paperBase.height), height: Math.min(paperBase.width, paperBase.height) };
 
-    const printableH = paper.height - (mV * 20);
+    const { appliedMH, appliedMV } = getAppliedMargins(orient, mV, mH);
+
+    const printableH = paper.height - (appliedMV * 20);
     const overlapMm = ov * 10;
     const effectiveH = printableH - overlapMm;
     
@@ -172,7 +184,7 @@ export default function PosterGridEditor() {
     const aspect = image.width / image.height;
     const newW_mm = newH_mm * aspect;
 
-    const printableW = paper.width - (mH * 20);
+    const printableW = paper.width - (appliedMH * 20);
     const effectiveW = printableW - overlapMm;
     const neededCols = Math.ceil((newW_mm - overlapMm) / effectiveW);
 
@@ -200,7 +212,9 @@ export default function PosterGridEditor() {
       ? { width: Math.min(paperBase.width, paperBase.height), height: Math.max(paperBase.width, paperBase.height) }
       : { width: Math.max(paperBase.width, paperBase.height), height: Math.min(paperBase.width, paperBase.height) };
 
-    const printableW = paper.width - (mH * 20);
+    const { appliedMH, appliedMV } = getAppliedMargins(orient, mV, mH);
+
+    const printableW = paper.width - (appliedMH * 20);
     const overlapMm = ov * 10;
     const effectiveW = printableW - overlapMm;
     
@@ -208,7 +222,7 @@ export default function PosterGridEditor() {
     const aspect = image.width / image.height;
     const newH_mm = newW_mm / aspect;
 
-    const printableH = paper.height - (mV * 20);
+    const printableH = paper.height - (appliedMV * 20);
     const effectiveH = printableH - overlapMm;
     const neededRows = Math.ceil((newH_mm - overlapMm) / effectiveH);
 
@@ -326,8 +340,6 @@ export default function PosterGridEditor() {
       
       const paperBase = PAPER_DIMENSIONS[paperSize];
       const overlapMm = overlap * 10;
-      const marginVMm = marginV * 10;
-      const marginHMm = marginH * 10;
       const aspect = img.width / img.height;
 
       const calcSize = (orient: 'portrait' | 'landscape') => {
@@ -335,8 +347,10 @@ export default function PosterGridEditor() {
           ? { w: Math.min(paperBase.width, paperBase.height), h: Math.max(paperBase.width, paperBase.height) }
           : { w: Math.max(paperBase.width, paperBase.height), h: Math.min(paperBase.width, paperBase.height) };
         
-        const printableW = p.w - (marginHMm * 2);
-        const printableH = p.h - (marginVMm * 2);
+        const { appliedMH, appliedMV } = getAppliedMargins(orient, marginV, marginH);
+
+        const printableW = p.w - (appliedMH * 20);
+        const printableH = p.h - (appliedMV * 20);
         const effectiveW = printableW - overlapMm;
         const effectiveH = printableH - overlapMm;
 
@@ -419,14 +433,16 @@ export default function PosterGridEditor() {
         ? { width: Math.min(paperBase.width, paperBase.height), height: Math.max(paperBase.width, paperBase.height) }
         : { width: Math.max(paperBase.width, paperBase.height), height: Math.min(paperBase.width, paperBase.height) };
 
+      const { appliedMH, appliedMV } = getAppliedMargins(activeOrientation, activeMarginV, activeMarginH);
+
       const pdf = new jsPDF({
         orientation: activeOrientation === 'portrait' ? 'p' : 'l',
         unit: 'mm',
         format: paperBase.format as any
       });
 
-      const printableW = paper.width - (activeMarginH * 20);
-      const printableH = paper.height - (activeMarginV * 20);
+      const printableW = paper.width - (appliedMH * 20);
+      const printableH = paper.height - (appliedMV * 20);
       const overlapMm = activeOverlap * 10;
       const effectiveSheetW = printableW - overlapMm;
       const effectiveSheetH = printableH - overlapMm;
@@ -480,8 +496,8 @@ export default function PosterGridEditor() {
             
             ctx.drawImage(img, sx, sy, sw, sh, 0, 0, dw, dh);
             
-            const panelX = (activeMarginH * 10) + drawInSheetX_mm;
-            const panelY = (activeMarginV * 10) + drawInSheetY_mm;
+            const panelX = (appliedMH * 10) + drawInSheetX_mm;
+            const panelY = (appliedMV * 10) + drawInSheetY_mm;
 
             pdf.addImage(
               canvas.toDataURL('image/jpeg', 0.95), 
@@ -502,16 +518,16 @@ export default function PosterGridEditor() {
           pdf.setDrawColor(220);
           pdf.setLineDashPattern([2, 2], 0);
           if (c < activeCols - 1) {
-            const gx = (activeMarginH * 10) + (printableW - overlapMm);
-            pdf.line(gx, activeMarginV * 10, gx, activeMarginV * 10 + printableH);
+            const gx = (appliedMH * 10) + (printableW - overlapMm);
+            pdf.line(gx, appliedMV * 10, gx, appliedMV * 10 + printableH);
           }
           if (r < activeRows - 1) {
-            const gy = (activeMarginV * 10) + (printableH - overlapMm);
-            pdf.line(activeMarginH * 10, gy, activeMarginH * 10 + printableW, gy);
+            const gy = (appliedMV * 10) + (printableH - overlapMm);
+            pdf.line(appliedMH * 10, gy, appliedMH * 10 + printableW, gy);
           }
           pdf.setFontSize(7);
           pdf.setTextColor(180);
-          pdf.text(`MULTIPRINTTOOLS | CUADRÍCULA POSTER | PANEL ${r+1}-${c+1} | ${activePaperSize} (${activeOrientation === 'portrait' ? 'P' : 'L'})`, activeMarginH * 10, paper.height - (activeMarginV * 5));
+          pdf.text(`MULTIPRINTTOOLS | CUADRÍCULA POSTER | PANEL ${r+1}-${c+1} | ${activePaperSize} (${activeOrientation === 'portrait' ? 'P' : 'L'})`, appliedMH * 10, paper.height - (appliedMV * 5));
         }
       }
       pdf.save(`poster-grid-${Date.now()}.pdf`);
@@ -530,8 +546,10 @@ export default function PosterGridEditor() {
       ? { width: Math.min(paperBase.width, paperBase.height), height: Math.max(paperBase.width, paperBase.height) }
       : { width: Math.max(paperBase.width, paperBase.height), height: Math.min(paperBase.width, paperBase.height) };
 
-    const printableW = paper.width - (mH * 20);
-    const printableH = paper.height - (mV * 20);
+    const { appliedMH, appliedMV } = getAppliedMargins(orient, mV, mH);
+
+    const printableW = paper.width - (appliedMH * 20);
+    const printableH = paper.height - (appliedMV * 20);
     const overlapMm = ov * 10;
     const effectiveW = printableW - overlapMm;
     const effectiveH = printableH - overlapMm;
