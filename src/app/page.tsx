@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { 
@@ -26,9 +26,21 @@ import logo from "./icono.png";
 
 export default function Home() {
   const [lang, setLang] = useState<Language>('es');
+
+  useEffect(() => {
+    const savedLang = localStorage.getItem('pref-lang') as Language;
+    if (savedLang === 'en' || savedLang === 'es') {
+      setLang(savedLang);
+    } else {
+      const browserLang = navigator.language.split('-')[0];
+      if (browserLang === 'en') {
+        setLang('en');
+      }
+    }
+  }, []);
+
   const t = translations[lang];
 
-  // Herramientas ordenadas por relevancia estratégica y volumen de búsqueda SEO
   const tools = [
     {
       title: t.muralisTitle,
@@ -48,14 +60,6 @@ export default function Home() {
       badge: "PRO"
     },
     {
-      title: t.textToolsTitle,
-      description: t.textToolsDesc,
-      icon: <Type className="h-8 w-8 text-amber-500" />,
-      href: "/text-tools",
-      status: "active",
-      badge: "UTILITY"
-    },
-    {
       title: t.mergeTitle,
       description: t.pdfMasterDesc,
       icon: <Copy className="h-8 w-8 text-indigo-500" />,
@@ -70,6 +74,14 @@ export default function Home() {
       href: "/pdf-split",
       status: "active",
       badge: "NEW"
+    },
+    {
+      title: t.textToolsTitle,
+      description: t.textToolsDesc,
+      icon: <Type className="h-8 w-8 text-amber-500" />,
+      href: "/text-tools",
+      status: "active",
+      badge: "UTILITY"
     },
     {
       title: t.pdfToImgTitle,
@@ -165,11 +177,6 @@ export default function Home() {
                     </div>
                   )}
                 </CardHeader>
-                {tool.status === 'active' && (
-                  <div className="absolute bottom-4 right-6 md:right-8 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity hidden md:flex">
-                    <span className="text-[10px] font-black text-primary uppercase tracking-widest">{t.openApp}</span>
-                  </div>
-                )}
               </Card>
             </Link>
           ))}

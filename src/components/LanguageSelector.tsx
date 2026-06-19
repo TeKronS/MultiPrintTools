@@ -17,6 +17,11 @@ interface LanguageSelectorProps {
 }
 
 export function LanguageSelector({ language, setLanguage }: LanguageSelectorProps) {
+  const handleLanguageChange = (newLang: Language) => {
+    setLanguage(newLang);
+    localStorage.setItem('pref-lang', newLang);
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -26,10 +31,10 @@ export function LanguageSelector({ language, setLanguage }: LanguageSelectorProp
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => setLanguage('en')}>
+        <DropdownMenuItem onClick={() => handleLanguageChange('en')}>
           English
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setLanguage('es')}>
+        <DropdownMenuItem onClick={() => handleLanguageChange('es')}>
           Español
         </DropdownMenuItem>
       </DropdownMenuContent>
