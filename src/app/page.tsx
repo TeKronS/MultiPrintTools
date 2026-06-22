@@ -57,7 +57,7 @@ export default function Home() {
       icon: <Maximize className="h-8 w-8 text-emerald-500" />,
       href: "/resizer",
       status: "active",
-      badge: "PRO"
+      badge: "HD"
     },
     {
       title: t.mergeTitle,

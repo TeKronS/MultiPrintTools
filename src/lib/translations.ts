@@ -3,7 +3,7 @@ export type Language = 'en' | 'es';
 
 export const translations = {
   en: {
-    title: 'POSTER GRID PRO',
+    title: 'POSTER GRID',
     upload: 'Upload Image',
     dragDrop: 'Drag and drop your image here',
     gridSettings: 'Technical Settings',
@@ -38,7 +38,7 @@ export const translations = {
     panelArea: 'Print Area/Panel',
     optimizationNote: 'Smart Optimization: System is using the most efficient layout.',
     // Home translations
-    heroBadge: 'Flagship Tool: Poster Grid Pro',
+    heroBadge: 'Flagship Tool: Poster Grid',
     heroTitlePrefix: 'Automate your ',
     heroTitleSuffix: 'printing workflow.',
     heroDesc: 'The ultimate digital suite to split image for poster printing and automate repetitive tasks in copy centers and graphic arts.',
@@ -46,7 +46,7 @@ export const translations = {
     footerRights: '© 2026 Tekron Web Studio - Professional Printing Automation.',
     newTools: 'New tools every month',
     openApp: 'Launch App',
-    muralisTitle: 'Poster Grid Pro',
+    muralisTitle: 'Poster Grid',
     muralisDesc: 'The leading tool to split image for poster printing. Automate the process of splitting large images into multiple printable sheets.',
     pdfMasterTitle: 'PDF Merger',
     pdfMasterDesc: 'Merge multiple PDF files into one. Fast, local and private.',
@@ -77,7 +77,7 @@ export const translations = {
     downloadDocx: 'Download Word Document',
     dropPdf: 'Drop your PDF here',
     pdfFormatOnly: 'PDF files only',
-    // Resizer Pro specific
+    // Resizer specific
     targetDpi: 'Target DPI',
     originalSize: 'Original Size',
     newSize: 'New Size',
@@ -135,7 +135,7 @@ export const translations = {
     words: 'Words'
   },
   es: {
-    title: 'CUADRÍCULA POSTER PRO',
+    title: 'CUADRÍCULA POSTER',
     upload: 'Cargar Imagen',
     dragDrop: 'Arrastra y suelta tu imagen aquí',
     gridSettings: 'Ajustes Técnicos',
@@ -170,7 +170,7 @@ export const translations = {
     panelArea: 'Área Impresión/Panel',
     optimizationNote: 'Optimización Inteligente: El sistema calculó la orientación más eficiente.',
     // Home translations
-    heroBadge: 'Herramienta Estrella: Cuadrícula Poster Pro',
+    heroBadge: 'Herramienta Estrella: Cuadrícula Poster',
     heroTitlePrefix: 'Automatiza tu ',
     heroTitleSuffix: 'trabajo de impresión.',
     heroDesc: 'La suite digital definitiva diseñada para automatizar tareas repetitivas en centros de copiado, artes gráficas y oficinas modernas.',
@@ -178,7 +178,7 @@ export const translations = {
     footerRights: '© 2026 Tekron Web Studio - Automatización Profesional de Reprografía.',
     newTools: 'Nuevas herramientas cada mes',
     openApp: 'Abrir Aplicación',
-    muralisTitle: 'Cuadrícula para Poster Pro',
+    muralisTitle: 'Cuadrícula para Poster',
     muralisDesc: 'La mejor herramienta para dividir imagen para imprimir. Automatiza el proceso de dividir fotos en hojas técnicas con solapes perfectos.',
     pdfMasterTitle: 'Combinar PDF',
     pdfMasterDesc: 'Combina varios archivos PDF en uno solo. Rápido, local y privado.',
@@ -209,7 +209,7 @@ export const translations = {
     downloadDocx: 'Descargar Documento Word',
     dropPdf: 'Suelta tu PDF aquí',
     pdfFormatOnly: 'Solo archivos PDF',
-    // Resizer Pro specific
+    // Resizer specific
     targetDpi: 'DPI Objetivo',
     originalSize: 'Tamaño Original',
     newSize: 'Nuevo Tamaño',
