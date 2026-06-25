@@ -57,7 +57,6 @@ export const MuralCanvas = memo(function MuralCanvas({
   const isDense = useMemo(() => (rows * cols) > 30, [rows, cols]);
 
   const dimensions = useMemo(() => {
-    // Aplicar márgenes físicos vinculados a la hoja (no se invierten)
     const appliedMH = orientation === 'portrait' ? marginH : marginV;
     const appliedMV = orientation === 'portrait' ? marginV : marginH;
 
@@ -205,6 +204,16 @@ export const MuralCanvas = memo(function MuralCanvas({
                                
                           <div className="absolute top-2 left-2 bg-white/95 backdrop-blur-md px-1.5 py-0.5 rounded border border-primary/20 shadow-sm z-20">
                             <span className="text-[10px] font-black font-mono text-primary leading-none tracking-tighter">{r+1}-{c+1}</span>
+                          </div>
+                          
+                          {/* Footer Técnico en Previsualización */}
+                          <div className={cn(
+                            "absolute text-[5px] font-black text-black/20 uppercase whitespace-nowrap",
+                            orientation === 'portrait' 
+                              ? "bottom-1 left-2 w-full text-left" 
+                              : "right-1 top-2 h-full [writing-mode:vertical-rl] rotate-180 text-left"
+                          )}>
+                            MPT | PANEL {r+1}-{c+1} | {paperSize}
                           </div>
                           
                           {c < cols - 1 && (

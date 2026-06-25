@@ -405,8 +405,17 @@ export default function PosterGridEditor() {
           pdf.setDrawColor(220); pdf.setLineDashPattern([2, 2], 0);
           if (c < activeCols - 1) { const gx = (appliedMH * 10) + (printableW - overlapMm); pdf.line(gx, appliedMV * 10, gx, appliedMV * 10 + printableH); }
           if (r < activeRows - 1) { const gy = (appliedMV * 10) + (printableH - overlapMm); pdf.line(appliedMH * 10, gy, appliedMH * 10 + printableW, gy); }
+          
+          // PIE DE PÁGINA TÉCNICO ADAPTATIVO
           pdf.setFontSize(7); pdf.setTextColor(180);
-          pdf.text(`MULTIPRINTTOOLS | CUADRÍCULA POSTER | PANEL ${r+1}-${c+1} | ${activePaperSize} (${activeOrientation === 'portrait' ? 'P' : 'L'})`, appliedMH * 10, paper.height - (appliedMV * 5));
+          const footerText = `MULTIPRINTTOOLS | CUADRÍCULA POSTER | PANEL ${r+1}-${c+1} | ${activePaperSize} (${activeOrientation === 'portrait' ? 'P' : 'L'})`;
+          
+          if (activeOrientation === 'portrait') {
+            pdf.text(footerText, appliedMH * 10, paper.height - (appliedMV * 5));
+          } else {
+            // El pie físico es el borde derecho en horizontal. Rotamos 90 grados.
+            pdf.text(footerText, paper.width - (appliedMH * 5), appliedMV * 10, { angle: 90 });
+          }
         }
       }
       pdf.save(`poster-grid-${Date.now()}.pdf`);
