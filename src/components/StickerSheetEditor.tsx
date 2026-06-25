@@ -131,6 +131,7 @@ export default function StickerSheetEditor() {
 
   const handleMouseDown = (e: React.MouseEvent, type: 'move' | 'nw' | 'ne' | 'sw' | 'se') => {
     e.preventDefault();
+    e.stopPropagation(); // Evitar que el clic en una esquina active el movimiento del cuadro entero
     setIsDragging(true);
     setDragType(type);
     setStartPos({ x: e.clientX, y: e.clientY });
@@ -147,22 +148,28 @@ export default function StickerSheetEditor() {
     setCrop(prev => {
       let next = { ...prev };
       if (dragType === 'move') {
-        next.x = Math.min(Math.max(0, startCrop.x + dx), 100 - prev.width);
-        next.y = Math.min(Math.max(0, startCrop.y + dy), 100 - prev.height);
+        next.x = Math.min(Math.max(0, startCrop.x + dx), 100 - startCrop.width);
+        next.y = Math.min(Math.max(0, startCrop.y + dy), 100 - startCrop.height);
       } else {
+        // North
         if (dragType.includes('n')) {
-          next.y = Math.min(Math.max(0, startCrop.y + dy), startCrop.y + startCrop.height - 5);
-          next.height = startCrop.height - (next.y - startCrop.y);
+          const newY = Math.max(0, Math.min(startCrop.y + dy, startCrop.y + startCrop.height - 5));
+          next.height = startCrop.height - (newY - startCrop.y);
+          next.y = newY;
         }
+        // South
         if (dragType.includes('s')) {
-          next.height = Math.min(Math.max(5, startCrop.height + dy), 100 - prev.y);
+          next.height = Math.max(5, Math.min(startCrop.height + dy, 100 - startCrop.y));
         }
+        // West
         if (dragType.includes('w')) {
-          next.x = Math.min(Math.max(0, startCrop.x + dx), startCrop.x + startCrop.width - 5);
-          next.width = startCrop.width - (next.x - startCrop.x);
+          const newX = Math.max(0, Math.min(startCrop.x + dx, startCrop.x + startCrop.width - 5));
+          next.width = startCrop.width - (newX - startCrop.x);
+          next.x = newX;
         }
+        // East
         if (dragType.includes('e')) {
-          next.width = Math.min(Math.max(5, startCrop.width + dx), 100 - prev.x);
+          next.width = Math.max(5, Math.min(startCrop.width + dx, 100 - startCrop.x));
         }
       }
       return next;
@@ -417,10 +424,10 @@ export default function StickerSheetEditor() {
                     ))}
                   </div>
 
-                  <div className="absolute -top-1.5 -left-1.5 w-4 h-4 bg-white rounded-full border-2 border-yellow-600 cursor-nw-resize" onMouseDown={(e) => handleMouseDown(e, 'nw')} />
-                  <div className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-white rounded-full border-2 border-yellow-600 cursor-ne-resize" onMouseDown={(e) => handleMouseDown(e, 'ne')} />
-                  <div className="absolute -bottom-1.5 -left-1.5 w-4 h-4 bg-white rounded-full border-2 border-yellow-600 cursor-sw-resize" onMouseDown={(e) => handleMouseDown(e, 'sw')} />
-                  <div className="absolute -bottom-1.5 -right-1.5 w-4 h-4 bg-white rounded-full border-2 border-yellow-600 cursor-se-resize" onMouseDown={(e) => handleMouseDown(e, 'se')} />
+                  <div className="absolute -top-2 -left-2 w-5 h-5 bg-white rounded-full border-2 border-yellow-600 cursor-nw-resize z-50" onMouseDown={(e) => handleMouseDown(e, 'nw')} />
+                  <div className="absolute -top-2 -right-2 w-5 h-5 bg-white rounded-full border-2 border-yellow-600 cursor-ne-resize z-50" onMouseDown={(e) => handleMouseDown(e, 'ne')} />
+                  <div className="absolute -bottom-2 -left-2 w-5 h-5 bg-white rounded-full border-2 border-yellow-600 cursor-sw-resize z-50" onMouseDown={(e) => handleMouseDown(e, 'sw')} />
+                  <div className="absolute -bottom-2 -right-2 w-5 h-5 bg-white rounded-full border-2 border-yellow-600 cursor-se-resize z-50" onMouseDown={(e) => handleMouseDown(e, 'se')} />
                 </div>
               </div>
 
