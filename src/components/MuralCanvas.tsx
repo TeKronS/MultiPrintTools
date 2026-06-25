@@ -206,7 +206,7 @@ export const MuralCanvas = memo(function MuralCanvas({
                             <span className="text-[10px] font-black font-mono text-primary leading-none tracking-tighter">{r+1}-{c+1}</span>
                           </div>
                           
-                          {/* Footer Técnico en Previsualización (Sincronizado con PDF) */}
+                          {/* Pie de página técnico adaptado a salida de impresora */}
                           <div 
                             className={cn(
                               "absolute font-black text-black/20 uppercase whitespace-nowrap",
@@ -219,8 +219,11 @@ export const MuralCanvas = memo(function MuralCanvas({
                                 bottom: `${dimensions.appliedMV * 5}px`,
                                 transform: 'translateY(50%)'
                               } : {
-                                right: `${dimensions.appliedMH * 5}px`,
-                                top: `${dimensions.appliedMV * 10}px`,
+                                // X: Ancho - (mH * 5) -> right: mH * 5
+                                // Y: mV * 10 -> top: mV * 10
+                                // En Landscape: appliedMV es mH, appliedMH es mV
+                                right: `${dimensions.appliedMV * 5}px`,
+                                top: `${dimensions.appliedMH * 10}px`,
                                 writingMode: 'vertical-lr',
                               })
                             }}

@@ -414,10 +414,10 @@ export default function PosterGridEditor() {
             // Portrait: Borde inferior físico
             pdf.text(footerText, appliedMH * 10, paper.height - (appliedMV * 5));
           } else {
-            // Landscape: Borde derecho físico (que es el fondo original)
-            // X = Ancho total - margen inferior físico (mV * 5)
-            // Y = margen lateral físico (mH * 10)
-            pdf.text(footerText, paper.width - (appliedMH * 5), appliedMV * 10, { angle: 90 });
+            // Landscape: Coordenadas optimizadas para salida de impresora
+            // Eje X: paper.width - (mH * 5) -> En Landscape appliedMV es mH
+            // Eje Y: mV * 10 -> En Landscape appliedMH es mV
+            pdf.text(footerText, paper.width - (appliedMV * 5), appliedMH * 10, { angle: 90 });
           }
         }
       }
