@@ -33,6 +33,7 @@ import {
   SheetTitle,
   SheetDescription
 } from "@/components/ui/sheet";
+import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { jsPDF } from "jspdf";
@@ -615,7 +616,7 @@ export default function ImageToPdfConverter() {
               onClick={exportPdf}
               disabled={isExporting}
             >
-              {isExporting ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileDown className="h-5 w-5" />}
+              {isExporting ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileDown className="h-4 w-4" />}
               {isExporting ? t.generating : t.export}
             </Button>
           </div>
