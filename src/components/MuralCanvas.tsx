@@ -210,20 +210,19 @@ export const MuralCanvas = memo(function MuralCanvas({
                           <div 
                             className={cn(
                               "absolute font-black text-black/20 uppercase whitespace-nowrap",
-                              orientation === 'portrait' ? "text-left" : ""
+                              orientation === 'portrait' ? "text-center" : "text-center"
                             )}
                             style={{
                               fontSize: 'clamp(4px, 0.6vw, 8px)',
                               ...(orientation === 'portrait' ? {
-                                left: `${dimensions.appliedMH * 10}px`,
+                                left: '0',
+                                right: '0',
                                 bottom: `${dimensions.appliedMV * 5}px`,
                                 transform: 'translateY(50%)'
                               } : {
-                                // X: Ancho - (mH * 5) -> right: mH * 5
-                                // Y: mV * 10 -> top: mV * 10
-                                // En Landscape: appliedMV es mH, appliedMH es mV
-                                right: `${dimensions.appliedMV * 5}px`,
-                                top: `${dimensions.appliedMH * 10}px`,
+                                right: `${dimensions.appliedMH * 5}px`,
+                                top: '50%',
+                                transform: 'translateY(-50%) rotate(180deg)',
                                 writingMode: 'vertical-lr',
                               })
                             }}
