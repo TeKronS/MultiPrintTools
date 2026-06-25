@@ -107,10 +107,14 @@ export default function StickerSheetEditor() {
     const num = Math.max(0.1, Math.round(val * 100) / 100);
     if (source === 'w') {
       setStickerWidth(num);
-      setStickerHeight(parseFloat((num / cropAspectRatio).toFixed(2)));
+      if (image) {
+        setStickerHeight(parseFloat((num / cropAspectRatio).toFixed(2)));
+      }
     } else {
       setStickerHeight(num);
-      setStickerWidth(parseFloat((num * cropAspectRatio).toFixed(2)));
+      if (image) {
+        setStickerWidth(parseFloat((num * cropAspectRatio).toFixed(2)));
+      }
     }
   };
 
@@ -155,21 +159,30 @@ export default function StickerSheetEditor() {
     };
   };
 
-  const handleMouseDown = (e: React.MouseEvent, type: 'move' | 'nw' | 'ne' | 'sw' | 'se') => {
-    e.preventDefault();
-    e.stopPropagation();
+  const startDragging = (clientX: number, clientY: number, type: 'move' | 'nw' | 'ne' | 'sw' | 'se') => {
     setIsDragging(true);
     setDragType(type);
-    setStartPos({ x: e.clientX, y: e.clientY });
+    setStartPos({ x: clientX, y: clientY });
     setStartCrop({ ...crop });
   };
 
-  const handleMouseMove = (e: React.MouseEvent) => {
+  const handleMouseDown = (e: React.MouseEvent, type: 'move' | 'nw' | 'ne' | 'sw' | 'se') => {
+    e.preventDefault();
+    e.stopPropagation();
+    startDragging(e.clientX, e.clientY, type);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent, type: 'move' | 'nw' | 'ne' | 'sw' | 'se') => {
+    if (e.cancelable) e.preventDefault();
+    const touch = e.touches[0];
+    startDragging(touch.clientX, touch.clientY, type);
+  };
+
+  const performDragging = (clientX: number, clientY: number, container: DOMRect) => {
     if (!isDragging || !dragType) return;
 
-    const container = e.currentTarget.getBoundingClientRect();
-    const dx = ((e.clientX - startPos.x) / container.width) * 100;
-    const dy = ((e.clientY - startPos.y) / container.height) * 100;
+    const dx = ((clientX - startPos.x) / container.width) * 100;
+    const dy = ((clientY - startPos.y) / container.height) * 100;
 
     setCrop(prev => {
       let next = { ...prev };
@@ -198,7 +211,21 @@ export default function StickerSheetEditor() {
     });
   };
 
-  const handleMouseUp = () => {
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    const container = e.currentTarget.getBoundingClientRect();
+    performDragging(e.clientX, e.clientY, container);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging) return;
+    if (e.cancelable) e.preventDefault();
+    const container = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const touch = e.touches[0];
+    performDragging(touch.clientX, touch.clientY, container);
+  };
+
+  const handleDragEnd = () => {
     setIsDragging(false);
     setDragType(null);
   };
@@ -267,7 +294,7 @@ export default function StickerSheetEditor() {
     }
   };
 
-  const renderSettings = (isMobile?: boolean) => (
+  const renderSettings = () => (
     <div className="space-y-4">
       <div className="space-y-3">
         <div className="flex items-center gap-2">
@@ -386,7 +413,6 @@ export default function StickerSheetEditor() {
 
   if (!mounted) return null;
 
-  // Escala para la vista previa (Hoja de 320px de ancho)
   const previewScale = 320 / paper.width;
 
   return (
@@ -442,8 +468,10 @@ export default function StickerSheetEditor() {
               <div 
                 className="relative bg-black rounded-3xl overflow-hidden shadow-2xl group border-4 border-card cursor-crosshair"
                 onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-                onMouseLeave={handleMouseUp}
+                onMouseUp={handleDragEnd}
+                onMouseLeave={handleDragEnd}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleDragEnd}
               >
                 <img 
                   src={image.url} 
@@ -462,6 +490,7 @@ export default function StickerSheetEditor() {
                     height: `${crop.height}%`
                   }}
                   onMouseDown={(e) => handleMouseDown(e, 'move')}
+                  onTouchStart={(e) => handleTouchStart(e, 'move')}
                 >
                   <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 opacity-30 pointer-events-none">
                     {Array.from({ length: 9 }).map((_, i) => (
@@ -469,10 +498,10 @@ export default function StickerSheetEditor() {
                     ))}
                   </div>
 
-                  <div className="absolute -top-2.5 -left-2.5 w-6 h-6 bg-white rounded-full border-2 border-yellow-600 cursor-nw-resize z-50 shadow-lg flex items-center justify-center" onMouseDown={(e) => handleMouseDown(e, 'nw')}><div className="w-1 h-1 bg-yellow-600 rounded-full"/></div>
-                  <div className="absolute -top-2.5 -right-2.5 w-6 h-6 bg-white rounded-full border-2 border-yellow-600 cursor-ne-resize z-50 shadow-lg flex items-center justify-center" onMouseDown={(e) => handleMouseDown(e, 'ne')}><div className="w-1 h-1 bg-yellow-600 rounded-full"/></div>
-                  <div className="absolute -bottom-2.5 -left-2.5 w-6 h-6 bg-white rounded-full border-2 border-yellow-600 cursor-sw-resize z-50 shadow-lg flex items-center justify-center" onMouseDown={(e) => handleMouseDown(e, 'sw')}><div className="w-1 h-1 bg-yellow-600 rounded-full"/></div>
-                  <div className="absolute -bottom-2.5 -right-2.5 w-6 h-6 bg-white rounded-full border-2 border-yellow-600 cursor-se-resize z-50 shadow-lg flex items-center justify-center" onMouseDown={(e) => handleMouseDown(e, 'se')}><div className="w-1 h-1 bg-yellow-600 rounded-full"/></div>
+                  <div className="absolute -top-3 -left-3 w-8 h-8 bg-white rounded-full border-2 border-yellow-600 cursor-nw-resize z-50 shadow-lg flex items-center justify-center" onMouseDown={(e) => handleMouseDown(e, 'nw')} onTouchStart={(e) => handleTouchStart(e, 'nw')}><div className="w-1.5 h-1.5 bg-yellow-600 rounded-full"/></div>
+                  <div className="absolute -top-3 -right-3 w-8 h-8 bg-white rounded-full border-2 border-yellow-600 cursor-ne-resize z-50 shadow-lg flex items-center justify-center" onMouseDown={(e) => handleMouseDown(e, 'ne')} onTouchStart={(e) => handleTouchStart(e, 'ne')}><div className="w-1.5 h-1.5 bg-yellow-600 rounded-full"/></div>
+                  <div className="absolute -bottom-3 -left-3 w-8 h-8 bg-white rounded-full border-2 border-yellow-600 cursor-sw-resize z-50 shadow-lg flex items-center justify-center" onMouseDown={(e) => handleMouseDown(e, 'sw')} onTouchStart={(e) => handleTouchStart(e, 'sw')}><div className="w-1.5 h-1.5 bg-yellow-600 rounded-full"/></div>
+                  <div className="absolute -bottom-3 -right-3 w-8 h-8 bg-white rounded-full border-2 border-yellow-600 cursor-se-resize z-50 shadow-lg flex items-center justify-center" onMouseDown={(e) => handleMouseDown(e, 'se')} onTouchStart={(e) => handleTouchStart(e, 'se')}><div className="w-1.5 h-1.5 bg-yellow-600 rounded-full"/></div>
                 </div>
               </div>
 
@@ -595,7 +624,6 @@ export default function StickerSheetEditor() {
 
               <div className="flex-1 flex flex-col items-center animate-in slide-in-from-right-10 duration-500 w-full relative">
                 <div className="relative group/paper">
-                  {/* Reglas de medida laterales simuladas */}
                   <div className="absolute -left-6 top-0 bottom-0 w-1 flex flex-col justify-between py-1 opacity-40">
                      <div className="h-px w-3 bg-foreground/20" />
                      <div className="h-px w-2 bg-foreground/20" />
@@ -618,7 +646,6 @@ export default function StickerSheetEditor() {
                       aspectRatio: `${paper.width} / ${paper.height}`
                     }}
                   >
-                    {/* Visualización de Márgenes Reales (Área no imprimible) */}
                     <div 
                       className="absolute inset-0 bg-yellow-500/5 pointer-events-none border border-dashed border-yellow-600/20"
                       style={{
@@ -629,7 +656,6 @@ export default function StickerSheetEditor() {
                       }}
                     />
 
-                    {/* Contenedor de Stickers exactamente centrado como en el PDF */}
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                       <div 
                         className="grid"
@@ -667,7 +693,6 @@ export default function StickerSheetEditor() {
                       </div>
                     </div>
 
-                    {/* Overlay de información de hoja */}
                     <div className="absolute top-2 right-2 bg-black/5 px-2 py-0.5 rounded text-[7px] font-black text-black/30 uppercase tracking-widest pointer-events-none">
                       {paperSize} {paper.width}x{paper.height}mm
                     </div>
@@ -740,7 +765,7 @@ export default function StickerSheetEditor() {
                   <SheetTitle>Configuración de Stickers</SheetTitle>
                   <SheetDescription>Ajustes de dimensiones y papel</SheetDescription>
                 </SheetHeader>
-                {renderSettings(true)}
+                {renderSettings()}
               </SheetContent>
             </Sheet>
           </div>
