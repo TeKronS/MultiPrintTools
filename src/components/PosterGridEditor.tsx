@@ -21,8 +21,7 @@ import {
   Maximize2,
   Ruler,
   Zap,
-  Square,
-  Hash
+  Square
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -54,7 +53,7 @@ const PAPER_DIMENSIONS: Record<string, { width: number; height: number; format: 
   'Carta': { width: 215.9, height: 279.4, format: 'letter' },
   'A4': { width: 210, height: 297, format: 'a4' },
   'A3': { width: 297, height: 420, format: 'a3' },
-  'Oficio (Legal 35.5cm)': { width: 215.9, height: 355.6, format: 'legal' },
+  'Oficio (Legal 35.5cm)': { width: 215.9, height: 35.6, format: 'legal' },
   'Folio (33cm)': { width: 215.9, height: 330.2, format: 'folio' },
   'Oficio (34cm)': { width: 216, height: 340, format: 'oficio' },
   'Extra Oficio (38cm)': { width: 216, height: 380, format: 'extra-oficio' }
@@ -160,63 +159,6 @@ export default function PosterGridEditor() {
     const pResults = calcForOrientation('portrait');
     const lResults = calcForOrientation('landscape');
     return pResults.total <= lResults.total ? pResults : lResults;
-  };
-
-  const calculateGridFromTotalSheets = (total: number, isDraft: boolean) => {
-    if (!image) return;
-    const aspect = image.width / image.height;
-    const pS = isDraft ? draftPaperSize : paperSize;
-    const orient = isDraft ? draftOrientation : orientation;
-    const ov = isDraft ? draftOverlap : overlap;
-    const mV = isDraft ? draftMarginV : marginV;
-    const mH = isDraft ? draftMarginH : marginH;
-    
-    const paperBase = PAPER_DIMENSIONS[pS];
-    const p = orient === 'portrait' 
-      ? { w: Math.min(paperBase.width, paperBase.height), h: Math.max(paperBase.width, paperBase.height) } 
-      : { w: Math.max(paperBase.width, paperBase.height), h: Math.min(paperBase.width, paperBase.height) };
-
-    const { appliedMH, appliedMV } = getAppliedMargins(orient, mV, mH);
-    const printableW = p.w - (appliedMH * 20);
-    const printableH = p.h - (appliedMV * 20);
-
-    const pairs: [number, number][] = [];
-    for (let i = 1; i <= Math.sqrt(total); i++) {
-      if (total % i === 0) {
-        pairs.push([i, total / i]);
-        if (i !== total / i) pairs.push([total / i, i]);
-      }
-    }
-
-    let bestPair = pairs[0];
-    let minDiff = Infinity;
-
-    pairs.forEach(([r, c]) => {
-      const gridW = (c * (printableW - ov * 10)) + ov * 10;
-      const gridH = (r * (printableH - ov * 10)) + ov * 10;
-      const diff = Math.abs((gridW / gridH) - aspect);
-      if (diff < minDiff) {
-        minDiff = diff;
-        bestPair = [r, c];
-      }
-    });
-
-    const [newRows, newCols] = bestPair;
-    const overlapMm = ov * 10;
-    const newW_mm = (newCols * (printableW - overlapMm)) + overlapMm;
-    const newH_mm = (newRows * (printableH - overlapMm)) + overlapMm;
-
-    if (isDraft) {
-      setDraftRows(newRows);
-      setDraftCols(newCols);
-      setDraftTargetWidth((newW_mm / 10).toFixed(1));
-      setDraftTargetHeight((newH_mm / 10).toFixed(1));
-    } else {
-      setRows(newRows);
-      setCols(newCols);
-      setTargetWidth((newW_mm / 10).toFixed(1));
-      setTargetHeight((newH_mm / 10).toFixed(1));
-    }
   };
 
   const syncGridFromTechnicalSettings = (isDraft: boolean) => {
@@ -525,42 +467,6 @@ export default function PosterGridEditor() {
           <p className="text-[9px] text-muted-foreground font-medium leading-tight">{t.optimizationNote}</p>
         </div>
 
-        <div className="bg-card p-4 rounded-xl border border-primary/10 shadow-sm space-y-3">
-          <div className="flex items-center gap-2 mb-1">
-            <Hash className="h-3.5 w-3.5 text-primary" />
-            <Label className="text-[10px] font-black uppercase tracking-tighter text-muted-foreground">{t.totalSheets}</Label>
-            <span className="ml-auto text-[8px] font-black text-primary uppercase">{currentRows}x{currentCols}</span>
-          </div>
-          <div className="flex flex-col gap-2">
-            <Input 
-              type="number" 
-              value={currentRows * currentCols} 
-              onChange={(e) => {
-                const val = parseInt(e.target.value) || 1;
-                calculateGridFromTotalSheets(val, !!isMobile);
-              }} 
-              min="1" 
-              className="h-9 font-black text-sm text-primary bg-primary/5 border-primary/20" 
-            />
-            <div className="flex flex-wrap gap-1 mt-1">
-              {[2, 4, 6, 9, 12, 16, 20, 25, 30].map(n => (
-                <Button 
-                  key={n} 
-                  variant="outline" 
-                  size="sm" 
-                  className={cn(
-                    "h-6 px-2 text-[9px] font-black border-primary/10 hover:bg-primary/5",
-                    (currentRows * currentCols) === n && "bg-primary/10 border-primary text-primary"
-                  )}
-                  onClick={() => calculateGridFromTotalSheets(n, !!isMobile)}
-                >
-                  {n}
-                </Button>
-              ))}
-            </div>
-          </div>
-        </div>
-
         <div className="space-y-2">
           <div className="flex justify-between items-center">
             <Label className="text-[10px] font-black uppercase text-muted-foreground bg-card px-2 py-0.5 rounded-md shadow-sm border border-border/10">{t.rows}</Label>
@@ -616,7 +522,7 @@ export default function PosterGridEditor() {
         </div>
         <div className="space-y-2">
           <div className="flex justify-between items-center">
-            <Label className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-2 bg-card px-2 py-0.5 rounded-md shadow-sm border border-border/10"><Maximize2 className="h-3 w-3" /> {t.marginsVertical}</Label>
+            <Label className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-2 bg-card px-2 py-0.5 rounded-md shadow-sm border border-border/10"><Maximize2 className="h-3.5 w-3.5 text-primary" /> {t.marginsVertical}</Label>
             <span className="text-xs font-black text-primary bg-card px-2 py-0.5 rounded-md shadow-sm border border-border/10">{currentMarginV} cm</span>
           </div>
           <div className="flex items-center gap-2">
@@ -627,7 +533,7 @@ export default function PosterGridEditor() {
         </div>
         <div className="space-y-2">
           <div className="flex justify-between items-center">
-            <Label className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-2 bg-card px-2 py-0.5 rounded-md shadow-sm border border-border/10"><Maximize2 className="h-3 w-3" /> {t.marginsHorizontal}</Label>
+            <Label className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-2 bg-card px-2 py-0.5 rounded-md shadow-sm border border-border/10"><Maximize2 className="h-3.5 w-3.5 text-primary" /> {t.marginsHorizontal}</Label>
             <span className="text-xs font-black text-primary bg-card px-2 py-0.5 rounded-md shadow-sm border border-border/10">{currentMarginH} cm</span>
           </div>
           <div className="flex items-center gap-2">
