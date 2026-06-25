@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useDeferredValue, useMemo } from "react";
@@ -53,7 +52,7 @@ const PAPER_DIMENSIONS: Record<string, { width: number; height: number; format: 
   'Carta': { width: 215.9, height: 279.4, format: 'letter' },
   'A4': { width: 210, height: 297, format: 'a4' },
   'A3': { width: 297, height: 420, format: 'a3' },
-  'Oficio (Legal 35.5cm)': { width: 215.9, height: 35.6, format: 'legal' },
+  'Oficio (Legal 35.5cm)': { width: 215.9, height: 355.6, format: 'legal' },
   'Folio (33cm)': { width: 215.9, height: 330.2, format: 'folio' },
   'Oficio (34cm)': { width: 216, height: 340, format: 'oficio' },
   'Extra Oficio (38cm)': { width: 216, height: 380, format: 'extra-oficio' }
