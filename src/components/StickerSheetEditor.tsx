@@ -277,7 +277,7 @@ export default function StickerSheetEditor() {
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-2 relative z-10">
             <div className="space-y-1">
-               <Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">{t.width}</Label>
+               <Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">ANCHO</Label>
                <div className="flex items-center gap-1">
                   <Button variant="outline" size="icon" className="h-8 w-8 shrink-0 border-2 rounded-lg bg-white" onClick={() => updateSizes(stickerWidth - 0.1, 'w')}><Minus className="h-3 w-3"/></Button>
                   <Input 
@@ -290,7 +290,7 @@ export default function StickerSheetEditor() {
                </div>
             </div>
             <div className="space-y-1">
-               <Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">{t.height}</Label>
+               <Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">ALTO</Label>
                <div className="flex items-center gap-1">
                   <Button variant="outline" size="icon" className="h-8 w-8 shrink-0 border-2 rounded-lg bg-white" onClick={() => updateSizes(stickerHeight - 0.1, 'h')}><Minus className="h-3 w-3"/></Button>
                   <Input 
@@ -305,7 +305,7 @@ export default function StickerSheetEditor() {
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Ajustar Tamaño</Label>
+            <Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">AJUSTAR TAMAÑO</Label>
              <Slider 
                 value={[stickerWidth]} 
                 onValueChange={(v) => updateSizes(v[0], 'w')} 
@@ -318,7 +318,7 @@ export default function StickerSheetEditor() {
           <Separator className="opacity-50" />
 
           <div className="space-y-2">
-             <Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">{t.spacing} (CM)</Label>
+             <Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">SEPARACIÓN (GAP CM)</Label>
              <div className="flex items-center gap-2">
                 <Button variant="outline" size="icon" className="h-8 w-8 shrink-0 border-2 rounded-lg bg-white" onClick={() => setSpacing(Math.max(0, parseFloat((spacing - 0.05).toFixed(2))))}><Minus className="h-3 w-3"/></Button>
                 <Input 
@@ -387,24 +387,24 @@ export default function StickerSheetEditor() {
 
   return (
     <div className="flex flex-col h-screen bg-background font-body overflow-hidden transition-colors duration-300">
-      <header className="h-16 shrink-0 border-b border-border bg-background/80 backdrop-blur-md flex items-center justify-between px-6 z-50 shadow-sm">
-        <div className="flex items-center gap-4">
+      <header className="h-16 shrink-0 border-b border-border bg-background/80 backdrop-blur-md flex items-center justify-between px-3 sm:px-6 z-50 shadow-sm">
+        <div className="flex items-center gap-1 sm:gap-4 overflow-hidden">
           <Link href="/">
-            <Button variant="ghost" size="sm" className="gap-2 font-bold text-muted-foreground px-2">
+            <Button variant="ghost" size="sm" className="gap-1 font-bold text-muted-foreground px-1 sm:px-2">
               <ChevronLeft className="h-4 w-4" /> 
               <span className="hidden sm:inline text-xs">Inicio</span>
             </Button>
           </Link>
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 relative rounded-lg overflow-hidden border bg-white dark:bg-slate-200 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 overflow-hidden">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 relative rounded-lg overflow-hidden border bg-white dark:bg-slate-200 shrink-0">
               <Image src={logo} alt="Logo" fill className="object-contain" />
             </div>
-            <h1 className="text-sm sm:text-xl font-headline font-black tracking-tighter text-yellow-600 uppercase truncate shrink-0">
+            <h1 className="text-xs xs:text-sm sm:text-xl font-headline font-black tracking-tighter text-yellow-600 uppercase truncate max-w-[100px] xs:max-w-[150px] sm:max-w-none shrink-0">
               {t.stickerSheetTitle}
             </h1>
           </div>
         </div>
-        <div className="flex items-center gap-2 sm:gap-4">
+        <div className="flex items-center gap-1 sm:gap-4">
           <ThemeToggle />
           <LanguageSelector language={lang} setLanguage={setLang} />
           <Button 
@@ -485,14 +485,13 @@ export default function StickerSheetEditor() {
               </Button>
             </div>
           ) : (
-            <div className="w-full max-w-5xl flex flex-col lg:flex-row items-center lg:items-start justify-center gap-6 md:gap-10 pb-20 sm:pb-0">
+            <div className="w-full max-w-5xl flex flex-col lg:flex-row items-center lg:items-start justify-center gap-4 md:gap-8 pb-20 sm:pb-0">
               
-              <div className="flex flex-col gap-4 w-full max-w-[380px] animate-in slide-in-from-left-10 duration-500">
-                <div className="bg-card p-5 md:p-6 rounded-[2.5rem] border-4 border-card shadow-2xl space-y-4 relative overflow-hidden">
-                  
+              <div className="flex flex-col gap-3 w-full max-w-[360px] animate-in slide-in-from-left-10 duration-500">
+                <div className="bg-card p-4 rounded-[2rem] border-4 border-card shadow-2xl space-y-3 relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-24 h-24 bg-yellow-500/5 rounded-full -mr-12 -mt-12 blur-2xl" />
 
-                  <div className="flex items-center justify-between relative z-10">
+                  <div className="flex items-center justify-between relative z-10 mb-1">
                     <div className="flex items-center gap-2">
                       <div className="w-8 h-8 rounded-xl bg-yellow-500/10 flex items-center justify-center">
                         <Maximize2 className="h-4 w-4 text-yellow-600" />
@@ -511,8 +510,8 @@ export default function StickerSheetEditor() {
                   </div>
 
                   <div className="grid grid-cols-2 gap-3 relative z-10">
-                    <div className="space-y-1.5">
-                      <Label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">{t.width}</Label>
+                    <div className="space-y-1">
+                      <Label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">Ancho</Label>
                       <div className="flex items-center gap-1">
                          <Button variant="outline" size="icon" className="h-8 w-8 md:h-9 md:w-9 rounded-lg shrink-0 border-2 shadow-sm bg-white" onClick={() => updateSizes(stickerWidth - 0.1, 'w')}><Minus className="h-3 w-3"/></Button>
                          <Input 
@@ -524,8 +523,8 @@ export default function StickerSheetEditor() {
                          <Button variant="outline" size="icon" className="h-8 w-8 md:h-9 md:w-9 rounded-lg shrink-0 border-2 shadow-sm bg-white" onClick={() => updateSizes(stickerWidth + 0.1, 'w')}><Plus className="h-3 w-3"/></Button>
                       </div>
                     </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">{t.height}</Label>
+                    <div className="space-y-1">
+                      <Label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">Alto</Label>
                       <div className="flex items-center gap-1">
                          <Button variant="outline" size="icon" className="h-8 w-8 md:h-9 md:w-9 rounded-lg shrink-0 border-2 shadow-sm bg-white" onClick={() => updateSizes(stickerHeight - 0.1, 'h')}><Minus className="h-3 w-3"/></Button>
                          <Input 
@@ -539,8 +538,7 @@ export default function StickerSheetEditor() {
                     </div>
                   </div>
 
-                  <div className="space-y-2 relative z-10">
-                    <Label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">Ajustar Tamaño</Label>
+                  <div className="space-y-1.5 relative z-10 pt-1">
                     <Slider 
                       value={[stickerWidth]} 
                       onValueChange={(v) => updateSizes(v[0], 'w')} 
@@ -551,28 +549,24 @@ export default function StickerSheetEditor() {
                     />
                   </div>
 
-                  <div className="bg-yellow-50/80 p-3 md:p-4 rounded-3xl border border-yellow-100 shadow-inner relative z-10">
-                    <div className="grid grid-cols-2 gap-2 divide-x divide-yellow-100">
+                  <div className="bg-[#FFFDF0] p-3 rounded-2xl border border-yellow-100/50 shadow-inner relative z-10">
+                    <div className="grid grid-cols-2 gap-2 divide-x divide-yellow-100/50">
                       <div className="flex flex-col items-center justify-center text-center">
-                        <span className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-1">{t.stickersPerPage}</span>
-                        <span className="text-2xl md:text-3xl font-black text-yellow-600 tracking-tighter flex items-center gap-1">
-                          {stats.cols} <span className="text-yellow-400 text-lg md:text-xl">×</span> {stats.rows}
+                        <span className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-1">Stickers por Hoja</span>
+                        <span className="text-xl md:text-2xl font-black text-[#D4AF37] tracking-tighter flex items-center gap-1">
+                          {stats.cols} <span className="text-yellow-400 text-base">×</span> {stats.rows}
                         </span>
                       </div>
                       <div className="flex flex-col items-center justify-center text-center pl-2">
-                        <span className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-1">{t.totalStickers}</span>
-                        <span className="text-3xl md:text-4xl font-black text-foreground tracking-tighter">{stats.total}</span>
+                        <span className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-1">Stickers Totales</span>
+                        <span className="text-2xl md:text-3xl font-black text-foreground tracking-tighter">{stats.total}</span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="space-y-2 relative z-10">
-                    <div className="flex items-center gap-2 pl-1">
-                      <FileText className="h-3.5 w-3.5 text-muted-foreground" />
-                      <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">{t.paperSize}</span>
-                    </div>
-                    <div className="flex justify-between items-center bg-muted/30 p-2.5 rounded-xl border border-border shadow-sm">
-                      <span className="text-[10px] md:text-xs font-black text-foreground uppercase tracking-tight truncate">{paperSize}</span>
+                  <div className="space-y-1 relative z-10">
+                    <div className="flex justify-between items-center bg-muted/30 p-2 rounded-xl border border-border shadow-sm">
+                      <span className="text-[10px] font-black text-foreground uppercase tracking-tight truncate">{paperSize}</span>
                       <Badge variant="secondary" className="text-[8px] font-black uppercase px-2 py-0.5 bg-white shadow-sm border border-border/10 shrink-0">
                         {orientation === 'portrait' ? 'Vertical' : 'Horizontal'}
                       </Badge>
@@ -582,7 +576,7 @@ export default function StickerSheetEditor() {
                   <div className="pt-1 relative z-10">
                     <Button 
                       variant="outline" 
-                      className="w-full h-10 rounded-xl border-2 font-black uppercase text-[9px] tracking-widest gap-2 hover:bg-yellow-50 hover:text-yellow-600 hover:border-yellow-200 transition-all border-dashed border-muted-foreground/30"
+                      className="w-full h-9 rounded-xl border-2 font-black uppercase text-[9px] tracking-widest gap-2 hover:bg-yellow-50 hover:text-yellow-600 hover:border-yellow-200 transition-all border-dashed border-muted-foreground/30"
                       onClick={() => setImage(null)}
                     >
                       <RefreshCcw className="h-3.5 w-3.5" />
