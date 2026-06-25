@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useRef, useEffect, useMemo } from "react";
@@ -78,8 +77,8 @@ export default function StickerSheetEditor() {
   const [spacing, setSpacing] = useState(0.2); // cm
   const [paperSize, setPaperSize] = useState('Carta');
   const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait');
-  const [marginV, setMarginV] = useState(1.2); 
-  const [marginH, setMarginH] = useState(0.7); 
+  const [marginV, setMarginV] = useState(0.7); 
+  const [marginH, setMarginH] = useState(0.5); 
   
   const [isExporting, setIsExporting] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
