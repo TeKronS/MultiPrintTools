@@ -562,34 +562,45 @@ export default function StickerSheetEditor() {
                       <div className="space-y-2">
                         <Label className="text-[10px] font-black text-muted-foreground uppercase pl-1">{t.width}</Label>
                         <div className="flex items-center gap-1">
-                           <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg shrink-0 border-2" onClick={() => updateSizes(stickerWidth - 0.1, 'w')}><Minus className="h-3 w-3"/></Button>
+                           <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl shrink-0 border-2" onClick={() => updateSizes(stickerWidth - 0.1, 'w')}><Minus className="h-4 w-4"/></Button>
                            <Input 
                              type="number" 
                              value={stickerWidth} 
                              onChange={(e) => updateSizes(parseFloat(e.target.value), 'w')}
-                             className="h-8 font-black text-xs bg-muted/30 border-2 rounded-lg text-center text-yellow-600"
+                             className="h-10 font-black text-sm bg-muted/30 border-2 rounded-xl text-center text-yellow-600"
                            />
-                           <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg shrink-0 border-2" onClick={() => updateSizes(stickerWidth + 0.1, 'w')}><Plus className="h-3 w-3"/></Button>
+                           <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl shrink-0 border-2" onClick={() => updateSizes(stickerWidth + 0.1, 'w')}><Plus className="h-4 w-4"/></Button>
                         </div>
                       </div>
                       <div className="space-y-2">
                         <Label className="text-[10px] font-black text-muted-foreground uppercase pl-1">{t.height}</Label>
                         <div className="flex items-center gap-1">
-                           <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg shrink-0 border-2" onClick={() => updateSizes(stickerHeight - 0.1, 'h')}><Minus className="h-3 w-3"/></Button>
+                           <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl shrink-0 border-2" onClick={() => updateSizes(stickerHeight - 0.1, 'h')}><Minus className="h-4 w-4"/></Button>
                            <Input 
                              type="number" 
                              value={stickerHeight} 
                              onChange={(e) => updateSizes(parseFloat(e.target.value), 'h')}
-                             className="h-8 font-black text-xs bg-muted/30 border-2 rounded-lg text-center text-yellow-600"
+                             className="h-10 font-black text-sm bg-muted/30 border-2 rounded-xl text-center text-yellow-600"
                            />
-                           <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg shrink-0 border-2" onClick={() => updateSizes(stickerHeight + 0.1, 'h')}><Plus className="h-3 w-3"/></Button>
+                           <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl shrink-0 border-2" onClick={() => updateSizes(stickerHeight + 0.1, 'h')}><Plus className="h-4 w-4"/></Button>
                         </div>
                       </div>
                     </div>
 
                     <div className="space-y-2">
+                      <Label className="text-[10px] font-black text-muted-foreground uppercase pl-1">Ajustar Tamaño</Label>
+                      <Slider 
+                        value={[stickerWidth]} 
+                        onValueChange={(v) => updateSizes(v[0], 'w')} 
+                        min={0.5} 
+                        max={20} 
+                        step={0.01} 
+                      />
+                    </div>
+
+                    <div className="space-y-2">
                       <Label className="text-[10px] font-black text-muted-foreground uppercase pl-1 flex items-center gap-2">
-                        <Scissors className="h-3 w-3" /> {t.spacing}
+                        <Scissors className="h-3 w-3" /> {t.spacing} (CM)
                       </Label>
                       <div className="flex items-center gap-3">
                         <Slider value={[spacing]} onValueChange={(v) => setSpacing(v[0])} min={0} max={2} step={0.01} className="flex-1" />
