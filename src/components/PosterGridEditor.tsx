@@ -529,19 +529,36 @@ export default function PosterGridEditor() {
           <div className="flex items-center gap-2 mb-1">
             <Hash className="h-3.5 w-3.5 text-primary" />
             <Label className="text-[10px] font-black uppercase tracking-tighter text-muted-foreground">{t.totalSheets}</Label>
-            <span className="ml-auto text-[8px] font-black text-primary uppercase">{t.evenNumbersOnly}</span>
+            <span className="ml-auto text-[8px] font-black text-primary uppercase">{currentRows}x{currentCols}</span>
           </div>
-          <Input 
-            type="number" 
-            value={currentRows * currentCols} 
-            onChange={(e) => {
-              const val = parseInt(e.target.value) || 2;
-              if (val % 2 === 0) calculateGridFromTotalSheets(val, !!isMobile);
-            }} 
-            min="2" 
-            step="2" 
-            className="h-9 font-black text-sm text-primary bg-primary/5 border-primary/20" 
-          />
+          <div className="flex flex-col gap-2">
+            <Input 
+              type="number" 
+              value={currentRows * currentCols} 
+              onChange={(e) => {
+                const val = parseInt(e.target.value) || 1;
+                calculateGridFromTotalSheets(val, !!isMobile);
+              }} 
+              min="1" 
+              className="h-9 font-black text-sm text-primary bg-primary/5 border-primary/20" 
+            />
+            <div className="flex flex-wrap gap-1 mt-1">
+              {[2, 4, 6, 9, 12, 16, 20, 25, 30].map(n => (
+                <Button 
+                  key={n} 
+                  variant="outline" 
+                  size="sm" 
+                  className={cn(
+                    "h-6 px-2 text-[9px] font-black border-primary/10 hover:bg-primary/5",
+                    (currentRows * currentCols) === n && "bg-primary/10 border-primary text-primary"
+                  )}
+                  onClick={() => calculateGridFromTotalSheets(n, !!isMobile)}
+                >
+                  {n}
+                </Button>
+              ))}
+            </div>
+          </div>
         </div>
 
         <div className="space-y-2">
@@ -666,7 +683,7 @@ export default function PosterGridEditor() {
               {physicalInfo && (
                 <div className="absolute top-4 lg:top-6 left-1/2 -translate-x-1/2 z-20 pointer-events-none w-full max-w-5xl px-4 lg:px-8"><div className="bg-background/80 backdrop-blur-xl border border-primary/20 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.1)] px-4 lg:px-6 py-2 lg:py-3 rounded-2xl flex items-center justify-between pointer-events-auto animate-fade-in"><div className="flex items-center gap-3 lg:gap-6"><div className="flex flex-col"><span className="text-[6px] lg:text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">{t.finalMeasures}</span><div className="flex items-center gap-1.5 lg:gap-2"><Maximize2 className="h-2.5 w-2.5 lg:h-3.5 lg:w-3.5 text-primary" /><span className="text-xs lg:text-base font-black text-foreground">{physicalInfo.imgW} x {physicalInfo.imgH} cm</span></div></div><Separator orientation="vertical" className="h-6 lg:h-8 opacity-50" /><div className="flex flex-col"><span className="text-[6px] lg:text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">Paneles</span><div className="flex items-center gap-1.5 lg:gap-2"><Layers className="h-2.5 w-2.5 lg:h-3.5 lg:w-3.5 text-amber-600" /><span className="text-xs lg:text-base font-black text-foreground">{rows * cols} <span className="hidden sm:inline">{lang === 'es' ? 'HOJAS' : 'SHEETS'}</span></span></div></div></div><div className="flex items-center gap-2 lg:gap-4"><div className="hidden sm:flex flex-col items-end mr-2"><span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">{t.paperSize}</span><span className="text-[11px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">{paperSize} {orientation === 'portrait' ? '(V)' : '(H)'}</span></div><Button variant="secondary" size="sm" onClick={() => setImage(null)} className="h-8 lg:h-10 text-[10px] lg:text-xs font-black uppercase gap-2 rounded-xl border border-border/50 shadow-sm"><RefreshCcw className="h-3.5 w-3.5" /><span className="hidden xs:inline">{lang === 'es' ? 'Cambiar Imagen' : 'Change Image'}</span></Button></div></div></div>
               )}
-              <div className="w-full h-[calc(100svh-3.5rem)] p-4 lg:p-8 flex flex-col pt-16 lg:pt-24 overflow-hidden"><div className="flex-1 min-h-0"><MuralCanvas imageUrl={image.url} rows={deferredRows} cols={deferredCols} overlap={deferredOverlap} marginV={deferredMarginV} marginH={deferredMarginH} paperSize={paperSize} orientation={orientation} showGuides={showGuides} showOutline={showOutline} imageWidth={parseFloat(targetWidth)} imageHeight={parseFloat(targetHeight)} /></div><div className="lg:hidden mt-4 pb-4 w-full max-w-xl mx-auto shrink-0"><Button className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-black gap-3 rounded-2xl shadow-xl transition-all active:scale-95 text-sm uppercase tracking-widest" onClick={handleExport} disabled={!image || isExporting}>{isExporting ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileDown className="h-4 w-4" />}{isExporting ? "Generando PDF..." : t.export}</Button></div></div>
+              <div className="w-full h-[calc(100svh-3.5rem)] p-4 lg:p-8 flex flex-col pt-16 lg:pt-24 overflow-hidden"><div className="flex-1 min-h-0"><MuralCanvas imageUrl={image.url} rows={deferredRows} cols={deferredCols} overlap={deferredOverlap} marginV={deferredMarginV} marginH={deferredMarginH} paperSize={paperSize} orientation={orientation} showGuides={showGuides} showOutline={showOutline} imageWidth={parseFloat(targetWidth)} imageHeight={parseFloat(targetHeight)} /></div><div className="lg:hidden mt-4 pb-4 w-full max-w-xl mx-auto shrink-0"><Button className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-black gap-3 rounded-2xl shadow-xl transition-all active:scale-95 text-sm uppercase tracking-widest" onClick={handleExport} disabled={!image || isExporting}>{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}{isExporting ? "Generando PDF..." : t.export}</Button></div></div>
             </>
           )}
         </section>
