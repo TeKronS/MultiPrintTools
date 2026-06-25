@@ -386,6 +386,9 @@ export default function StickerSheetEditor() {
 
   if (!mounted) return null;
 
+  // Escala para la vista previa (Hoja de 320px de ancho)
+  const previewScale = 320 / paper.width;
+
   return (
     <div className="flex flex-col h-screen bg-background font-body overflow-hidden transition-colors duration-300">
       <header className="h-16 shrink-0 border-b border-border bg-background/80 backdrop-blur-md flex items-center justify-between px-3 sm:px-6 z-50 shadow-sm">
@@ -609,36 +612,31 @@ export default function StickerSheetEditor() {
                   </div>
 
                   <div 
-                    className="relative bg-white dark:bg-slate-300 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.4)] rounded-sm overflow-hidden border border-border shrink-0 origin-top transform scale-75 sm:scale-90 md:scale-100 transition-transform"
+                    className="relative bg-white dark:bg-slate-300 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.4)] rounded-sm overflow-hidden border border-border shrink-0 transition-transform"
                     style={{
                       width: '320px',
                       aspectRatio: `${paper.width} / ${paper.height}`
                     }}
                   >
-                    {/* Visualización de Márgenes Reales */}
+                    {/* Visualización de Márgenes Reales (Área no imprimible) */}
                     <div 
                       className="absolute inset-0 bg-yellow-500/5 pointer-events-none border border-dashed border-yellow-600/20"
                       style={{
-                        margin: `${(marginV / paper.height) * 100}% ${(marginH / paper.width) * 100}%`
+                        top: `${(marginV * 10 * previewScale)}px`,
+                        bottom: `${(marginV * 10 * previewScale)}px`,
+                        left: `${(marginH * 10 * previewScale)}px`,
+                        right: `${(marginH * 10 * previewScale)}px`,
                       }}
                     />
 
-                    {/* Contenedor de Stickers con padding de margen real */}
-                    <div 
-                      className="absolute inset-0 flex items-center justify-center"
-                      style={{
-                        padding: `${(marginV / paper.height) * 100}% ${(marginH / paper.width) * 100}%`
-                      }}
-                    >
+                    {/* Contenedor de Stickers exactamente centrado como en el PDF */}
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                       <div 
-                        className="w-full h-full grid content-center justify-center"
+                        className="grid"
                         style={{
-                          gridTemplateColumns: `repeat(${stats.cols}, ${stickerWidth}cm)`,
-                          gridTemplateRows: `repeat(${stats.rows}, ${stickerHeight}cm)`,
-                          gap: `${spacing}cm`,
-                          // Ajustamos el zoom interno para que el contenedor grid encaje en el espacio visual
-                          transform: `scale(${320 / paper.width * 0.1})`, 
-                          transformOrigin: 'center'
+                          gridTemplateColumns: `repeat(${stats.cols}, ${stickerWidth * 10 * previewScale}px)`,
+                          gridTemplateRows: `repeat(${stats.rows}, ${stickerHeight * 10 * previewScale}px)`,
+                          gap: `${spacing * 10 * previewScale}px`,
                         }}
                       >
                         {Array.from({ length: stats.total }).map((_, i) => (
@@ -646,8 +644,8 @@ export default function StickerSheetEditor() {
                             key={i} 
                             className="bg-white shadow-[0_1px_3px_rgba(0,0,0,0.1)] border-[0.1px] border-black/10 overflow-hidden relative"
                             style={{
-                              width: `${stickerWidth}cm`,
-                              height: `${stickerHeight}cm`,
+                              width: `${stickerWidth * 10 * previewScale}px`,
+                              height: `${stickerHeight * 10 * previewScale}px`,
                             }}
                           >
                             <div className="w-full h-full relative overflow-hidden">
