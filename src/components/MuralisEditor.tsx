@@ -485,8 +485,8 @@ export default function MuralisEditor() {
           if (activeOrientation === 'portrait') {
             pdf.text(footerText, activeMarginH * 10, paper.height - (activeMarginV * 5));
           } else {
-            // El pie físico es el borde derecho en horizontal. Rotamos 90 grados.
-            pdf.text(footerText, paper.width - (activeMarginH * 5), activeMarginV * 10, { angle: 90 });
+            // Posicionamiento anclado al margen inferior físico (marginal horizontal de la hoja física)
+            pdf.text(footerText, paper.width - (activeMarginH * 5), paper.height - (activeMarginV * 10), { angle: 90 });
           }
         }
       }
@@ -692,7 +692,7 @@ export default function MuralisEditor() {
             <span className="text-xs font-black text-accent bg-card px-2 py-0.5 rounded-md shadow-sm border border-border/10">{currentOverlap} cm</span>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 hover:bg-accent/10 hover:text-accent" onClick={() => {
+            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 hover:bg-primary/10 hover:text-primary" onClick={() => {
               const newVal = Math.max(0, parseFloat((currentOverlap - 0.1).toFixed(1)));
               if (isMobile) setDraftOverlap(newVal); else setOverlap(newVal);
             }}>
@@ -703,7 +703,7 @@ export default function MuralisEditor() {
               onValueChange={(v) => { if (isMobile) setDraftOverlap(v[0]); else setOverlap(v[0]); }} 
               min={0} max={10} step={0.1} className="flex-1" 
             />
-            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 hover:bg-accent/10 hover:text-accent" onClick={() => {
+            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 hover:bg-primary/10 hover:text-primary" onClick={() => {
               const newVal = Math.min(10, parseFloat((currentOverlap + 0.1).toFixed(1)));
               if (isMobile) setDraftOverlap(newVal); else setOverlap(newVal);
             }}>
