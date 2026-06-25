@@ -476,9 +476,18 @@ export default function MuralisEditor() {
             const gy = (activeMarginV * 10) + (printableH - overlapMm);
             pdf.line(activeMarginH * 10, gy, activeMarginH * 10 + printableW, gy);
           }
+          
+          // PIE DE PÁGINA TÉCNICO ADAPTATIVO
           pdf.setFontSize(7);
           pdf.setTextColor(180);
-          pdf.text(`MULTIPRINTTOOLS | ${t.muralisTitle.toUpperCase()} | PANEL ${r+1}-${c+1} | ${activePaperSize} (${activeOrientation === 'portrait' ? 'P' : 'L'})`, activeMarginH * 10, paper.height - (activeMarginV * 5));
+          const footerText = `MULTIPRINTTOOLS | ${t.muralisTitle.toUpperCase()} | PANEL ${r+1}-${c+1} | ${activePaperSize} (${activeOrientation === 'portrait' ? 'P' : 'L'})`;
+          
+          if (activeOrientation === 'portrait') {
+            pdf.text(footerText, activeMarginH * 10, paper.height - (activeMarginV * 5));
+          } else {
+            // El pie físico es el borde derecho en horizontal. Rotamos 90 grados.
+            pdf.text(footerText, paper.width - (activeMarginH * 5), activeMarginV * 10, { angle: 90 });
+          }
         }
       }
       pdf.save(`mural-grid-${Date.now()}.pdf`);

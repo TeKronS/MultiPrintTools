@@ -411,9 +411,12 @@ export default function PosterGridEditor() {
           const footerText = `MULTIPRINTTOOLS | CUADRÍCULA POSTER | PANEL ${r+1}-${c+1} | ${activePaperSize} (${activeOrientation === 'portrait' ? 'P' : 'L'})`;
           
           if (activeOrientation === 'portrait') {
+            // Portrait: Borde inferior físico
             pdf.text(footerText, appliedMH * 10, paper.height - (appliedMV * 5));
           } else {
-            // El pie físico es el borde derecho en horizontal. Rotamos 90 grados.
+            // Landscape: Borde derecho físico (que es el fondo original)
+            // X = Ancho total - margen inferior físico (mV * 5)
+            // Y = margen lateral físico (mH * 10)
             pdf.text(footerText, paper.width - (appliedMH * 5), appliedMV * 10, { angle: 90 });
           }
         }

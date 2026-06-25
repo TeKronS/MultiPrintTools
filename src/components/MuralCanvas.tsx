@@ -206,13 +206,25 @@ export const MuralCanvas = memo(function MuralCanvas({
                             <span className="text-[10px] font-black font-mono text-primary leading-none tracking-tighter">{r+1}-{c+1}</span>
                           </div>
                           
-                          {/* Footer Técnico en Previsualización */}
-                          <div className={cn(
-                            "absolute text-[5px] font-black text-black/20 uppercase whitespace-nowrap",
-                            orientation === 'portrait' 
-                              ? "bottom-1 left-2 w-full text-left" 
-                              : "right-1 top-2 h-full [writing-mode:vertical-rl] rotate-180 text-left"
-                          )}>
+                          {/* Footer Técnico en Previsualización (Sincronizado con PDF) */}
+                          <div 
+                            className={cn(
+                              "absolute font-black text-black/20 uppercase whitespace-nowrap",
+                              orientation === 'portrait' ? "text-left" : ""
+                            )}
+                            style={{
+                              fontSize: 'clamp(4px, 0.6vw, 8px)',
+                              ...(orientation === 'portrait' ? {
+                                left: `${dimensions.appliedMH * 10}px`,
+                                bottom: `${dimensions.appliedMV * 5}px`,
+                                transform: 'translateY(50%)'
+                              } : {
+                                right: `${dimensions.appliedMH * 5}px`,
+                                top: `${dimensions.appliedMV * 10}px`,
+                                writingMode: 'vertical-lr',
+                              })
+                            }}
+                          >
                             MPT | PANEL {r+1}-{c+1} | {paperSize}
                           </div>
                           
