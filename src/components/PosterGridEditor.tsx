@@ -414,9 +414,7 @@ export default function PosterGridEditor() {
             // Portrait: Borde inferior físico
             pdf.text(footerText, appliedMH * 10, paper.height - (appliedMV * 5));
           } else {
-            // Landscape: Posicionamiento anclado al margen inferior físico
-            // Eje X: Cerca del borde derecho (fondo de la hoja vertical)
-            // Eje Y: Situado en el margen horizontal físico (activeMarginH -> appliedMV)
+            // Landscape: Posicionamiento anclado al margen inferior físico solicitado
             pdf.text(footerText, paper.width - (appliedMH * 5), paper.height - (appliedMV * 10), { angle: 90 });
           }
         }
