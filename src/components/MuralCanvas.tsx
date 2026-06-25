@@ -206,28 +206,6 @@ export const MuralCanvas = memo(function MuralCanvas({
                             <span className="text-[10px] font-black font-mono text-primary leading-none tracking-tighter">{r+1}-{c+1}</span>
                           </div>
                           
-                          {/* Pie de página técnico adaptado a salida de impresora física */}
-                          <div 
-                            className={cn(
-                              "absolute font-black text-black/20 uppercase whitespace-nowrap",
-                              orientation === 'portrait' ? "text-left" : "text-left"
-                            )}
-                            style={{
-                              fontSize: 'clamp(4px, 0.6vw, 8px)',
-                              ...(orientation === 'portrait' ? {
-                                left: `${dimensions.appliedMH * 10}px`,
-                                bottom: `${dimensions.appliedMV * 5}px`,
-                                transform: 'translateY(50%)'
-                              } : {
-                                right: `${dimensions.appliedMH * 5}px`,
-                                top: `50%`,
-                                transform: 'translateY(-50%) rotate(90deg)',
-                              })
-                            }}
-                          >
-                            MPT | PANEL {r+1}-{c+1} | {paperSize}
-                          </div>
-                          
                           {c < cols - 1 && (
                             <div className="absolute right-0 top-0 bottom-0 bg-amber-500/5 border-r border-dashed border-amber-500/20" 
                                  style={{ width: `${overlap * 10}px` }}>
