@@ -206,7 +206,7 @@ export const MuralCanvas = memo(function MuralCanvas({
                             <span className="text-[10px] font-black font-mono text-primary leading-none tracking-tighter">{r+1}-{c+1}</span>
                           </div>
                           
-                          {/* Pie de página técnico adaptado a salida de impresora */}
+                          {/* Pie de página técnico adaptado a salida de impresora física */}
                           <div 
                             className={cn(
                               "absolute font-black text-black/20 uppercase whitespace-nowrap",
@@ -220,9 +220,8 @@ export const MuralCanvas = memo(function MuralCanvas({
                                 transform: 'translateY(50%)'
                               } : {
                                 right: `${dimensions.appliedMH * 5}px`,
-                                top: `${dimensions.appliedMV * 10}px`,
-                                transform: 'rotate(180deg)',
-                                writingMode: 'vertical-lr',
+                                top: `50%`,
+                                transform: 'translateY(-50%) rotate(90deg)',
                               })
                             }}
                           >

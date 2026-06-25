@@ -414,8 +414,10 @@ export default function PosterGridEditor() {
             // Portrait: Borde inferior físico
             pdf.text(footerText, appliedMH * 10, paper.height - (appliedMV * 5));
           } else {
-            // Landscape: Coordenadas optimizadas para salida de impresora (Borde derecho rotado)
-            pdf.text(footerText, paper.width - (appliedMH * 5), appliedMV * 10, { angle: 90 });
+            // Landscape: Posicionamiento preciso solicitado
+            // Eje X: Cerca del borde derecho (fondo de la hoja vertical)
+            // Eje Y: Centrado horizontalmente (paper.height / 2)
+            pdf.text(footerText, paper.width - (appliedMH * 5), paper.height / 2, { angle: 90 });
           }
         }
       }
