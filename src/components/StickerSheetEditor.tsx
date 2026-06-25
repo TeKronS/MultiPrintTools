@@ -92,6 +92,30 @@ export default function StickerSheetEditor() {
     }
   }, []);
 
+  // Proporción actual del recorte para bloquear aspect ratio en los inputs
+  const cropAspectRatio = useMemo(() => {
+    if (!image) return 1;
+    const w = (crop.width / 100) * image.width;
+    const h = (crop.height / 100) * image.height;
+    return w / h;
+  }, [image, crop]);
+
+  const handleWidthInputChange = (val: string) => {
+    const num = parseFloat(val) || 0;
+    setStickerWidth(num);
+    if (num > 0) {
+      setStickerHeight(parseFloat((num / cropAspectRatio).toFixed(2)));
+    }
+  };
+
+  const handleHeightInputChange = (val: string) => {
+    const num = parseFloat(val) || 0;
+    setStickerHeight(num);
+    if (num > 0) {
+      setStickerWidth(parseFloat((num * cropAspectRatio).toFixed(2)));
+    }
+  };
+
   const paper = useMemo(() => {
     const p = PAPER_DIMENSIONS[paperSize];
     return orientation === 'portrait' 
@@ -126,12 +150,16 @@ export default function StickerSheetEditor() {
       setImage({ url, file, width: img.width, height: img.height });
       setIsCropping(true);
       setCrop({ x: 10, y: 10, width: 80, height: 80 });
+      // Reset sticker sizes based on initial aspect ratio
+      const initialAspect = img.width / img.height;
+      setStickerWidth(5);
+      setStickerHeight(parseFloat((5 / initialAspect).toFixed(2)));
     };
   };
 
   const handleMouseDown = (e: React.MouseEvent, type: 'move' | 'nw' | 'ne' | 'sw' | 'se') => {
     e.preventDefault();
-    e.stopPropagation(); // Evitar que el clic en una esquina active el movimiento del cuadro entero
+    e.stopPropagation();
     setIsDragging(true);
     setDragType(type);
     setStartPos({ x: e.clientX, y: e.clientY });
@@ -151,23 +179,19 @@ export default function StickerSheetEditor() {
         next.x = Math.min(Math.max(0, startCrop.x + dx), 100 - startCrop.width);
         next.y = Math.min(Math.max(0, startCrop.y + dy), 100 - startCrop.height);
       } else {
-        // North
         if (dragType.includes('n')) {
           const newY = Math.max(0, Math.min(startCrop.y + dy, startCrop.y + startCrop.height - 5));
           next.height = startCrop.height - (newY - startCrop.y);
           next.y = newY;
         }
-        // South
         if (dragType.includes('s')) {
           next.height = Math.max(5, Math.min(startCrop.height + dy, 100 - startCrop.y));
         }
-        // West
         if (dragType.includes('w')) {
           const newX = Math.max(0, Math.min(startCrop.x + dx, startCrop.x + startCrop.width - 5));
           next.width = startCrop.width - (newX - startCrop.x);
           next.x = newX;
         }
-        // East
         if (dragType.includes('e')) {
           next.width = Math.max(5, Math.min(startCrop.width + dx, 100 - startCrop.x));
         }
@@ -214,9 +238,13 @@ export default function StickerSheetEditor() {
       canvas.height = dh;
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
+      
+      // No rellenar con blanco para preservar transparencia
+      ctx.clearRect(0, 0, dw, dh);
       ctx.drawImage(img, sx, sy, sw, sh, 0, 0, dw, dh);
 
-      const stickerDataUrl = canvas.toDataURL('image/jpeg', 0.95);
+      // Usar PNG para preservar transparencia en el PDF
+      const stickerDataUrl = canvas.toDataURL('image/png');
       
       const offsetX = (paper.width - stats.totalW_mm) / 2;
       const offsetY = (paper.height - stats.totalH_mm) / 2;
@@ -225,7 +253,7 @@ export default function StickerSheetEditor() {
         for (let c = 0; c < stats.cols; c++) {
           pdf.addImage(
             stickerDataUrl, 
-            'JPEG', 
+            'PNG', 
             offsetX + (c * stickerWidth * 10), 
             offsetY + (r * stickerHeight * 10), 
             stickerWidth * 10, 
@@ -258,7 +286,7 @@ export default function StickerSheetEditor() {
               <Input 
                 type="number" 
                 value={stickerWidth} 
-                onChange={(e) => setStickerWidth(parseFloat(e.target.value) || 0)}
+                onChange={(e) => handleWidthInputChange(e.target.value)}
                 className="h-9 font-bold text-xs bg-card border-2"
               />
               <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[8px] font-black text-muted-foreground">CM</span>
@@ -270,7 +298,7 @@ export default function StickerSheetEditor() {
               <Input 
                 type="number" 
                 value={stickerHeight} 
-                onChange={(e) => setStickerHeight(parseFloat(e.target.value) || 0)}
+                onChange={(e) => handleHeightInputChange(e.target.value)}
                 className="h-9 font-bold text-xs bg-card border-2"
               />
               <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[8px] font-black text-muted-foreground">CM</span>
@@ -433,7 +461,12 @@ export default function StickerSheetEditor() {
 
               <Button 
                 className="bg-yellow-600 hover:bg-yellow-700 text-white font-black h-12 px-10 rounded-2xl shadow-xl gap-2 text-sm uppercase tracking-widest"
-                onClick={() => setIsCropping(false)}
+                onClick={() => {
+                  setIsCropping(false);
+                  // Sync sticker size after crop confirm
+                  const finalAspect = (crop.width / 100 * image.width) / ((crop.height / 100 * image.height));
+                  setStickerHeight(parseFloat((stickerWidth / finalAspect).toFixed(2)));
+                }}
               >
                 <Check className="h-5 w-5" />
                 {t.confirmCrop}
@@ -521,7 +554,7 @@ export default function StickerSheetEditor() {
                           <Input 
                             type="number" 
                             value={stickerWidth} 
-                            onChange={(e) => setStickerWidth(parseFloat(e.target.value) || 0)}
+                            onChange={(e) => handleWidthInputChange(e.target.value)}
                             className="h-10 font-black text-sm bg-muted/30 border-2 rounded-xl text-yellow-600"
                           />
                           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[8px] font-black text-muted-foreground">CM</span>
@@ -533,13 +566,17 @@ export default function StickerSheetEditor() {
                           <Input 
                             type="number" 
                             value={stickerHeight} 
-                            onChange={(e) => setStickerHeight(parseFloat(e.target.value) || 0)}
+                            onChange={(e) => handleHeightInputChange(e.target.value)}
                             className="h-10 font-black text-sm bg-muted/30 border-2 rounded-xl text-yellow-600"
                           />
                           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[8px] font-black text-muted-foreground">CM</span>
                         </div>
                       </div>
                     </div>
+
+                    <p className="text-[9px] text-muted-foreground font-medium leading-tight">
+                      {lang === 'es' ? 'La proporción se bloquea automáticamente según el recorte.' : 'Proportions are automatically locked based on the crop.'}
+                    </p>
 
                     <Separator className="opacity-50" />
 
