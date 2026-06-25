@@ -400,7 +400,7 @@ export default function StickerSheetEditor() {
             <div className="w-8 h-8 relative rounded-lg overflow-hidden border bg-white dark:bg-slate-200 shrink-0">
               <Image src={logo} alt="Logo" fill className="object-contain" />
             </div>
-            <h1 className="text-sm sm:text-xl font-headline font-black tracking-tighter text-yellow-600 uppercase truncate">
+            <h1 className="text-sm sm:text-xl font-headline font-black tracking-tighter text-yellow-600 uppercase truncate shrink-0">
               {t.stickerSheetTitle}
             </h1>
           </div>
@@ -408,6 +408,14 @@ export default function StickerSheetEditor() {
         <div className="flex items-center gap-2 sm:gap-4">
           <ThemeToggle />
           <LanguageSelector language={lang} setLanguage={setLang} />
+          <Button 
+            className="hidden sm:flex bg-yellow-600 hover:bg-yellow-700 text-white font-black gap-2 h-9 px-6 rounded-xl shadow-md transition-all active:scale-95 text-xs" 
+            onClick={exportPdf} 
+            disabled={!image || isExporting || stats.total === 0}
+          >
+            {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+            {isExporting ? "..." : t.export}
+          </Button>
         </div>
       </header>
 
@@ -480,9 +488,8 @@ export default function StickerSheetEditor() {
           ) : (
             <div className="w-full max-w-6xl flex flex-col lg:flex-row items-center lg:items-start justify-center gap-8 md:gap-12 pb-20 sm:pb-0">
               
-              {/* Control Card - Rediseñada según referencia */}
               <div className="flex flex-col gap-6 w-full max-w-md animate-in slide-in-from-left-10 duration-500">
-                <div className="bg-card p-6 md:p-10 rounded-[3rem] border-4 border-card shadow-2xl space-y-6 md:space-y-10 relative overflow-hidden">
+                <div className="bg-card p-6 md:p-10 rounded-[3rem] border-4 border-card shadow-2xl space-y-6 md:space-y-8 relative overflow-hidden">
                   
                   <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-500/5 rounded-full -mr-16 -mt-16 blur-2xl" />
 
@@ -545,17 +552,16 @@ export default function StickerSheetEditor() {
                     />
                   </div>
 
-                  {/* Panel de estadísticas rediseñado */}
                   <div className="bg-yellow-50/80 p-6 rounded-[2.5rem] border border-yellow-100 shadow-inner relative z-10 space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1">
-                        <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest block">{t.stickersPerPage}</span>
+                    <div className="grid grid-cols-2 gap-4 divide-x divide-yellow-100">
+                      <div className="flex flex-col items-center justify-center space-y-1">
+                        <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest text-center leading-none mb-1">{t.stickersPerPage}</span>
                         <span className="text-4xl font-black text-yellow-600 tracking-tighter flex items-center gap-1">
                           {stats.cols} <span className="text-yellow-400 text-2xl">×</span> {stats.rows}
                         </span>
                       </div>
-                      <div className="space-y-1 text-right border-l border-yellow-100 pl-4">
-                        <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest block">{t.totalStickers}</span>
+                      <div className="flex flex-col items-center justify-center space-y-1 pl-4">
+                        <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest text-center leading-none mb-1">{t.totalStickers}</span>
                         <span className="text-5xl font-black text-foreground tracking-tighter">{stats.total}</span>
                       </div>
                     </div>
@@ -576,17 +582,8 @@ export default function StickerSheetEditor() {
 
                   <div className="pt-2 flex flex-col gap-4 relative z-10">
                     <Button 
-                      className="w-full h-16 bg-yellow-600 hover:bg-yellow-700 text-white font-black rounded-2xl shadow-xl shadow-yellow-600/20 text-lg uppercase tracking-widest gap-3 transition-all active:scale-95"
-                      onClick={exportPdf}
-                      disabled={isExporting || stats.total === 0}
-                    >
-                      {isExporting ? <Loader2 className="h-6 w-6 animate-spin" /> : <FileDown className="h-6 w-6" />}
-                      {isExporting ? "Generando..." : t.export}
-                    </Button>
-                    
-                    <Button 
                       variant="outline" 
-                      className="w-full h-12 rounded-2xl border-2 font-black uppercase text-[11px] tracking-widest gap-2 hover:bg-yellow-50 hover:text-yellow-600 hover:border-yellow-200 transition-all border-dashed border-muted-foreground/30"
+                      className="w-full h-14 rounded-2xl border-2 font-black uppercase text-[11px] tracking-widest gap-2 hover:bg-yellow-50 hover:text-yellow-600 hover:border-yellow-200 transition-all border-dashed border-muted-foreground/30"
                       onClick={() => setImage(null)}
                     >
                       <RefreshCcw className="h-4 w-4" />
@@ -596,7 +593,6 @@ export default function StickerSheetEditor() {
                 </div>
               </div>
 
-              {/* Preview Sheet - Visible en todos los dispositivos */}
               <div className="flex flex-col items-center animate-in slide-in-from-right-10 duration-500 w-full lg:w-auto">
                 <div 
                   className="relative bg-white dark:bg-slate-200 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.4)] rounded-sm overflow-hidden border border-border shrink-0 origin-top transform scale-75 sm:scale-100"
@@ -661,7 +657,7 @@ export default function StickerSheetEditor() {
           {image && !isCropping && (
             <div className="p-6 border-t bg-muted/50">
               <Button 
-                className="w-full h-14 bg-yellow-600 hover:bg-yellow-700 text-white font-black rounded-2xl shadow-xl shadow-yellow-500/20 text-xs gap-3 transition-all active:scale-95"
+                className="w-full h-14 bg-yellow-600 hover:bg-yellow-700 text-white font-black rounded-2xl shadow-xl shadow-yellow-600/20 text-xs gap-3 transition-all active:scale-95"
                 onClick={exportPdf}
                 disabled={isExporting || stats.total === 0}
               >
@@ -676,7 +672,7 @@ export default function StickerSheetEditor() {
           <div className="lg:hidden fixed bottom-6 left-6 right-6 z-[100] flex gap-3 pointer-events-auto">
             <div className="flex-1">
               <Button 
-                className="w-full h-14 bg-yellow-600 hover:bg-yellow-700 text-white font-black rounded-2xl shadow-xl shadow-yellow-500/20 uppercase tracking-widest text-xs gap-3 border-4 border-white/10"
+                className="w-full h-14 bg-yellow-600 hover:bg-yellow-700 text-white font-black rounded-2xl shadow-xl shadow-yellow-600/20 uppercase tracking-widest text-xs gap-3 border-4 border-white/10"
                 onClick={exportPdf}
                 disabled={isExporting || stats.total === 0}
               >
