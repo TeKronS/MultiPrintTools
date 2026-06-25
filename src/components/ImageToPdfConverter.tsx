@@ -83,11 +83,17 @@ export default function ImageToPdfConverter() {
 
   useEffect(() => {
     setMounted(true);
+    const savedLang = localStorage.getItem('pref-lang') as Language;
+    if (savedLang === 'en' || savedLang === 'es') {
+      setLang(savedLang);
+    } else {
+      const browserLang = navigator.language.split('-')[0];
+      if (browserLang === 'en') setLang('en');
+    }
   }, []);
 
   const paper = useMemo(() => PAPER_DIMENSIONS[paperSize], [paperSize]);
 
-  // Lista expandida con todas las copias
   const expandedImagesList = useMemo(() => {
     const list: (ImageData & { originalId: string })[] = [];
     images.forEach(img => {
@@ -98,7 +104,6 @@ export default function ImageToPdfConverter() {
     return list;
   }, [images]);
 
-  // Agrupación en páginas para la previsualización
   const pages = useMemo(() => {
     const p = [];
     const n = parseInt(imagesPerPage);
@@ -176,12 +181,20 @@ export default function ImageToPdfConverter() {
   };
 
   const getGridConfig = (n: number, orient: 'portrait' | 'landscape') => {
-    if (n === 1) return { rows: 1, cols: 1 };
-    if (n === 2) return orient === 'portrait' ? { rows: 2, cols: 1 } : { rows: 1, cols: 2 };
-    if (n === 4) return { rows: 2, cols: 2 };
-    if (n === 6) return orient === 'portrait' ? { rows: 3, cols: 2 } : { rows: 2, cols: 3 };
-    if (n === 8) return orient === 'portrait' ? { rows: 4, cols: 2 } : { rows: 2, cols: 4 };
-    return { rows: 1, cols: 1 };
+    const isP = orient === 'portrait';
+    switch (n) {
+      case 1: return { rows: 1, cols: 1 };
+      case 2: return isP ? { rows: 2, cols: 1 } : { rows: 1, cols: 2 };
+      case 3: return isP ? { rows: 3, cols: 1 } : { rows: 1, cols: 3 };
+      case 4: return { rows: 2, cols: 2 };
+      case 5:
+      case 6: return isP ? { rows: 3, cols: 2 } : { rows: 2, cols: 3 };
+      case 7:
+      case 8: return isP ? { rows: 4, cols: 2 } : { rows: 2, cols: 4 };
+      case 9: return { rows: 3, cols: 3 };
+      case 10: return isP ? { rows: 5, cols: 2 } : { rows: 2, cols: 5 };
+      default: return { rows: 1, cols: 1 };
+    }
   };
 
   const exportPdf = async () => {
@@ -324,11 +337,9 @@ export default function ImageToPdfConverter() {
               <span className="truncate">{imagesPerPage}</span>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="1" className="font-bold text-xs">1</SelectItem>
-              <SelectItem value="2" className="font-bold text-xs">2</SelectItem>
-              <SelectItem value="4" className="font-bold text-xs">4</SelectItem>
-              <SelectItem value="6" className="font-bold text-xs">6</SelectItem>
-              <SelectItem value="8" className="font-bold text-xs">8</SelectItem>
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
+                <SelectItem key={n} value={n.toString()} className="font-bold text-xs">{n}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -432,25 +443,34 @@ export default function ImageToPdfConverter() {
         <aside className="hidden md:flex w-[80px] bg-card border-r border-border flex-col items-center py-4 gap-4 overflow-y-auto shrink-0 shadow-inner z-10 scrollbar-hide">
           <div className="flex flex-col gap-4 w-full items-center">
             <span className="text-[8px] font-black text-muted-foreground uppercase text-center px-1">Páginas</span>
-            {pages.map((page, idx) => (
-              <div 
-                key={idx} 
-                className="relative w-12 aspect-[3/4] border border-border rounded-sm overflow-hidden bg-muted/30 shadow-sm transition-all hover:border-primary/50 group cursor-pointer shrink-0"
-                onClick={() => {
-                  document.getElementById(`page-view-${idx}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }}
-              >
-                <div className="grid grid-cols-2 grid-rows-2 h-full gap-[1px] bg-muted/20">
-                  {page.slice(0, 4).map((img, i) => (
-                    <img key={i} src={img.url} alt="" className="w-full h-full object-cover" />
-                  ))}
+            {pages.map((page, idx) => {
+               const { rows, cols } = getGridConfig(parseInt(imagesPerPage), orientation);
+               return (
+                <div 
+                  key={idx} 
+                  className="relative w-12 aspect-[3/4] border border-border rounded-sm overflow-hidden bg-muted/30 shadow-sm transition-all hover:border-primary/50 group cursor-pointer shrink-0"
+                  onClick={() => {
+                    document.getElementById(`page-view-${idx}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  }}
+                >
+                  <div 
+                    className="grid h-full gap-[1px] bg-muted/20"
+                    style={{
+                      gridTemplateRows: `repeat(${rows}, 1fr)`,
+                      gridTemplateColumns: `repeat(${cols}, 1fr)`
+                    }}
+                  >
+                    {page.map((img, i) => (
+                      <img key={i} src={img.url} alt="" className="w-full h-full object-cover" />
+                    ))}
+                  </div>
+                  <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors" />
+                  <div className="absolute top-0 left-0 bg-primary/90 backdrop-blur-sm text-[8px] font-black text-white px-1 min-w-[14px] text-center rounded-br-[2px] shadow-sm">
+                    {idx + 1}
+                  </div>
                 </div>
-                <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors" />
-                <div className="absolute top-0 left-0 bg-primary/90 backdrop-blur-sm text-[8px] font-black text-white px-1 min-w-[14px] text-center rounded-br-[2px] shadow-sm">
-                  {idx + 1}
-                </div>
-              </div>
-            ))}
+              );
+            })}
             <button 
               onClick={() => fileInputRef.current?.click()}
               className="w-12 h-12 border border-dashed border-border rounded-sm flex items-center justify-center hover:bg-muted hover:border-primary/50 transition-colors text-muted-foreground shrink-0"
@@ -532,7 +552,6 @@ export default function ImageToPdfConverter() {
                                 )} 
                               />
                               
-                              {/* Controles de Imagen dentro de la página */}
                               <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/10 transition-colors pointer-events-none" />
                               <div className="absolute top-1 right-1 flex flex-col gap-1 opacity-0 group-hover/img:opacity-100 transition-opacity pointer-events-auto">
                                 <Button 
