@@ -139,7 +139,8 @@ export const translations = {
     stickerDimensions: 'Sticker Dimensions',
     totalStickers: 'Total Stickers',
     stickersPerPage: 'Stickers per Page',
-    changeSticker: 'Change Sticker'
+    changeSticker: 'Change Sticker',
+    spacing: 'Spacing (cm)'
   },
   es: {
     title: 'CUADRÍCULA POSTER',
@@ -278,6 +279,7 @@ export const translations = {
     stickerDimensions: 'Dimensiones del Sticker',
     totalStickers: 'Stickers Totales',
     stickersPerPage: 'Stickers por Hoja',
-    changeSticker: 'Cambiar Sticker'
+    changeSticker: 'Cambiar Sticker',
+    spacing: 'Separación (cm)'
   }
 };
