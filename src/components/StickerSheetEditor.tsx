@@ -275,31 +275,31 @@ export default function StickerSheetEditor() {
         </div>
 
         <div className="space-y-6">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3 relative z-10">
             <div className="space-y-2">
                <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">{t.width}</Label>
                <div className="flex items-center gap-1">
-                  <Button variant="outline" size="icon" className="h-10 w-10 shrink-0 border-2 rounded-xl bg-white" onClick={() => updateSizes(stickerWidth - 0.1, 'w')}><Minus className="h-4 w-4"/></Button>
+                  <Button variant="outline" size="icon" className="h-9 w-9 md:h-10 md:w-10 shrink-0 border-2 rounded-xl bg-white" onClick={() => updateSizes(stickerWidth - 0.1, 'w')}><Minus className="h-3 w-3 md:h-4 md:w-4"/></Button>
                   <Input 
                     type="number" 
                     value={stickerWidth} 
                     onChange={(e) => updateSizes(parseFloat(e.target.value), 'w')}
-                    className="h-10 font-black text-sm bg-muted/20 border-2 rounded-xl text-center text-yellow-600 px-1"
+                    className="h-9 md:h-10 flex-1 min-w-0 font-black text-xs md:text-sm bg-muted/20 border-2 rounded-xl text-center text-yellow-600 shadow-inner px-1"
                   />
-                  <Button variant="outline" size="icon" className="h-10 w-10 shrink-0 border-2 rounded-xl bg-white" onClick={() => updateSizes(stickerWidth + 0.1, 'w')}><Plus className="h-4 w-4"/></Button>
+                  <Button variant="outline" size="icon" className="h-9 w-9 md:h-10 md:w-10 shrink-0 border-2 rounded-xl bg-white" onClick={() => updateSizes(stickerWidth + 0.1, 'w')}><Plus className="h-3 w-3 md:h-4 md:w-4"/></Button>
                </div>
             </div>
             <div className="space-y-2">
                <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">{t.height}</Label>
                <div className="flex items-center gap-1">
-                  <Button variant="outline" size="icon" className="h-10 w-10 shrink-0 border-2 rounded-xl bg-white" onClick={() => updateSizes(stickerHeight - 0.1, 'h')}><Minus className="h-4 w-4"/></Button>
+                  <Button variant="outline" size="icon" className="h-9 w-9 md:h-10 md:w-10 shrink-0 border-2 rounded-xl bg-white" onClick={() => updateSizes(stickerHeight - 0.1, 'h')}><Minus className="h-3 w-3 md:h-4 md:w-4"/></Button>
                   <Input 
                     type="number" 
                     value={stickerHeight} 
                     onChange={(e) => updateSizes(parseFloat(e.target.value), 'h')}
-                    className="h-10 font-black text-sm bg-muted/20 border-2 rounded-xl text-center text-yellow-600 px-1"
+                    className="h-9 md:h-10 flex-1 min-w-0 font-black text-xs md:text-sm bg-muted/20 border-2 rounded-xl text-center text-yellow-600 shadow-inner px-1"
                   />
-                  <Button variant="outline" size="icon" className="h-10 w-10 shrink-0 border-2 rounded-xl bg-white" onClick={() => updateSizes(stickerHeight + 0.1, 'h')}><Plus className="h-4 w-4"/></Button>
+                  <Button variant="outline" size="icon" className="h-9 w-9 md:h-10 md:w-10 shrink-0 border-2 rounded-xl bg-white" onClick={() => updateSizes(stickerHeight + 0.1, 'h')}><Plus className="h-3 w-3 md:h-4 md:w-4"/></Button>
                </div>
             </div>
           </div>
@@ -489,7 +489,7 @@ export default function StickerSheetEditor() {
             <div className="w-full max-w-6xl flex flex-col lg:flex-row items-center lg:items-start justify-center gap-8 md:gap-12 pb-20 sm:pb-0">
               
               <div className="flex flex-col gap-6 w-full max-w-md animate-in slide-in-from-left-10 duration-500">
-                <div className="bg-card p-6 md:p-10 rounded-[3rem] border-4 border-card shadow-2xl space-y-6 md:space-y-8 relative overflow-hidden">
+                <div className="bg-card p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] border-4 border-card shadow-2xl space-y-6 md:space-y-8 relative overflow-hidden">
                   
                   <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-500/5 rounded-full -mr-16 -mt-16 blur-2xl" />
 
@@ -498,7 +498,7 @@ export default function StickerSheetEditor() {
                       <div className="w-10 h-10 rounded-2xl bg-yellow-500/10 flex items-center justify-center">
                         <Maximize2 className="h-5 w-5 text-yellow-600" />
                       </div>
-                      <h3 className="text-xs font-black text-muted-foreground uppercase tracking-widest">Dimensiones</h3>
+                      <h3 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Dimensiones</h3>
                     </div>
                     <Button 
                       variant="ghost" 
@@ -511,31 +511,31 @@ export default function StickerSheetEditor() {
                     </Button>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-6 relative z-10">
+                  <div className="grid grid-cols-2 gap-3 md:gap-6 relative z-10">
                     <div className="space-y-3">
                       <Label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest pl-1">{t.width}</Label>
-                      <div className="flex items-center gap-1.5">
-                         <Button variant="outline" size="icon" className="h-11 w-11 rounded-xl shrink-0 border-2 shadow-sm bg-white" onClick={() => updateSizes(stickerWidth - 0.1, 'w')}><Minus className="h-4 w-4"/></Button>
+                      <div className="flex items-center gap-1 md:gap-1.5">
+                         <Button variant="outline" size="icon" className="h-9 w-9 md:h-11 md:w-11 rounded-xl shrink-0 border-2 shadow-sm bg-white" onClick={() => updateSizes(stickerWidth - 0.1, 'w')}><Minus className="h-3 w-3 md:h-4 md:w-4"/></Button>
                          <Input 
                            type="number" 
                            value={stickerWidth} 
                            onChange={(e) => updateSizes(parseFloat(e.target.value), 'w')}
-                           className="h-11 font-black text-base bg-muted/20 border-2 rounded-xl text-center text-yellow-600 shadow-inner"
+                           className="h-9 md:h-11 flex-1 min-w-0 font-black text-xs md:text-base bg-muted/20 border-2 rounded-xl text-center text-yellow-600 shadow-inner px-1"
                          />
-                         <Button variant="outline" size="icon" className="h-11 w-11 rounded-xl shrink-0 border-2 shadow-sm bg-white" onClick={() => updateSizes(stickerWidth + 0.1, 'w')}><Plus className="h-4 w-4"/></Button>
+                         <Button variant="outline" size="icon" className="h-9 w-9 md:h-11 md:w-11 rounded-xl shrink-0 border-2 shadow-sm bg-white" onClick={() => updateSizes(stickerWidth + 0.1, 'w')}><Plus className="h-3 w-3 md:h-4 md:w-4"/></Button>
                       </div>
                     </div>
                     <div className="space-y-3">
                       <Label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest pl-1">{t.height}</Label>
-                      <div className="flex items-center gap-1.5">
-                         <Button variant="outline" size="icon" className="h-11 w-11 rounded-xl shrink-0 border-2 shadow-sm bg-white" onClick={() => updateSizes(stickerHeight - 0.1, 'h')}><Minus className="h-4 w-4"/></Button>
+                      <div className="flex items-center gap-1 md:gap-1.5">
+                         <Button variant="outline" size="icon" className="h-9 w-9 md:h-11 md:w-11 rounded-xl shrink-0 border-2 shadow-sm bg-white" onClick={() => updateSizes(stickerHeight - 0.1, 'h')}><Minus className="h-3 w-3 md:h-4 md:w-4"/></Button>
                          <Input 
                            type="number" 
                            value={stickerHeight} 
                            onChange={(e) => updateSizes(parseFloat(e.target.value), 'h')}
-                           className="h-11 font-black text-base bg-muted/20 border-2 rounded-xl text-center text-yellow-600 shadow-inner"
+                           className="h-9 md:h-11 flex-1 min-w-0 font-black text-xs md:text-base bg-muted/20 border-2 rounded-xl text-center text-yellow-600 shadow-inner px-1"
                          />
-                         <Button variant="outline" size="icon" className="h-11 w-11 rounded-xl shrink-0 border-2 shadow-sm bg-white" onClick={() => updateSizes(stickerHeight + 0.1, 'h')}><Plus className="h-4 w-4"/></Button>
+                         <Button variant="outline" size="icon" className="h-9 w-9 md:h-11 md:w-11 rounded-xl shrink-0 border-2 shadow-sm bg-white" onClick={() => updateSizes(stickerHeight + 0.1, 'h')}><Plus className="h-3 w-3 md:h-4 md:w-4"/></Button>
                       </div>
                     </div>
                   </div>
@@ -556,13 +556,13 @@ export default function StickerSheetEditor() {
                     <div className="grid grid-cols-2 gap-4 divide-x divide-yellow-100">
                       <div className="flex flex-col items-center justify-center space-y-1">
                         <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest text-center leading-none mb-1">{t.stickersPerPage}</span>
-                        <span className="text-4xl font-black text-yellow-600 tracking-tighter flex items-center gap-1">
-                          {stats.cols} <span className="text-yellow-400 text-2xl">×</span> {stats.rows}
+                        <span className="text-3xl md:text-4xl font-black text-yellow-600 tracking-tighter flex items-center gap-1">
+                          {stats.cols} <span className="text-yellow-400 text-xl md:text-2xl">×</span> {stats.rows}
                         </span>
                       </div>
                       <div className="flex flex-col items-center justify-center space-y-1 pl-4">
                         <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest text-center leading-none mb-1">{t.totalStickers}</span>
-                        <span className="text-5xl font-black text-foreground tracking-tighter">{stats.total}</span>
+                        <span className="text-4xl md:text-5xl font-black text-foreground tracking-tighter text-center">{stats.total}</span>
                       </div>
                     </div>
                   </div>
@@ -573,8 +573,8 @@ export default function StickerSheetEditor() {
                       <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{t.paperSize}</span>
                     </div>
                     <div className="flex justify-between items-center bg-muted/30 p-4 rounded-2xl border border-border shadow-sm">
-                      <span className="text-sm font-black text-foreground uppercase tracking-tight">{paperSize}</span>
-                      <Badge variant="secondary" className="text-[10px] font-black uppercase px-3 py-1 bg-white shadow-sm border border-border/10">
+                      <span className="text-xs md:text-sm font-black text-foreground uppercase tracking-tight truncate">{paperSize}</span>
+                      <Badge variant="secondary" className="text-[8px] md:text-[10px] font-black uppercase px-2 md:px-3 py-1 bg-white shadow-sm border border-border/10 shrink-0">
                         {orientation === 'portrait' ? 'Vertical' : 'Horizontal'}
                       </Badge>
                     </div>
@@ -583,7 +583,7 @@ export default function StickerSheetEditor() {
                   <div className="pt-2 flex flex-col gap-4 relative z-10">
                     <Button 
                       variant="outline" 
-                      className="w-full h-14 rounded-2xl border-2 font-black uppercase text-[11px] tracking-widest gap-2 hover:bg-yellow-50 hover:text-yellow-600 hover:border-yellow-200 transition-all border-dashed border-muted-foreground/30"
+                      className="w-full h-12 md:h-14 rounded-2xl border-2 font-black uppercase text-[10px] md:text-[11px] tracking-widest gap-2 hover:bg-yellow-50 hover:text-yellow-600 hover:border-yellow-200 transition-all border-dashed border-muted-foreground/30"
                       onClick={() => setImage(null)}
                     >
                       <RefreshCcw className="h-4 w-4" />
