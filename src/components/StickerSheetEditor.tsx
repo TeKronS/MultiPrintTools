@@ -615,21 +615,15 @@ export default function StickerSheetEditor() {
                       />
                     </div>
 
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black text-muted-foreground uppercase pl-1 flex items-center gap-2">
-                        <Scissors className="h-3 w-3" /> {t.spacing} (CM)
-                      </Label>
-                      <div className="flex items-center gap-1">
-                        <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl shrink-0 border-2" onClick={() => setSpacing(Math.max(0, parseFloat((spacing - 0.05).toFixed(2))))}><Minus className="h-4 w-4"/></Button>
-                        <Input 
-                          type="number" 
-                          value={spacing} 
-                          onChange={(e) => setSpacing(Math.max(0, parseFloat(e.target.value) || 0))}
-                          className="h-10 font-black text-sm bg-muted/30 border-2 rounded-xl text-center text-yellow-600"
-                        />
-                        <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl shrink-0 border-2" onClick={() => setSpacing(parseFloat((spacing + 0.05).toFixed(2)))}><Plus className="h-4 w-4"/></Button>
+                    <div className="flex items-center justify-between bg-yellow-500/5 p-4 rounded-2xl border border-yellow-500/10">
+                      <div className="flex flex-col">
+                        <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">{t.stickersPerPage}</span>
+                        <span className="text-xl font-black text-yellow-600">{stats.cols} x {stats.rows}</span>
                       </div>
-                      <Slider value={[spacing]} onValueChange={(v) => setSpacing(v[0])} min={0} max={2} step={0.01} className="pt-2" />
+                      <div className="flex flex-col items-end">
+                        <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">{t.totalStickers}</span>
+                        <span className="text-xl font-black text-foreground">{stats.total}</span>
+                      </div>
                     </div>
 
                     <Separator className="opacity-50" />
