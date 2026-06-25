@@ -274,41 +274,59 @@ export default function StickerSheetEditor() {
         </div>
 
         <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+               <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-tight">{t.width}</Label>
+               <div className="flex items-center gap-1">
+                  <Button variant="outline" size="icon" className="h-8 w-8 shrink-0 border-2 rounded-lg" onClick={() => updateSizes(stickerWidth - 0.1, 'w')}><Minus className="h-3 w-3"/></Button>
+                  <Input 
+                    type="number" 
+                    value={stickerWidth} 
+                    onChange={(e) => updateSizes(parseFloat(e.target.value), 'w')}
+                    className="h-8 font-black text-[11px] bg-card border-2 rounded-lg text-center text-yellow-600 px-1"
+                  />
+                  <Button variant="outline" size="icon" className="h-8 w-8 shrink-0 border-2 rounded-lg" onClick={() => updateSizes(stickerWidth + 0.1, 'w')}><Plus className="h-3 w-3"/></Button>
+               </div>
+            </div>
+            <div className="space-y-2">
+               <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-tight">{t.height}</Label>
+               <div className="flex items-center gap-1">
+                  <Button variant="outline" size="icon" className="h-8 w-8 shrink-0 border-2 rounded-lg" onClick={() => updateSizes(stickerHeight - 0.1, 'h')}><Minus className="h-3 w-3"/></Button>
+                  <Input 
+                    type="number" 
+                    value={stickerHeight} 
+                    onChange={(e) => updateSizes(parseFloat(e.target.value), 'h')}
+                    className="h-8 font-black text-[11px] bg-card border-2 rounded-lg text-center text-yellow-600 px-1"
+                  />
+                  <Button variant="outline" size="icon" className="h-8 w-8 shrink-0 border-2 rounded-lg" onClick={() => updateSizes(stickerHeight + 0.1, 'h')}><Plus className="h-3 w-3"/></Button>
+               </div>
+            </div>
+          </div>
+
           <div className="space-y-2">
-             <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-tight">{t.width} (CM)</Label>
-             <div className="flex items-center gap-2">
-                <Button variant="outline" size="icon" className="h-10 w-10 shrink-0 border-2 rounded-xl" onClick={() => updateSizes(stickerWidth - 0.1, 'w')}><Minus className="h-4 w-4"/></Button>
-                <Input 
-                  type="number" 
-                  value={stickerWidth} 
-                  onChange={(e) => updateSizes(parseFloat(e.target.value), 'w')}
-                  className="h-10 font-black text-sm bg-card border-2 rounded-xl text-center text-yellow-600"
-                />
-                <Button variant="outline" size="icon" className="h-10 w-10 shrink-0 border-2 rounded-xl" onClick={() => updateSizes(stickerWidth + 0.1, 'w')}><Plus className="h-4 w-4"/></Button>
-             </div>
+            <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-tight">{lang === 'es' ? 'Ajustar Tamaño' : 'Adjust Size'}</Label>
              <Slider 
                 value={[stickerWidth]} 
                 onValueChange={(v) => updateSizes(v[0], 'w')} 
                 min={0.5} 
                 max={20} 
                 step={0.01} 
-                className="pt-2"
               />
           </div>
 
           <div className="space-y-2">
              <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-tight">{t.spacing} (CM)</Label>
              <div className="flex items-center gap-2">
-                <Button variant="outline" size="icon" className="h-10 w-10 shrink-0 border-2 rounded-xl" onClick={() => setSpacing(Math.max(0, parseFloat((spacing - 0.05).toFixed(2))))}><Minus className="h-4 w-4"/></Button>
+                <Button variant="outline" size="icon" className="h-8 w-8 shrink-0 border-2 rounded-lg" onClick={() => setSpacing(Math.max(0, parseFloat((spacing - 0.05).toFixed(2))))}><Minus className="h-3 w-3"/></Button>
                 <Input 
                   type="number" 
                   value={spacing} 
                   onChange={(e) => setSpacing(Math.max(0, parseFloat(e.target.value) || 0))}
-                  className="h-10 font-black text-sm bg-card border-2 rounded-xl text-center text-yellow-600"
+                  className="h-8 font-black text-xs bg-card border-2 rounded-lg text-center text-yellow-600"
                 />
-                <Button variant="outline" size="icon" className="h-10 w-10 shrink-0 border-2 rounded-xl" onClick={() => setSpacing(parseFloat((spacing + 0.05).toFixed(2)))}><Plus className="h-4 w-4"/></Button>
+                <Button variant="outline" size="icon" className="h-8 w-8 shrink-0 border-2 rounded-lg" onClick={() => setSpacing(parseFloat((spacing + 0.05).toFixed(2)))}><Plus className="h-3 w-3"/></Button>
              </div>
-             <Slider value={[spacing]} onValueChange={(v) => setSpacing(v[0])} min={0} max={5} step={0.01} className="pt-2" />
+             <Slider value={[spacing]} onValueChange={(v) => setSpacing(v[0])} min={0} max={2} step={0.01} className="pt-2" />
           </div>
         </div>
 
