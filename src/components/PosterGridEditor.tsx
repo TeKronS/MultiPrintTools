@@ -411,13 +411,11 @@ export default function PosterGridEditor() {
           const footerText = `MULTIPRINTTOOLS | CUADRÍCULA POSTER | PANEL ${r+1}-${c+1} | ${activePaperSize} (${activeOrientation === 'portrait' ? 'P' : 'L'})`;
           
           if (activeOrientation === 'portrait') {
-            // Portrait: Borde inferior físico, centrado horizontalmente
-            pdf.text(footerText, paper.width / 2, paper.height - (appliedMV * 5), { align: 'center' });
+            // Portrait: Borde inferior físico
+            pdf.text(footerText, appliedMH * 10, paper.height - (appliedMV * 5));
           } else {
             // Landscape: Coordenadas optimizadas para salida de impresora (Borde derecho rotado)
-            // Eje X: Cerca del borde derecho (Ancho total - offset del margen)
-            // Eje Y: Centro de la hoja (Alto total / 2) para que al rotar quede centrado físicamente en la base
-            pdf.text(footerText, paper.width - (appliedMH * 5), paper.height / 2, { angle: 90, align: 'center' });
+            pdf.text(footerText, paper.width - (appliedMH * 5), appliedMV * 10, { angle: 90 });
           }
         }
       }
