@@ -298,16 +298,16 @@ export default function StickerSheetEditor() {
           </div>
 
           <div className="space-y-2">
-             <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-tight">{t.spacing}</Label>
+             <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-tight">{t.spacing} (CM)</Label>
              <div className="flex items-center gap-2">
-                <Button variant="outline" size="icon" className="h-10 w-10 shrink-0 border-2 rounded-xl" onClick={() => setSpacing(Math.max(0, spacing - 0.05))}><Minus className="h-4 w-4"/></Button>
+                <Button variant="outline" size="icon" className="h-10 w-10 shrink-0 border-2 rounded-xl" onClick={() => setSpacing(Math.max(0, parseFloat((spacing - 0.05).toFixed(2))))}><Minus className="h-4 w-4"/></Button>
                 <Input 
                   type="number" 
                   value={spacing} 
                   onChange={(e) => setSpacing(Math.max(0, parseFloat(e.target.value) || 0))}
                   className="h-10 font-black text-sm bg-card border-2 rounded-xl text-center text-yellow-600"
                 />
-                <Button variant="outline" size="icon" className="h-10 w-10 shrink-0 border-2 rounded-xl" onClick={() => setSpacing(spacing + 0.05)}><Plus className="h-4 w-4"/></Button>
+                <Button variant="outline" size="icon" className="h-10 w-10 shrink-0 border-2 rounded-xl" onClick={() => setSpacing(parseFloat((spacing + 0.05).toFixed(2)))}><Plus className="h-4 w-4"/></Button>
              </div>
              <Slider value={[spacing]} onValueChange={(v) => setSpacing(v[0])} min={0} max={5} step={0.01} className="pt-2" />
           </div>
@@ -602,10 +602,17 @@ export default function StickerSheetEditor() {
                       <Label className="text-[10px] font-black text-muted-foreground uppercase pl-1 flex items-center gap-2">
                         <Scissors className="h-3 w-3" /> {t.spacing} (CM)
                       </Label>
-                      <div className="flex items-center gap-3">
-                        <Slider value={[spacing]} onValueChange={(v) => setSpacing(v[0])} min={0} max={2} step={0.01} className="flex-1" />
-                        <span className="text-[10px] font-black text-yellow-600 bg-yellow-500/10 px-2 py-1 rounded-md min-w-[50px] text-center">{spacing} cm</span>
+                      <div className="flex items-center gap-1">
+                        <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl shrink-0 border-2" onClick={() => setSpacing(Math.max(0, parseFloat((spacing - 0.05).toFixed(2))))}><Minus className="h-4 w-4"/></Button>
+                        <Input 
+                          type="number" 
+                          value={spacing} 
+                          onChange={(e) => setSpacing(Math.max(0, parseFloat(e.target.value) || 0))}
+                          className="h-10 font-black text-sm bg-muted/30 border-2 rounded-xl text-center text-yellow-600"
+                        />
+                        <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl shrink-0 border-2" onClick={() => setSpacing(parseFloat((spacing + 0.05).toFixed(2)))}><Plus className="h-4 w-4"/></Button>
                       </div>
+                      <Slider value={[spacing]} onValueChange={(v) => setSpacing(v[0])} min={0} max={2} step={0.01} className="pt-2" />
                     </div>
 
                     <Separator className="opacity-50" />
@@ -647,7 +654,7 @@ export default function StickerSheetEditor() {
                 onClick={exportPdf}
                 disabled={isExporting || stats.total === 0}
               >
-                {isExporting ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileDown className="h-5 w-5" />}
+                {isExporting ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileDown className="h-4 w-4" />}
                 {isExporting ? "Generando..." : t.export}
               </Button>
             </div>
@@ -658,11 +665,11 @@ export default function StickerSheetEditor() {
           <div className="lg:hidden fixed bottom-6 left-6 right-6 z-[100] flex gap-3 pointer-events-auto">
             <div className="flex-1">
               <Button 
-                className="w-full h-14 bg-yellow-600 hover:bg-yellow-700 text-white font-black rounded-2xl shadow-2xl uppercase tracking-widest text-xs gap-3 border-4 border-white/10"
+                className="w-full h-14 bg-yellow-600 hover:bg-yellow-700 text-white font-black rounded-2xl shadow-xl shadow-yellow-500/20 uppercase tracking-widest text-xs gap-3 border-4 border-white/10"
                 onClick={exportPdf}
                 disabled={isExporting || stats.total === 0}
               >
-                {isExporting ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileDown className="h-5 w-5" />}
+                {isExporting ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileDown className="h-4 w-4" />}
                 {isExporting ? "..." : t.export}
               </Button>
             </div>
