@@ -173,6 +173,7 @@ export default function StickerSheetEditor() {
   };
 
   const handleTouchStart = (e: React.TouchEvent, type: 'move' | 'nw' | 'ne' | 'sw' | 'se') => {
+    e.stopPropagation();
     if (e.cancelable) e.preventDefault();
     const touch = e.touches[0];
     startDragging(touch.clientX, touch.clientY, type);
@@ -466,7 +467,7 @@ export default function StickerSheetEditor() {
               </div>
               
               <div 
-                className="relative bg-black rounded-3xl overflow-hidden shadow-2xl group border-4 border-card cursor-crosshair"
+                className="relative bg-black rounded-3xl overflow-hidden shadow-2xl group border-4 border-card cursor-crosshair touch-none"
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleDragEnd}
                 onMouseLeave={handleDragEnd}
@@ -498,10 +499,30 @@ export default function StickerSheetEditor() {
                     ))}
                   </div>
 
-                  <div className="absolute -top-3 -left-3 w-8 h-8 bg-white rounded-full border-2 border-yellow-600 cursor-nw-resize z-50 shadow-lg flex items-center justify-center" onMouseDown={(e) => handleMouseDown(e, 'nw')} onTouchStart={(e) => handleTouchStart(e, 'nw')}><div className="w-1.5 h-1.5 bg-yellow-600 rounded-full"/></div>
-                  <div className="absolute -top-3 -right-3 w-8 h-8 bg-white rounded-full border-2 border-yellow-600 cursor-ne-resize z-50 shadow-lg flex items-center justify-center" onMouseDown={(e) => handleMouseDown(e, 'ne')} onTouchStart={(e) => handleTouchStart(e, 'ne')}><div className="w-1.5 h-1.5 bg-yellow-600 rounded-full"/></div>
-                  <div className="absolute -bottom-3 -left-3 w-8 h-8 bg-white rounded-full border-2 border-yellow-600 cursor-sw-resize z-50 shadow-lg flex items-center justify-center" onMouseDown={(e) => handleMouseDown(e, 'sw')} onTouchStart={(e) => handleTouchStart(e, 'sw')}><div className="w-1.5 h-1.5 bg-yellow-600 rounded-full"/></div>
-                  <div className="absolute -bottom-3 -right-3 w-8 h-8 bg-white rounded-full border-2 border-yellow-600 cursor-se-resize z-50 shadow-lg flex items-center justify-center" onMouseDown={(e) => handleMouseDown(e, 'se')} onTouchStart={(e) => handleTouchStart(e, 'se')}><div className="w-1.5 h-1.5 bg-yellow-600 rounded-full"/></div>
+                  {/* NW handle */}
+                  <div className="absolute -top-5 -left-5 w-10 h-10 bg-white rounded-full border-2 border-yellow-600 cursor-nw-resize z-[60] shadow-xl flex items-center justify-center" 
+                    onMouseDown={(e) => handleMouseDown(e, 'nw')} 
+                    onTouchStart={(e) => handleTouchStart(e, 'nw')}>
+                    <div className="w-2 h-2 bg-yellow-600 rounded-full"/>
+                  </div>
+                  {/* NE handle */}
+                  <div className="absolute -top-5 -right-5 w-10 h-10 bg-white rounded-full border-2 border-yellow-600 cursor-ne-resize z-[60] shadow-xl flex items-center justify-center" 
+                    onMouseDown={(e) => handleMouseDown(e, 'ne')} 
+                    onTouchStart={(e) => handleTouchStart(e, 'ne')}>
+                    <div className="w-2 h-2 bg-yellow-600 rounded-full"/>
+                  </div>
+                  {/* SW handle */}
+                  <div className="absolute -bottom-5 -left-5 w-10 h-10 bg-white rounded-full border-2 border-yellow-600 cursor-sw-resize z-[60] shadow-xl flex items-center justify-center" 
+                    onMouseDown={(e) => handleMouseDown(e, 'sw')} 
+                    onTouchStart={(e) => handleTouchStart(e, 'sw')}>
+                    <div className="w-2 h-2 bg-yellow-600 rounded-full"/>
+                  </div>
+                  {/* SE handle */}
+                  <div className="absolute -bottom-5 -right-5 w-10 h-10 bg-white rounded-full border-2 border-yellow-600 cursor-se-resize z-[60] shadow-xl flex items-center justify-center" 
+                    onMouseDown={(e) => handleMouseDown(e, 'se')} 
+                    onTouchStart={(e) => handleTouchStart(e, 'se')}>
+                    <div className="w-2 h-2 bg-yellow-600 rounded-full"/>
+                  </div>
                 </div>
               </div>
 
