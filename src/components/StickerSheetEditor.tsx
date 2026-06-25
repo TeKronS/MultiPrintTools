@@ -1,0 +1,591 @@
+
+"use client";
+
+import { useState, useRef, useEffect, useMemo } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { 
+  ChevronLeft, 
+  StickyNote, 
+  FileDown, 
+  Loader2, 
+  Settings2,
+  RefreshCcw,
+  Maximize2,
+  Ruler,
+  Zap,
+  Crop,
+  Check,
+  Move
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger 
+} from "@/components/ui/select";
+import { 
+  Sheet, 
+  SheetContent, 
+  SheetHeader,
+  SheetTitle,
+  SheetDescription
+} from "@/components/ui/sheet";
+import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { Slider } from "@/components/ui/slider";
+import { jsPDF } from "jspdf";
+import { useToast } from "@/hooks/use-toast";
+import { Language, translations } from "@/lib/translations";
+import { LanguageSelector } from "./LanguageSelector";
+import { ThemeToggle } from "./ThemeToggle";
+import { ImageUploader } from "./ImageUploader";
+import logo from "@/app/icono.png";
+import { cn } from "@/lib/utils";
+
+const PAPER_DIMENSIONS: Record<string, { width: number; height: number; format: string }> = {
+  'Carta': { width: 215.9, height: 279.4, format: 'letter' },
+  'A4': { width: 210, height: 297, format: 'a4' },
+  'A3': { width: 297, height: 420, format: 'a3' },
+  'Oficio (Legal 35.5cm)': { width: 215.9, height: 355.6, format: 'legal' },
+  'Folio (33cm)': { width: 215.9, height: 330.2, format: 'folio' },
+  'Oficio (34cm)': { width: 216, height: 340, format: 'oficio' },
+  'Extra Oficio (38cm)': { width: 216, height: 380, format: 'extra-oficio' }
+};
+
+export default function StickerSheetEditor() {
+  const [mounted, setMounted] = useState(false);
+  const [lang, setLang] = useState<Language>('es');
+  const t = translations[lang];
+  const { toast } = useToast();
+
+  const [image, setImage] = useState<{ url: string; file: File; width: number; height: number } | null>(null);
+  const [isCropping, setIsCropping] = useState(true);
+  const [crop, setCrop] = useState({ x: 10, y: 10, width: 80, height: 80 }); // Percentages
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragType, setDragType] = useState<'move' | 'nw' | 'ne' | 'sw' | 'se' | null>(null);
+  const [startPos, setStartPos] = useState({ x: 0, y: 0 });
+  const [startCrop, setStartCrop] = useState({ x: 0, y: 0, width: 0, height: 0 });
+
+  const [stickerWidth, setStickerWidth] = useState(5); // cm
+  const [stickerHeight, setStickerHeight] = useState(5); // cm
+  const [paperSize, setPaperSize] = useState('Carta');
+  const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait');
+  const [marginV, setMarginV] = useState(1.2); // cm
+  const [marginH, setMarginH] = useState(0.7); // cm
+  
+  const [isExporting, setIsExporting] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const paper = useMemo(() => {
+    const p = PAPER_DIMENSIONS[paperSize];
+    return orientation === 'portrait' 
+      ? { width: Math.min(p.width, p.height), height: Math.max(p.width, p.height), format: p.format }
+      : { width: Math.max(p.width, p.height), height: Math.min(p.width, p.height), format: p.format };
+  }, [paperSize, orientation]);
+
+  const stats = useMemo(() => {
+    const printableW = paper.width - (marginH * 20);
+    const printableH = paper.height - (marginV * 20);
+    const stickerW_mm = stickerWidth * 10;
+    const stickerH_mm = stickerHeight * 10;
+
+    const cols = Math.floor(printableW / stickerW_mm);
+    const rows = Math.floor(printableH / stickerH_mm);
+
+    return {
+      cols: Math.max(0, cols),
+      rows: Math.max(0, rows),
+      total: Math.max(0, cols * rows),
+      totalW_mm: cols * stickerW_mm,
+      totalH_mm: rows * stickerH_mm
+    };
+  }, [paper, stickerWidth, stickerHeight, marginV, marginH]);
+
+  const handleImageUpload = (file: File, url: string) => {
+    const img = new window.Image();
+    img.src = url;
+    img.onload = () => {
+      setImage({ url, file, width: img.width, height: img.height });
+      setIsCropping(true);
+      setCrop({ x: 10, y: 10, width: 80, height: 80 });
+    };
+  };
+
+  const handleMouseDown = (e: React.MouseEvent, type: 'move' | 'nw' | 'ne' | 'sw' | 'se') => {
+    e.preventDefault();
+    setIsDragging(true);
+    setDragType(type);
+    setStartPos({ x: e.clientX, y: e.clientY });
+    setStartCrop({ ...crop });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || !dragType) return;
+
+    const container = e.currentTarget.getBoundingClientRect();
+    const dx = ((e.clientX - startPos.x) / container.width) * 100;
+    const dy = ((e.clientY - startPos.y) / container.height) * 100;
+
+    setCrop(prev => {
+      let next = { ...prev };
+      if (dragType === 'move') {
+        next.x = Math.min(Math.max(0, startCrop.x + dx), 100 - prev.width);
+        next.y = Math.min(Math.max(0, startCrop.y + dy), 100 - prev.height);
+      } else {
+        if (dragType.includes('n')) {
+          next.y = Math.min(Math.max(0, startCrop.y + dy), startCrop.y + startCrop.height - 5);
+          next.height = startCrop.height - (next.y - startCrop.y);
+        }
+        if (dragType.includes('s')) {
+          next.height = Math.min(Math.max(5, startCrop.height + dy), 100 - prev.y);
+        }
+        if (dragType.includes('w')) {
+          next.x = Math.min(Math.max(0, startCrop.x + dx), startCrop.x + startCrop.width - 5);
+          next.width = startCrop.width - (next.x - startCrop.x);
+        }
+        if (dragType.includes('e')) {
+          next.width = Math.min(Math.max(5, startCrop.width + dx), 100 - prev.x);
+        }
+      }
+      return next;
+    });
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+    setDragType(null);
+  };
+
+  const exportPdf = async () => {
+    if (!image || stats.total === 0) return;
+    setIsExporting(true);
+
+    try {
+      const img = new window.Image();
+      img.src = image.url;
+      await new Promise((resolve) => img.onload = resolve);
+
+      const pdf = new jsPDF({
+        orientation: orientation === 'portrait' ? 'p' : 'l',
+        unit: 'mm',
+        format: paper.format as any
+      });
+
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error("Canvas error");
+
+      // Calculate pixel crop coordinates
+      const sx = (crop.x / 100) * image.width;
+      const sy = (crop.y / 100) * image.height;
+      const sw = (crop.width / 100) * image.width;
+      const sh = (crop.height / 100) * image.height;
+
+      // High res rendering
+      const targetDpi = 300;
+      const mmToPx = targetDpi / 25.4;
+      const dw = (stickerWidth * 10) * mmToPx;
+      const dh = (stickerHeight * 10) * mmToPx;
+
+      canvas.width = dw;
+      canvas.height = dh;
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, dw, dh);
+
+      const stickerDataUrl = canvas.toDataURL('image/jpeg', 0.95);
+      
+      const offsetX = (paper.width - stats.totalW_mm) / 2;
+      const offsetY = (paper.height - stats.totalH_mm) / 2;
+
+      for (let r = 0; r < stats.rows; r++) {
+        for (let c = 0; c < stats.cols; c++) {
+          pdf.addImage(
+            stickerDataUrl, 
+            'JPEG', 
+            offsetX + (c * stickerWidth * 10), 
+            offsetY + (r * stickerHeight * 10), 
+            stickerWidth * 10, 
+            stickerHeight * 10
+          );
+        }
+      }
+
+      pdf.save(`MultiPrint-Stickers-${Date.now()}.pdf`);
+      toast({ title: "PDF Generado", description: "La plancha de stickers se ha descargado correctamente." });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Error", description: "Ocurrió un error al generar el PDF." });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const renderSettings = (isMobile?: boolean) => (
+    <div className="space-y-6">
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <Settings2 className="h-4 w-4 text-yellow-500" />
+          <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t.gridSettings}</h2>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-tight">{t.width}</Label>
+            <div className="relative">
+              <Input 
+                type="number" 
+                value={stickerWidth} 
+                onChange={(e) => setStickerWidth(parseFloat(e.target.value) || 0)}
+                className="h-9 font-bold text-xs bg-card border-2"
+              />
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[8px] font-black text-muted-foreground">CM</span>
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-tight">{t.height}</Label>
+            <div className="relative">
+              <Input 
+                type="number" 
+                value={stickerHeight} 
+                onChange={(e) => setStickerHeight(parseFloat(e.target.value) || 0)}
+                className="h-9 font-bold text-xs bg-card border-2"
+              />
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[8px] font-black text-muted-foreground">CM</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-1">
+          <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-tight">{t.paperSize}</Label>
+          <Select value={paperSize} onValueChange={setPaperSize}>
+            <SelectTrigger className="h-9 font-bold text-xs border-2">
+              <span className="truncate">{paperSize}</span>
+            </SelectTrigger>
+            <SelectContent>
+              {Object.keys(PAPER_DIMENSIONS).map(size => (
+                <SelectItem key={size} value={size} className="text-xs font-bold">{size}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1">
+          <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-tight">{t.orientation}</Label>
+          <Select value={orientation} onValueChange={(v: any) => setOrientation(v)}>
+            <SelectTrigger className="h-9 font-bold text-xs border-2">
+              <span className="truncate">{orientation === 'portrait' ? t.portrait : t.landscape}</span>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="portrait" className="text-xs font-bold">{t.portrait}</SelectItem>
+              <SelectItem value="landscape" className="text-xs font-bold">{t.landscape}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-4">
+          <div className="space-y-1">
+            <div className="flex justify-between">
+              <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-tight">{t.marginsVertical}</Label>
+              <span className="text-[10px] font-black text-yellow-600">{marginV} cm</span>
+            </div>
+            <Slider value={[marginV]} onValueChange={(v) => setMarginV(v[0])} min={0} max={5} step={0.1} />
+          </div>
+          <div className="space-y-1">
+            <div className="flex justify-between">
+              <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-tight">{t.marginsHorizontal}</Label>
+              <span className="text-[10px] font-black text-yellow-600">{marginH} cm</span>
+            </div>
+            <Slider value={[marginH]} onValueChange={(v) => setMarginH(v[0])} min={0} max={5} step={0.1} />
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-2xl p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <Zap className="h-4 w-4 text-yellow-600" />
+          <span className="text-[10px] font-black uppercase tracking-widest text-yellow-700">Resultado</span>
+        </div>
+        <div className="flex justify-between items-center">
+          <span className="text-[9px] font-black text-muted-foreground uppercase">{t.totalStickers}</span>
+          <span className="text-2xl font-black text-yellow-600">{stats.total}</span>
+        </div>
+        <div className="flex justify-between items-center pt-1">
+          <span className="text-[8px] font-bold text-muted-foreground uppercase">{t.stickersPerPage}</span>
+          <span className="text-[10px] font-black">{stats.cols} x {stats.rows}</span>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (!mounted) return null;
+
+  return (
+    <div className="flex flex-col h-screen bg-background font-body overflow-hidden transition-colors duration-300">
+      <header className="h-16 shrink-0 border-b border-border bg-background/80 backdrop-blur-md flex items-center justify-between px-6 z-50 shadow-sm">
+        <div className="flex items-center gap-4">
+          <Link href="/">
+            <Button variant="ghost" size="sm" className="gap-2 font-bold text-muted-foreground px-2">
+              <ChevronLeft className="h-4 w-4" /> 
+              <span className="hidden sm:inline text-xs">Inicio</span>
+            </Button>
+          </Link>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 relative rounded-lg overflow-hidden border bg-white dark:bg-slate-200 shrink-0">
+              <Image src={logo} alt="Logo" fill className="object-contain" />
+            </div>
+            <h1 className="text-sm sm:text-xl font-headline font-black tracking-tighter text-yellow-600 uppercase truncate">
+              {t.stickerSheetTitle}
+            </h1>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 sm:gap-4">
+          <ThemeToggle />
+          <LanguageSelector language={lang} setLanguage={setLang} />
+          {image && !isCropping && (
+            <Button 
+              className="hidden lg:flex bg-yellow-600 hover:bg-yellow-700 text-white font-black h-9 px-6 rounded-xl shadow-md gap-2"
+              onClick={exportPdf}
+              disabled={isExporting || stats.total === 0}
+            >
+              {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+              {isExporting ? "..." : t.export}
+            </Button>
+          )}
+        </div>
+      </header>
+
+      <main className="flex-1 flex overflow-hidden relative">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-12 bg-muted/30 flex flex-col items-center">
+          {!image ? (
+            <div className="max-w-lg w-full">
+              <ImageUploader 
+                onImageUpload={handleImageUpload} 
+                language={lang} 
+                t={t} 
+              />
+            </div>
+          ) : isCropping ? (
+            <div className="w-full max-w-2xl space-y-6 flex flex-col items-center">
+              <div className="text-center space-y-2">
+                <h2 className="text-2xl font-black uppercase tracking-tight text-foreground">{t.cropSticker}</h2>
+                <p className="text-xs text-muted-foreground font-medium">Ajusta el recuadro para definir el área del sticker.</p>
+              </div>
+              
+              <div 
+                className="relative bg-black rounded-3xl overflow-hidden shadow-2xl group border-4 border-card cursor-crosshair"
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+              >
+                <img 
+                  src={image.url} 
+                  alt="To Crop" 
+                  className="max-h-[60vh] object-contain select-none"
+                  draggable={false}
+                />
+                <div className="absolute inset-0 bg-black/60 pointer-events-none" />
+                
+                {/* Crop Area */}
+                <div 
+                  className="absolute border-2 border-white shadow-[0_0_0_9999px_rgba(0,0,0,0.6)] cursor-move"
+                  style={{
+                    left: `${crop.x}%`,
+                    top: `${crop.y}%`,
+                    width: `${crop.width}%`,
+                    height: `${crop.height}%`
+                  }}
+                  onMouseDown={(e) => handleMouseDown(e, 'move')}
+                >
+                  <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 opacity-30 pointer-events-none">
+                    {Array.from({ length: 9 }).map((_, i) => (
+                      <div key={i} className="border-[0.5px] border-white" />
+                    ))}
+                  </div>
+
+                  {/* Handles */}
+                  <div className="absolute -top-1.5 -left-1.5 w-4 h-4 bg-white rounded-full border-2 border-yellow-600 cursor-nw-resize" onMouseDown={(e) => handleMouseDown(e, 'nw')} />
+                  <div className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-white rounded-full border-2 border-yellow-600 cursor-ne-resize" onMouseDown={(e) => handleMouseDown(e, 'ne')} />
+                  <div className="absolute -bottom-1.5 -left-1.5 w-4 h-4 bg-white rounded-full border-2 border-yellow-600 cursor-sw-resize" onMouseDown={(e) => handleMouseDown(e, 'sw')} />
+                  <div className="absolute -bottom-1.5 -right-1.5 w-4 h-4 bg-white rounded-full border-2 border-yellow-600 cursor-se-resize" onMouseDown={(e) => handleMouseDown(e, 'se')} />
+                </div>
+              </div>
+
+              <Button 
+                className="bg-yellow-600 hover:bg-yellow-700 text-white font-black h-12 px-10 rounded-2xl shadow-xl gap-2 text-sm uppercase tracking-widest"
+                onClick={() => setIsCropping(false)}
+              >
+                <Check className="h-5 w-5" />
+                {t.confirmCrop}
+              </Button>
+            </div>
+          ) : (
+            <div className="w-full max-w-5xl space-y-8 pb-32 lg:pb-0">
+              <div className="flex flex-col lg:flex-row items-center justify-center gap-12">
+                {/* Paper Preview */}
+                <div 
+                  className="relative bg-white dark:bg-slate-200 shadow-[0_30px_90px_-20px_rgba(0,0,0,0.3)] rounded-sm overflow-hidden border border-border"
+                  style={{
+                    width: '320px',
+                    aspectRatio: `${paper.width} / ${paper.height}`
+                  }}
+                >
+                  <div 
+                    className="absolute inset-0"
+                    style={{
+                      padding: `${(marginV / paper.height) * 100}% ${(marginH / paper.width) * 100}%`
+                    }}
+                  >
+                    <div 
+                      className="w-full h-full grid gap-1 content-center justify-center"
+                      style={{
+                        gridTemplateColumns: `repeat(${stats.cols}, 1fr)`,
+                        gridTemplateRows: `repeat(${stats.rows}, 1fr)`
+                      }}
+                    >
+                      {Array.from({ length: stats.total }).map((_, i) => (
+                        <div 
+                          key={i} 
+                          className="bg-muted/20 border-[0.5px] border-black/5 overflow-hidden"
+                          style={{
+                            aspectRatio: `${stickerWidth} / ${stickerHeight}`
+                          }}
+                        >
+                          <div 
+                            className="w-full h-full relative"
+                            style={{
+                              overflow: 'hidden'
+                            }}
+                          >
+                            <img 
+                              src={image.url}
+                              alt=""
+                              className="absolute max-w-none"
+                              style={{
+                                width: `${(100 / crop.width) * 100}%`,
+                                height: `${(100 / crop.height) * 100}%`,
+                                left: `-${(crop.x / crop.width) * 100}%`,
+                                top: `-${(crop.y / crop.height) * 100}%`,
+                              }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sticker Info Card */}
+                <div className="flex flex-col gap-6 w-full max-w-sm">
+                  <div className="bg-card p-6 rounded-[2.5rem] border-4 border-card shadow-2xl space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-yellow-500/10 flex items-center justify-center">
+                        <Crop className="h-6 w-6 text-yellow-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-xs font-black text-muted-foreground uppercase tracking-widest">Crop Actual</h3>
+                        <Button 
+                          variant="link" 
+                          className="p-0 h-auto text-yellow-600 font-bold text-xs"
+                          onClick={() => setIsCropping(true)}
+                        >
+                          Editar Recorte
+                        </Button>
+                      </div>
+                    </div>
+                    <Separator className="opacity-50" />
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <span className="text-[9px] font-black text-muted-foreground uppercase block mb-1">Medida Seleccionada</span>
+                        <span className="text-base font-black text-foreground">{stickerWidth}x{stickerHeight} CM</span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-black text-muted-foreground uppercase block mb-1">Papel</span>
+                        <span className="text-base font-black text-foreground uppercase">{paperSize}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Button 
+                    variant="outline" 
+                    className="h-12 rounded-2xl border-2 font-black uppercase text-[10px] tracking-widest gap-2"
+                    onClick={() => setImage(null)}
+                  >
+                    <RefreshCcw className="h-4 w-4" />
+                    {t.changeSticker}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Desktop Sidebar */}
+        <aside className="hidden lg:flex w-80 bg-card border-l border-border flex-col shrink-0 shadow-2xl z-20">
+          <div className="flex-1 overflow-y-auto p-6">
+            {renderSettings()}
+          </div>
+          {image && !isCropping && (
+            <div className="p-6 border-t bg-muted/50">
+              <Button 
+                className="w-full h-14 bg-yellow-600 hover:bg-yellow-700 text-white font-black rounded-2xl shadow-xl shadow-yellow-500/20 text-xs gap-3 transition-all active:scale-95"
+                onClick={exportPdf}
+                disabled={isExporting || stats.total === 0}
+              >
+                {isExporting ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileDown className="h-5 w-5" />}
+                {isExporting ? "Generando..." : t.export}
+              </Button>
+            </div>
+          )}
+        </aside>
+
+        {/* Mobile Settings Button */}
+        {image && !isCropping && (
+          <div className="lg:hidden fixed bottom-6 left-6 right-6 z-[100] flex gap-3">
+            <div className="flex-1">
+              <Button 
+                className="w-full h-14 bg-yellow-600 hover:bg-yellow-700 text-white font-black rounded-2xl shadow-2xl uppercase tracking-widest text-xs gap-3"
+                onClick={exportPdf}
+                disabled={isExporting || stats.total === 0}
+              >
+                {isExporting ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileDown className="h-5 w-5" />}
+                {isExporting ? "..." : t.export}
+              </Button>
+            </div>
+            <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+              <Button 
+                size="icon" 
+                className="h-14 w-14 shrink-0 rounded-full shadow-2xl bg-slate-800 text-white hover:bg-slate-900 transition-all active:scale-95 border-4 border-white"
+                onPointerDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsMenuOpen(!isMenuOpen);
+                }}
+              >
+                <Settings2 className="h-6 w-6" />
+              </Button>
+              <SheetContent 
+                side="right" 
+                className="w-[85%] sm:w-[350px] p-6 bg-card backdrop-blur-xl shadow-2xl overflow-y-auto"
+                onOpenAutoFocus={(e) => e.preventDefault()}
+              >
+                <SheetHeader className="sr-only">
+                  <SheetTitle>Configuración de Stickers</SheetTitle>
+                  <SheetDescription>Ajustes de dimensiones y papel</SheetDescription>
+                </SheetHeader>
+                {renderSettings(true)}
+              </SheetContent>
+            </Sheet>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}

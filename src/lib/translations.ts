@@ -130,7 +130,16 @@ export const translations = {
     copied: 'Copied!',
     clear: 'Clear',
     characters: 'Characters',
-    words: 'Words'
+    words: 'Words',
+    // Sticker Sheet
+    stickerSheetTitle: 'Sticker Sheet Maker',
+    stickerSheetDesc: 'Calculate how many stickers fit on a sheet and generate a print-ready PDF.',
+    cropSticker: 'Crop Sticker',
+    confirmCrop: 'Confirm Crop',
+    stickerDimensions: 'Sticker Dimensions',
+    totalStickers: 'Total Stickers',
+    stickersPerPage: 'Stickers per Page',
+    changeSticker: 'Change Sticker'
   },
   es: {
     title: 'CUADRÍCULA POSTER',
@@ -260,6 +269,15 @@ export const translations = {
     copied: '¡Copiado!',
     clear: 'Limpiar',
     characters: 'Caracteres',
-    words: 'Palabras'
+    words: 'Palabras',
+    // Sticker Sheet
+    stickerSheetTitle: 'Plancha de Stickers',
+    stickerSheetDesc: 'Calcula cuántos stickers caben en una hoja y genera el PDF listo para imprimir.',
+    cropSticker: 'Recortar Sticker',
+    confirmCrop: 'Confirmar Recorte',
+    stickerDimensions: 'Dimensiones del Sticker',
+    totalStickers: 'Stickers Totales',
+    stickersPerPage: 'Stickers por Hoja',
+    changeSticker: 'Cambiar Sticker'
   }
 };

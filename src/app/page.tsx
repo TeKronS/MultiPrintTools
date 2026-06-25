@@ -15,7 +15,8 @@ import {
   Scissors,
   FileImage,
   Zap,
-  Type
+  Type,
+  StickyNote
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -50,6 +51,14 @@ export default function Home() {
       status: "active",
       badge: t.popular,
       featured: true
+    },
+    {
+      title: t.stickerSheetTitle,
+      description: t.stickerSheetDesc,
+      icon: <StickyNote className="h-8 w-8 text-yellow-500" />,
+      href: "/sticker-sheet",
+      status: "active",
+      badge: "STICKERS"
     },
     {
       title: t.resizerTitle,
