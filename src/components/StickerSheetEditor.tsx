@@ -19,7 +19,8 @@ import {
   Minus,
   Layout,
   Scissors,
-  FileText
+  FileText,
+  Move
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -419,7 +420,7 @@ export default function StickerSheetEditor() {
       </header>
 
       <main className="flex-1 flex overflow-hidden relative">
-        <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-muted/30 flex flex-col items-center justify-start lg:justify-center">
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-muted/30 flex flex-col items-center justify-start lg:justify-center relative">
           {!image ? (
             <div className="max-w-lg w-full">
               <ImageUploader 
@@ -485,9 +486,9 @@ export default function StickerSheetEditor() {
               </Button>
             </div>
           ) : (
-            <div className="w-full max-w-5xl flex flex-col lg:flex-row items-center lg:items-start justify-center gap-4 md:gap-8 pb-20 sm:pb-0">
+            <div className="w-full max-w-6xl flex flex-col lg:flex-row items-center lg:items-start justify-center gap-6 md:gap-12 pb-20 sm:pb-0">
               
-              <div className="flex flex-col gap-3 w-full max-w-[360px] animate-in slide-in-from-left-10 duration-500">
+              <div className="flex flex-col gap-3 w-full max-w-[340px] animate-in slide-in-from-left-10 duration-500 shrink-0">
                 <div className="bg-card p-4 rounded-[2rem] border-4 border-card shadow-2xl space-y-3 relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-24 h-24 bg-yellow-500/5 rounded-full -mr-12 -mt-12 blur-2xl" />
 
@@ -509,36 +510,36 @@ export default function StickerSheetEditor() {
                     </Button>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 relative z-10">
+                  <div className="grid grid-cols-2 gap-2 relative z-10">
                     <div className="space-y-1">
                       <Label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">Ancho</Label>
                       <div className="flex items-center gap-1">
-                         <Button variant="outline" size="icon" className="h-8 w-8 md:h-9 md:w-9 rounded-lg shrink-0 border-2 shadow-sm bg-white" onClick={() => updateSizes(stickerWidth - 0.1, 'w')}><Minus className="h-3 w-3"/></Button>
+                         <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg shrink-0 border-2 shadow-sm bg-white" onClick={() => updateSizes(stickerWidth - 0.1, 'w')}><Minus className="h-3 w-3"/></Button>
                          <Input 
                            type="number" 
                            value={stickerWidth} 
                            onChange={(e) => updateSizes(parseFloat(e.target.value), 'w')}
-                           className="h-8 md:h-9 flex-1 min-w-0 font-black text-xs md:text-sm bg-muted/20 border-2 rounded-lg text-center text-yellow-600 shadow-inner px-1"
+                           className="h-8 flex-1 min-w-0 font-black text-xs bg-muted/20 border-2 rounded-lg text-center text-yellow-600 shadow-inner px-1"
                          />
-                         <Button variant="outline" size="icon" className="h-8 w-8 md:h-9 md:w-9 rounded-lg shrink-0 border-2 shadow-sm bg-white" onClick={() => updateSizes(stickerWidth + 0.1, 'w')}><Plus className="h-3 w-3"/></Button>
+                         <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg shrink-0 border-2 shadow-sm bg-white" onClick={() => updateSizes(stickerWidth + 0.1, 'w')}><Plus className="h-3 w-3"/></Button>
                       </div>
                     </div>
                     <div className="space-y-1">
                       <Label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">Alto</Label>
                       <div className="flex items-center gap-1">
-                         <Button variant="outline" size="icon" className="h-8 w-8 md:h-9 md:w-9 rounded-lg shrink-0 border-2 shadow-sm bg-white" onClick={() => updateSizes(stickerHeight - 0.1, 'h')}><Minus className="h-3 w-3"/></Button>
+                         <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg shrink-0 border-2 shadow-sm bg-white" onClick={() => updateSizes(stickerHeight - 0.1, 'h')}><Minus className="h-3 w-3"/></Button>
                          <Input 
                            type="number" 
                            value={stickerHeight} 
                            onChange={(e) => updateSizes(parseFloat(e.target.value), 'h')}
-                           className="h-8 md:h-9 flex-1 min-w-0 font-black text-xs md:text-sm bg-muted/20 border-2 rounded-lg text-center text-yellow-600 shadow-inner px-1"
+                           className="h-8 flex-1 min-w-0 font-black text-xs bg-muted/20 border-2 rounded-lg text-center text-yellow-600 shadow-inner px-1"
                          />
-                         <Button variant="outline" size="icon" className="h-8 w-8 md:h-9 md:w-9 rounded-lg shrink-0 border-2 shadow-sm bg-white" onClick={() => updateSizes(stickerHeight + 0.1, 'h')}><Plus className="h-3 w-3"/></Button>
+                         <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg shrink-0 border-2 shadow-sm bg-white" onClick={() => updateSizes(stickerHeight + 0.1, 'h')}><Plus className="h-3 w-3"/></Button>
                       </div>
                     </div>
                   </div>
 
-                  <div className="space-y-1.5 relative z-10 pt-1">
+                  <div className="space-y-1 relative z-10 pt-1">
                     <Slider 
                       value={[stickerWidth]} 
                       onValueChange={(v) => updateSizes(v[0], 'w')} 
@@ -566,7 +567,10 @@ export default function StickerSheetEditor() {
 
                   <div className="space-y-1 relative z-10">
                     <div className="flex justify-between items-center bg-muted/30 p-2 rounded-xl border border-border shadow-sm">
-                      <span className="text-[10px] font-black text-foreground uppercase tracking-tight truncate">{paperSize}</span>
+                      <div className="flex flex-col">
+                        <span className="text-[7px] font-black text-muted-foreground uppercase leading-none">Papel</span>
+                        <span className="text-[10px] font-black text-foreground uppercase tracking-tight truncate">{paperSize}</span>
+                      </div>
                       <Badge variant="secondary" className="text-[8px] font-black uppercase px-2 py-0.5 bg-white shadow-sm border border-border/10 shrink-0">
                         {orientation === 'portrait' ? 'Vertical' : 'Horizontal'}
                       </Badge>
@@ -576,68 +580,112 @@ export default function StickerSheetEditor() {
                   <div className="pt-1 relative z-10">
                     <Button 
                       variant="outline" 
-                      className="w-full h-9 rounded-xl border-2 font-black uppercase text-[9px] tracking-widest gap-2 hover:bg-yellow-50 hover:text-yellow-600 hover:border-yellow-200 transition-all border-dashed border-muted-foreground/30"
+                      className="w-full h-8 rounded-xl border-2 font-black uppercase text-[8px] tracking-widest gap-2 hover:bg-yellow-50 hover:text-yellow-600 hover:border-yellow-200 transition-all border-dashed border-muted-foreground/30"
                       onClick={() => setImage(null)}
                     >
-                      <RefreshCcw className="h-3.5 w-3.5" />
+                      <RefreshCcw className="h-3 w-3" />
                       {t.changeSticker}
                     </Button>
                   </div>
                 </div>
               </div>
 
-              <div className="flex flex-col items-center animate-in slide-in-from-right-10 duration-500 w-full lg:w-auto">
-                <div 
-                  className="relative bg-white dark:bg-slate-200 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.4)] rounded-sm overflow-hidden border border-border shrink-0 origin-top transform scale-75 sm:scale-100"
-                  style={{
-                    width: '320px',
-                    aspectRatio: `${paper.width} / ${paper.height}`
-                  }}
-                >
+              <div className="flex-1 flex flex-col items-center animate-in slide-in-from-right-10 duration-500 w-full relative">
+                <div className="relative group/paper">
+                  {/* Reglas de medida laterales simuladas */}
+                  <div className="absolute -left-6 top-0 bottom-0 w-1 flex flex-col justify-between py-1 opacity-40">
+                     <div className="h-px w-3 bg-foreground/20" />
+                     <div className="h-px w-2 bg-foreground/20" />
+                     <div className="h-px w-3 bg-foreground/20" />
+                     <div className="h-px w-2 bg-foreground/20" />
+                     <div className="h-px w-3 bg-foreground/20" />
+                  </div>
+                  <div className="absolute left-0 -top-6 right-0 h-1 flex justify-between px-1 opacity-40">
+                     <div className="w-px h-3 bg-foreground/20" />
+                     <div className="w-px h-2 bg-foreground/20" />
+                     <div className="w-px h-3 bg-foreground/20" />
+                     <div className="w-px h-2 bg-foreground/20" />
+                     <div className="w-px h-3 bg-foreground/20" />
+                  </div>
+
                   <div 
-                    className="absolute inset-0"
+                    className="relative bg-white dark:bg-slate-300 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.4)] rounded-sm overflow-hidden border border-border shrink-0 origin-top transform scale-75 sm:scale-90 md:scale-100 transition-transform"
                     style={{
-                      padding: `${(marginV / paper.height) * 100}% ${(marginH / paper.width) * 100}%`
+                      width: '320px',
+                      aspectRatio: `${paper.width} / ${paper.height}`
                     }}
                   >
+                    {/* Visualización de Márgenes Reales */}
                     <div 
-                      className="w-full h-full grid content-center justify-center"
+                      className="absolute inset-0 bg-yellow-500/5 pointer-events-none border border-dashed border-yellow-600/20"
                       style={{
-                        gridTemplateColumns: `repeat(${stats.cols}, 1fr)`,
-                        gridTemplateRows: `repeat(${stats.rows}, 1fr)`,
-                        gap: `${(spacing / Math.max(paper.width, paper.height)) * 100}%`
+                        margin: `${(marginV / paper.height) * 100}% ${(marginH / paper.width) * 100}%`
+                      }}
+                    />
+
+                    {/* Contenedor de Stickers con padding de margen real */}
+                    <div 
+                      className="absolute inset-0 flex items-center justify-center"
+                      style={{
+                        padding: `${(marginV / paper.height) * 100}% ${(marginH / paper.width) * 100}%`
                       }}
                     >
-                      {Array.from({ length: stats.total }).map((_, i) => (
-                        <div 
-                          key={i} 
-                          className="bg-muted/10 border-[0.5px] border-black/5 overflow-hidden"
-                          style={{
-                            aspectRatio: `${stickerWidth} / ${stickerHeight}`
-                          }}
-                        >
-                          <div className="w-full h-full relative overflow-hidden">
-                            <img 
-                              src={image.url}
-                              alt=""
-                              className="absolute max-w-none"
-                              style={{
-                                width: `${(100 / crop.width) * 100}%`,
-                                height: `${(100 / crop.height) * 100}%`,
-                                left: `-${(crop.x / crop.width) * 100}%`,
-                                top: `-${(crop.y / crop.height) * 100}%`,
-                              }}
-                              draggable={false}
-                            />
+                      <div 
+                        className="w-full h-full grid content-center justify-center"
+                        style={{
+                          gridTemplateColumns: `repeat(${stats.cols}, ${stickerWidth}cm)`,
+                          gridTemplateRows: `repeat(${stats.rows}, ${stickerHeight}cm)`,
+                          gap: `${spacing}cm`,
+                          // Ajustamos el zoom interno para que el contenedor grid encaje en el espacio visual
+                          transform: `scale(${320 / paper.width * 0.1})`, 
+                          transformOrigin: 'center'
+                        }}
+                      >
+                        {Array.from({ length: stats.total }).map((_, i) => (
+                          <div 
+                            key={i} 
+                            className="bg-white shadow-[0_1px_3px_rgba(0,0,0,0.1)] border-[0.1px] border-black/10 overflow-hidden relative"
+                            style={{
+                              width: `${stickerWidth}cm`,
+                              height: `${stickerHeight}cm`,
+                            }}
+                          >
+                            <div className="w-full h-full relative overflow-hidden">
+                              <img 
+                                src={image.url}
+                                alt=""
+                                className="absolute max-w-none"
+                                style={{
+                                  width: `${(100 / crop.width) * 100}%`,
+                                  height: `${(100 / crop.height) * 100}%`,
+                                  left: `-${(crop.x / crop.width) * 100}%`,
+                                  top: `-${(crop.y / crop.height) * 100}%`,
+                                }}
+                                draggable={false}
+                              />
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Overlay de información de hoja */}
+                    <div className="absolute top-2 right-2 bg-black/5 px-2 py-0.5 rounded text-[7px] font-black text-black/30 uppercase tracking-widest pointer-events-none">
+                      {paperSize} {paper.width}x{paper.height}mm
                     </div>
                   </div>
                 </div>
-                <p className="mt-2 lg:mt-6 text-[9px] font-black text-muted-foreground uppercase tracking-[0.3em] bg-white px-3 py-1 rounded-full shadow-sm border border-border/40">
-                  Vista Previa Técnica
-                </p>
+
+                <div className="mt-8 flex items-center gap-6 animate-fade-in">
+                  <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-2xl border border-border shadow-sm">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Vista Previa Real</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-[9px] font-black text-yellow-600 uppercase tracking-widest bg-yellow-50 px-3 py-2 rounded-2xl border border-yellow-100">
+                    <Ruler className="h-3 w-3" />
+                    Espaciado: {spacing}cm
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -669,7 +717,7 @@ export default function StickerSheetEditor() {
                 onClick={exportPdf}
                 disabled={isExporting || stats.total === 0}
               >
-                {isExporting ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileDown className="h-4 w-4" />}
+                {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
                 {isExporting ? "..." : t.export}
               </Button>
             </div>
