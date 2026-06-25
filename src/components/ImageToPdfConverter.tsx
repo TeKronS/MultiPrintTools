@@ -16,7 +16,8 @@ import {
   ArrowRight,
   Smartphone,
   Monitor,
-  ImageIcon
+  ImageIcon,
+  Layers
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -85,15 +86,26 @@ export default function ImageToPdfConverter() {
 
   const paper = useMemo(() => PAPER_DIMENSIONS[paperSize], [paperSize]);
 
+  // Lista expandida con todas las copias
   const expandedImagesList = useMemo(() => {
-    const list: ImageData[] = [];
+    const list: (ImageData & { originalId: string })[] = [];
     images.forEach(img => {
       for (let i = 0; i < img.quantity; i++) {
-        list.push({ ...img, id: `${img.id}-copy-${i}` });
+        list.push({ ...img, id: `${img.id}-copy-${i}`, originalId: img.id });
       }
     });
     return list;
   }, [images]);
+
+  // Agrupación en páginas para la previsualización
+  const pages = useMemo(() => {
+    const p = [];
+    const n = parseInt(imagesPerPage);
+    for (let i = 0; i < expandedImagesList.length; i += n) {
+      p.push(expandedImagesList.slice(i, i + n));
+    }
+    return p;
+  }, [expandedImagesList, imagesPerPage]);
 
   const processFiles = (files: FileList | File[]) => {
     const newImages: ImageData[] = Array.from(files)
@@ -152,15 +164,23 @@ export default function ImageToPdfConverter() {
     setImages(prev => prev.map(img => img.id === id ? { ...img, orientation: orient } : img));
   };
 
-  const moveImage = (index: number, direction: 'up' | 'down') => {
+  const moveOriginalImage = (index: number, direction: 'up' | 'down') => {
     const newImages = [...images];
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
     if (targetIndex < 0 || targetIndex >= images.length) return;
-
     const temp = newImages[index];
     newImages[index] = newImages[targetIndex];
     newImages[targetIndex] = temp;
     setImages(newImages);
+  };
+
+  const getGridConfig = (n: number, orient: 'portrait' | 'landscape') => {
+    if (n === 1) return { rows: 1, cols: 1 };
+    if (n === 2) return orient === 'portrait' ? { rows: 2, cols: 1 } : { rows: 1, cols: 2 };
+    if (n === 4) return { rows: 2, cols: 2 };
+    if (n === 6) return orient === 'portrait' ? { rows: 3, cols: 2 } : { rows: 2, cols: 3 };
+    if (n === 8) return orient === 'portrait' ? { rows: 4, cols: 2 } : { rows: 2, cols: 4 };
+    return { rows: 1, cols: 1 };
   };
 
   const exportPdf = async () => {
@@ -196,24 +216,9 @@ export default function ImageToPdfConverter() {
         const usableWidth = pageWidth - (marginMm * 2);
         const usableHeight = pageHeight - (marginMm * 2);
 
-        let gridRows = 1;
-        let gridCols = 1;
-        
-        if (nPerPage === 2) {
-          if (currentPageOrient === 'portrait') { gridRows = 2; gridCols = 1; }
-          else { gridRows = 1; gridCols = 2; }
-        } else if (nPerPage === 4) {
-          gridRows = 2; gridCols = 2;
-        } else if (nPerPage === 6) {
-          if (currentPageOrient === 'portrait') { gridRows = 3; gridCols = 2; }
-          else { gridRows = 2; gridCols = 3; }
-        } else if (nPerPage === 8) {
-          if (currentPageOrient === 'portrait') { gridRows = 4; gridCols = 2; }
-          else { gridRows = 2; gridCols = 4; }
-        }
-
-        const cellWidth = usableWidth / gridCols;
-        const cellHeight = usableHeight / gridRows;
+        const { rows, cols } = getGridConfig(nPerPage, currentPageOrient);
+        const cellWidth = usableWidth / cols;
+        const cellHeight = usableHeight / rows;
 
         for (let j = 0; j < pageImages.length; j++) {
           const imgData = pageImages[j];
@@ -221,8 +226,8 @@ export default function ImageToPdfConverter() {
           htmlImg.src = imgData.url;
           await new Promise((resolve) => (htmlImg.onload = resolve));
 
-          const rowIdx = Math.floor(j / gridCols);
-          const colIdx = j % gridCols;
+          const rowIdx = Math.floor(j / cols);
+          const colIdx = j % cols;
 
           const imgRatio = htmlImg.width / htmlImg.height;
           const cellRatio = cellWidth / cellHeight;
@@ -366,12 +371,12 @@ export default function ImageToPdfConverter() {
 
       <div className="bg-muted p-2 rounded-xl border border-border space-y-0.5">
         <div className="flex justify-between items-center">
-          <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Resumen</span>
-          <span className="text-[10px] font-black text-primary">#{expandedImagesList.length}</span>
+          <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Originales</span>
+          <span className="text-[10px] font-black text-primary">#{images.length}</span>
         </div>
         <div className="flex justify-between items-center">
           <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Hojas Totales</span>
-          <span className="text-[10px] font-black text-foreground">{Math.ceil(expandedImagesList.length / parseInt(imagesPerPage))}</span>
+          <span className="text-[10px] font-black text-foreground">{pages.length}</span>
         </div>
       </div>
 
@@ -423,40 +428,48 @@ export default function ImageToPdfConverter() {
       </header>
 
       <main className="flex-1 flex overflow-hidden relative">
-        <aside className="hidden md:flex w-[80px] bg-card border-r border-border flex-col items-center py-4 gap-3 overflow-y-auto shrink-0 shadow-inner z-10 scrollbar-hide">
-          {expandedImagesList.map((img, idx) => (
-            <div 
-              key={img.id} 
-              className="relative w-12 aspect-[3/4] border border-border rounded-sm overflow-hidden bg-muted/30 shadow-sm transition-all hover:border-primary/50 group cursor-pointer shrink-0"
-              onClick={() => {
-                document.getElementById(`page-${img.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              }}
-            >
-              <img src={img.url} alt="" className="w-full h-full object-cover" />
-              <div className="absolute top-0 left-0 bg-primary/90 backdrop-blur-sm text-[8px] font-black text-white px-1 min-w-[14px] text-center rounded-br-[2px] shadow-sm">
-                {idx + 1}
+        <aside className="hidden md:flex w-[80px] bg-card border-r border-border flex-col items-center py-4 gap-4 overflow-y-auto shrink-0 shadow-inner z-10 scrollbar-hide">
+          <div className="flex flex-col gap-4 w-full items-center">
+            <span className="text-[8px] font-black text-muted-foreground uppercase text-center px-1">Páginas</span>
+            {pages.map((page, idx) => (
+              <div 
+                key={idx} 
+                className="relative w-12 aspect-[3/4] border border-border rounded-sm overflow-hidden bg-muted/30 shadow-sm transition-all hover:border-primary/50 group cursor-pointer shrink-0"
+                onClick={() => {
+                  document.getElementById(`page-view-${idx}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }}
+              >
+                <div className="grid grid-cols-2 grid-rows-2 h-full gap-[1px] bg-muted/20">
+                  {page.slice(0, 4).map((img, i) => (
+                    <img key={i} src={img.url} alt="" className="w-full h-full object-cover" />
+                  ))}
+                </div>
+                <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors" />
+                <div className="absolute top-0 left-0 bg-primary/90 backdrop-blur-sm text-[8px] font-black text-white px-1 min-w-[14px] text-center rounded-br-[2px] shadow-sm">
+                  {idx + 1}
+                </div>
               </div>
-            </div>
-          ))}
-          <button 
-            onClick={() => fileInputRef.current?.click()}
-            className="w-12 h-12 border border-dashed border-border rounded-sm flex items-center justify-center hover:bg-muted hover:border-primary/50 transition-colors text-muted-foreground shrink-0"
-          >
-            <Plus className="h-4 w-4" />
-          </button>
+            ))}
+            <button 
+              onClick={() => fileInputRef.current?.click()}
+              className="w-12 h-12 border border-dashed border-border rounded-sm flex items-center justify-center hover:bg-muted hover:border-primary/50 transition-colors text-muted-foreground shrink-0"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+          </div>
         </aside>
 
-        <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-muted/30 scroll-smooth">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-12 bg-muted/30 scroll-smooth">
           <div className="max-w-6xl mx-auto h-full">
             {images.length === 0 ? (
-              <div className="flex items-center justify-center h-full min-h-[150px] w-full">
+              <div className="flex items-center justify-center h-full min-h-[300px] w-full">
                 <div 
                   onClick={() => fileInputRef.current?.click()}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
                   className={cn(
-                    "flex flex-col items-center justify-center min-h-[300px] h-full w-full border-4 border-dashed rounded-[3rem] transition-all cursor-pointer group bg-card shadow-xl",
+                    "flex flex-col items-center justify-center min-h-[400px] h-full w-full border-4 border-dashed rounded-[3rem] transition-all cursor-pointer group bg-card shadow-xl",
                     isDragging ? "border-primary bg-primary/5 scale-[1.02]" : "border-primary/20 hover:border-primary/40"
                   )}
                 >
@@ -468,141 +481,83 @@ export default function ImageToPdfConverter() {
                 </div>
               </div>
             ) : (
-              <div className="flex flex-wrap gap-8 items-start justify-center pb-32">
-                {images.map((img, idx) => {
-                  const currentImgOrient = img.orientation || orientation;
-                  const paperW = currentImgOrient === 'portrait' ? paper.width : paper.height;
-                  const paperH = currentImgOrient === 'portrait' ? paper.height : paper.width;
-                  const currentAspectRatio = paperW / paperH;
+              <div className="flex flex-col gap-16 items-center pb-40">
+                {pages.map((pageImgs, pageIdx) => {
+                  const nPerPage = parseInt(imagesPerPage);
+                  const isSingle = nPerPage === 1;
+                  const currentOrient = (isSingle && pageImgs[0].orientation) ? pageImgs[0].orientation : orientation;
+                  const paperW = currentOrient === 'portrait' ? paper.width : paper.height;
+                  const paperH = currentOrient === 'portrait' ? paper.height : paper.width;
+                  const aspect = paperW / paperH;
+                  const marginMm = margin * 10;
+                  const marginX = (marginMm / paperW) * 100;
+                  const marginY = (marginMm / paperH) * 100;
 
-                  const marginPercentX = (margin * 10 / paperW) * 100;
-                  const marginPercentY = (margin * 10 / paperH) * 100;
+                  const { rows, cols } = getGridConfig(nPerPage, currentOrient);
 
                   return (
                     <div 
-                      key={img.id} 
-                      id={`page-${img.id}`}
-                      className="relative group w-full max-w-[200px] animate-fade-in"
+                      key={pageIdx} 
+                      id={`page-view-${pageIdx}`}
+                      className="relative w-full max-w-[500px] animate-fade-in group"
                     >
-                      <div className="absolute -top-3 -right-3 z-20 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button 
-                          size="icon" 
-                          variant="destructive" 
-                          className="h-7 w-7 rounded-lg shadow-lg" 
-                          onClick={() => removeImage(img.id)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                        <div className="flex flex-col gap-1">
-                          <Button 
-                            size="icon" 
-                            variant="secondary" 
-                            className="h-7 w-7 rounded-lg shadow-lg" 
-                            onClick={() => moveImage(idx, 'up')} 
-                            disabled={idx === 0}
-                          >
-                            <ArrowLeft className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button 
-                            size="icon" 
-                            variant="secondary" 
-                            className="h-7 w-7 rounded-lg shadow-lg" 
-                            onClick={() => moveImage(idx, 'down')} 
-                            disabled={idx === images.length - 1}
-                          >
-                            <ArrowRight className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </div>
-
-                      <div className="mb-2 flex items-center justify-between">
-                        <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Original {idx + 1}</span>
-                        <span className="text-[9px] font-bold text-muted-foreground truncate max-w-[120px]">{img.name}</span>
+                      <div className="mb-4 flex items-center justify-between px-2">
+                        <Badge variant="outline" className="bg-white/80 dark:bg-slate-800 border-primary/20 text-[10px] font-black px-3 py-1">
+                          PÁGINA {pageIdx + 1} / {pages.length}
+                        </Badge>
+                        <span className="text-[9px] font-bold text-muted-foreground uppercase">{currentOrient === 'portrait' ? 'Vertical' : 'Horizontal'}</span>
                       </div>
 
                       <div 
-                        className="relative w-full bg-white dark:bg-slate-200 shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-sm overflow-hidden border border-border"
-                        style={{ aspectRatio: `${currentAspectRatio}` }}
+                        className="relative w-full bg-white dark:bg-slate-200 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] rounded-sm overflow-hidden border border-border"
+                        style={{ aspectRatio: `${aspect}` }}
                       >
                         <div 
-                          className="absolute inset-0 bg-white dark:bg-slate-200" 
+                          className="absolute inset-0 grid gap-2" 
                           style={{ 
-                            top: `${marginPercentY}%`, 
-                            bottom: `${marginPercentY}%`, 
-                            left: `${marginPercentX}%`, 
-                            right: `${marginPercentX}%` 
+                            padding: `${marginY}% ${marginX}%`,
+                            gridTemplateRows: `repeat(${rows}, 1fr)`,
+                            gridTemplateColumns: `repeat(${cols}, 1fr)`
                           }}
                         >
-                          <img 
-                            src={img.url} 
-                            alt={img.name} 
-                            className={cn(
-                              "w-full h-full",
-                              fitMode === 'fit' ? 'object-contain' : 'object-cover'
-                            )} 
-                          />
-                        </div>
-                      </div>
-                      
-                      <div className="mt-3 bg-card p-2 rounded-xl border border-border shadow-sm space-y-3">
-                        <div className="space-y-1.5">
-                          <div className="flex items-center justify-between px-1">
-                            <Label className="text-[9px] font-black uppercase text-muted-foreground">{t.orientation}</Label>
-                            <span className="text-[9px] font-black text-primary uppercase">{currentImgOrient === 'portrait' ? t.portrait : t.landscape}</span>
-                          </div>
-                          <div className="grid grid-cols-2 gap-1">
-                            <Button 
-                              variant={currentImgOrient === 'portrait' ? 'default' : 'outline'} 
-                              size="sm" 
-                              className="h-7 px-0 rounded-lg"
-                              onClick={() => updateImageOrientation(img.id, 'portrait')}
-                            >
-                              <Smartphone className="h-3 w-3 mr-1" />
-                              <span className="text-[8px] font-black uppercase">{t.portrait}</span>
-                            </Button>
-                            <Button 
-                              variant={currentImgOrient === 'landscape' ? 'default' : 'outline'} 
-                              size="sm" 
-                              className="h-7 px-0 rounded-lg"
-                              onClick={() => updateImageOrientation(img.id, 'landscape')}
-                            >
-                              <Monitor className="h-3 w-3 mr-1" />
-                              <span className="text-[8px] font-black uppercase">{t.landscape}</span>
-                            </Button>
-                          </div>
-                        </div>
-
-                        <Separator className="opacity-50" />
-
-                        <div className="space-y-1.5">
-                          <div className="flex items-center justify-between px-1">
-                            <Label className="text-[9px] font-black uppercase text-muted-foreground">{t.quantity}</Label>
-                            <span className="text-[10px] font-black text-primary">{img.quantity} {t.copies}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Button 
-                              variant="outline" 
-                              size="icon" 
-                              className="h-7 w-7 rounded-lg"
-                              onClick={() => updateQuantity(img.id, img.quantity - 1)}
-                            >
-                              <X className="h-3 w-3 rotate-45" />
-                            </Button>
-                            <Input 
-                              type="number" 
-                              value={img.quantity}
-                              onChange={(e) => updateQuantity(img.id, parseInt(e.target.value) || 1)}
-                              className="h-7 text-center font-black text-xs p-0 border-none bg-muted rounded-md"
-                            />
-                            <Button 
-                              variant="outline" 
-                              size="icon" 
-                              className="h-7 w-7 rounded-lg"
-                              onClick={() => updateQuantity(img.id, img.quantity + 1)}
-                            >
-                              <Plus className="h-3 w-3" />
-                            </Button>
-                          </div>
+                          {pageImgs.map((img, i) => (
+                            <div key={img.id} className="relative group/img w-full h-full bg-muted/5 rounded-[1px] overflow-hidden">
+                              <img 
+                                src={img.url} 
+                                alt="" 
+                                className={cn(
+                                  "w-full h-full",
+                                  fitMode === 'fit' ? 'object-contain' : 'object-cover'
+                                )} 
+                              />
+                              
+                              {/* Controles de Imagen dentro de la página */}
+                              <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/10 transition-colors pointer-events-none" />
+                              <div className="absolute top-1 right-1 flex flex-col gap-1 opacity-0 group-hover/img:opacity-100 transition-opacity pointer-events-auto">
+                                <Button 
+                                  size="icon" 
+                                  variant="destructive" 
+                                  className="h-6 w-6 rounded-md shadow-lg" 
+                                  onClick={() => removeImage(img.originalId)}
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+                              <div className="absolute bottom-1 left-1 flex gap-1 opacity-0 group-hover/img:opacity-100 transition-opacity pointer-events-auto">
+                                <Button 
+                                  variant="secondary" 
+                                  size="icon" 
+                                  className="h-6 w-6 rounded-md shadow-lg bg-white/90"
+                                  onClick={() => updateImageOrientation(img.originalId, img.orientation === 'landscape' ? 'portrait' : 'landscape')}
+                                >
+                                  {img.orientation === 'landscape' ? <Smartphone className="h-3 w-3" /> : <Monitor className="h-3 w-3" />}
+                                </Button>
+                                <div className="bg-white/90 px-1.5 h-6 rounded-md flex items-center shadow-lg border border-border">
+                                  <span className="text-[9px] font-black text-primary">QTY: {img.quantity}</span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     </div>
@@ -623,6 +578,33 @@ export default function ImageToPdfConverter() {
         </div>
 
         <aside className="hidden lg:block w-72 bg-card border-l border-border shadow-xl p-5 overflow-y-auto shrink-0 z-20">
+          <div className="mb-6 bg-primary/5 p-4 rounded-2xl border border-primary/10">
+            <div className="flex items-center gap-2 mb-2">
+              <Layers className="h-4 w-4 text-primary" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-primary">Gestionar Originales</span>
+            </div>
+            <div className="space-y-3">
+              {images.map((img, idx) => (
+                <div key={img.id} className="flex items-center gap-2 bg-background p-2 rounded-lg border border-border">
+                  <div className="w-8 h-8 rounded bg-muted overflow-hidden shrink-0">
+                    <img src={img.url} className="w-full h-full object-cover" alt="" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[9px] font-bold truncate leading-none mb-1">{img.name}</p>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => updateQuantity(img.id, img.quantity - 1)} className="text-muted-foreground hover:text-primary"><X className="h-2.5 w-2.5 rotate-45"/></button>
+                      <span className="text-[9px] font-black">{img.quantity}</span>
+                      <button onClick={() => updateQuantity(img.id, img.quantity + 1)} className="text-muted-foreground hover:text-primary"><Plus className="h-2.5 w-2.5"/></button>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <button onClick={() => moveOriginalImage(idx, 'up')} disabled={idx === 0} className="text-muted-foreground hover:text-primary disabled:opacity-30"><ArrowLeft className="h-3 w-3 rotate-90"/></button>
+                    <button onClick={() => moveOriginalImage(idx, 'down')} disabled={idx === images.length - 1} className="text-muted-foreground hover:text-primary disabled:opacity-30"><ArrowRight className="h-3 w-3 rotate-90"/></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
           {renderSettingsContent()}
         </aside>
 
