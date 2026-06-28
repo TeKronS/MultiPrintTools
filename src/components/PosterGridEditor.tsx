@@ -406,15 +406,12 @@ export default function PosterGridEditor() {
           if (c < activeCols - 1) { const gx = (appliedMH * 10) + (printableW - overlapMm); pdf.line(gx, appliedMV * 10, gx, appliedMV * 10 + printableH); }
           if (r < activeRows - 1) { const gy = (appliedMV * 10) + (printableH - overlapMm); pdf.line(appliedMH * 10, gy, appliedMH * 10 + printableW, gy); }
           
-          // PIE DE PÁGINA TÉCNICO ADAPTATIVO
           pdf.setFontSize(7); pdf.setTextColor(180);
           const footerText = `MULTIPRINTTOOLS | CUADRÍCULA POSTER | PANEL ${r+1}-${c+1} | ${activePaperSize} (${activeOrientation === 'portrait' ? 'P' : 'L'})`;
           
           if (activeOrientation === 'portrait') {
-            // Portrait: Borde inferior físico
             pdf.text(footerText, appliedMH * 10, paper.height - (appliedMV * 5));
           } else {
-            // Landscape: Posicionamiento anclado al margen inferior físico solicitado
             pdf.text(footerText, paper.width - (appliedMH * 5), paper.height - (appliedMV * 10), { angle: 90 });
           }
         }
@@ -590,7 +587,7 @@ export default function PosterGridEditor() {
       </header>
 
       <main className="flex-1 flex overflow-hidden relative">
-        <section className={cn("flex-1 relative bg-muted/30 flex flex-col items-center overflow-y-auto lg:overflow-hidden", !image ? "justify-start py-8" : "justify-start")}>
+        <section className={cn("flex-1 relative bg-muted/30 flex flex-col items-center overflow-y-auto", !image ? "justify-start py-8" : "justify-start")}>
           {!image ? (
             <div className="max-w-lg w-full px-6 lg:p-8 animate-fade-in text-center flex flex-col gap-6 lg:gap-8 my-auto"><div className="order-1"><ImageUploader onImageUpload={handleImageUpload} language={lang} t={t} /></div><div className="order-2 space-y-2"><h2 className="text-2xl lg:text-3xl font-headline font-black tracking-tighter">{lang === 'es' ? 'Preparar nuevo poster' : 'Prepare new poster'}</h2><p className="text-muted-foreground font-medium text-sm lg:text-base">{lang === 'es' ? 'Sube una imagen de alta resolución para generar tu cuadrícula.' : 'Upload a high-resolution image to generate your grid.'}</p></div></div>
           ) : (
