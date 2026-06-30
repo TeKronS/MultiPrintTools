@@ -497,21 +497,13 @@ export default function PdfMergeTool() {
       />
 
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-        <DialogContent className="max-w-5xl w-[95vw] h-[90vh] md:h-[85vh] p-0 gap-0 overflow-hidden flex flex-col rounded-[2rem] border-none shadow-2xl">
+        <DialogContent className="max-w-5xl w-[95vw] h-[90vh] md:h-[85vh] p-0 gap-0 overflow-hidden flex flex-col rounded-[2rem] border-none shadow-2xl [&>button]:text-white [&>button]:opacity-100">
           <DialogHeader className="p-4 md:p-6 bg-indigo-600 text-white shrink-0">
             <div className="flex items-center justify-between">
-              <div className="min-w-0 pr-4">
+              <div className="min-w-0 pr-12">
                 <DialogTitle className="text-lg md:text-xl font-headline font-black uppercase tracking-tighter truncate">{previewTitle}</DialogTitle>
                 <DialogDescription className="text-indigo-100 font-medium truncate text-xs">Revisa el documento antes de continuar</DialogDescription>
               </div>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="text-white hover:bg-indigo-500 rounded-full shrink-0"
-                onClick={() => setIsPreviewOpen(false)}
-              >
-                <X className="h-5 w-5" />
-              </Button>
             </div>
           </DialogHeader>
           
