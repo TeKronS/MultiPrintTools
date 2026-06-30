@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -63,6 +62,7 @@ export default function PdfMergeTool() {
   
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewTitle, setPreviewTitle] = useState("");
 
   useEffect(() => {
     setMounted(true);
@@ -188,13 +188,12 @@ export default function PdfMergeTool() {
     link.download = fileName;
     link.click();
     
-    // Revocar después de un tiempo para liberar memoria
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     
     toast({ title: "¡Éxito!", description: "Archivos combinados correctamente." });
   };
 
-  const handlePreview = async () => {
+  const handlePreviewMerged = async () => {
     const blob = await generatePdfBlob();
     if (!blob) return;
 
@@ -202,6 +201,15 @@ export default function PdfMergeTool() {
     
     const url = URL.createObjectURL(blob);
     setPreviewUrl(url);
+    setPreviewTitle(t.preview);
+    setIsPreviewOpen(true);
+  };
+
+  const handleIndividualPreview = (file: File, name: string) => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+    setPreviewTitle(name);
     setIsPreviewOpen(true);
   };
 
@@ -284,7 +292,17 @@ export default function PdfMergeTool() {
                         <h4 className="text-sm font-black text-foreground truncate">{file.name}</h4>
                         <p className="text-[10px] font-bold text-muted-foreground uppercase">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
                       </div>
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-9 w-9 rounded-xl text-indigo-500 hover:bg-indigo-50"
+                          onClick={() => handleIndividualPreview(file.file, file.name)}
+                          title="Ver archivo"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        
                         <div className="flex flex-col gap-1">
                           <Button 
                             variant="secondary" 
@@ -379,7 +397,7 @@ export default function PdfMergeTool() {
             <Button 
               variant="outline"
               className="w-full h-12 border-2 border-indigo-200 hover:border-indigo-500 text-indigo-600 font-black rounded-xl gap-2 uppercase tracking-widest text-[10px] transition-all active:scale-95"
-              onClick={handlePreview}
+              onClick={handlePreviewMerged}
               disabled={files.length < 2 || isMerging}
             >
               <Eye className="h-4 w-4" />
@@ -410,7 +428,7 @@ export default function PdfMergeTool() {
               <Button 
                 variant="secondary"
                 className="h-14 aspect-square p-0 rounded-2xl shadow-xl bg-white border-2 border-indigo-100 text-indigo-600 active:scale-95"
-                onClick={handlePreview}
+                onClick={handlePreviewMerged}
                 disabled={files.length < 2 || isMerging}
               >
                 <Eye className="h-6 w-6" />
@@ -441,14 +459,14 @@ export default function PdfMergeTool() {
         <DialogContent className="max-w-5xl w-[95vw] h-[90vh] p-0 gap-0 overflow-hidden flex flex-col rounded-[2rem] border-none shadow-2xl">
           <DialogHeader className="p-6 bg-indigo-600 text-white shrink-0">
             <div className="flex items-center justify-between">
-              <div>
-                <DialogTitle className="text-xl font-headline font-black uppercase tracking-tighter">{t.preview}</DialogTitle>
-                <DialogDescription className="text-indigo-100 font-medium">Revisa el documento antes de la descarga final</DialogDescription>
+              <div className="min-w-0 pr-4">
+                <DialogTitle className="text-xl font-headline font-black uppercase tracking-tighter truncate">{previewTitle}</DialogTitle>
+                <DialogDescription className="text-indigo-100 font-medium truncate">Revisa el documento antes de continuar</DialogDescription>
               </div>
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="text-white hover:bg-indigo-500 rounded-full"
+                className="text-white hover:bg-indigo-500 rounded-full shrink-0"
                 onClick={() => setIsPreviewOpen(false)}
               >
                 <X className="h-5 w-5" />
