@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -17,7 +18,8 @@ import {
   Download,
   AlertCircle,
   Copy,
-  FileType
+  FileType,
+  Eye
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -25,6 +27,13 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription
+} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Language, translations } from "@/lib/translations";
 import { LanguageSelector } from "./LanguageSelector";
@@ -51,9 +60,16 @@ export default function PdfMergeTool() {
   const [isMerging, setIsMerging] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [outputName, setOutputName] = useState("");
+  
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    const savedLang = localStorage.getItem('pref-lang') as Language;
+    if (savedLang === 'en' || savedLang === 'es') {
+      setLang(savedLang);
+    }
   }, []);
 
   const processFiles = (newFiles: FileList | File[]) => {
@@ -118,10 +134,10 @@ export default function PdfMergeTool() {
     setFiles(newFiles);
   };
 
-  const mergePdfs = async () => {
+  const generatePdfBlob = async (): Promise<Blob | null> => {
     if (files.length < 2) {
       toast({ title: "Atención", description: "Selecciona al menos 2 archivos para combinar." });
-      return;
+      return null;
     }
 
     setIsMerging(true);
@@ -143,29 +159,50 @@ export default function PdfMergeTool() {
       }
 
       const mergedPdfBytes = await mergedPdf.save();
-      const blob = new Blob([mergedPdfBytes], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      
-      const fileName = outputName.trim() 
-        ? (outputName.toLowerCase().endsWith('.pdf') ? outputName : `${outputName}.pdf`)
-        : `MultiPrintTools-Merged-${Date.now()}.pdf`;
-        
-      link.download = fileName;
-      link.click();
-      
-      toast({ title: "¡Éxito!", description: "Archivos combinados correctamente." });
+      return new Blob([mergedPdfBytes], { type: 'application/pdf' });
     } catch (error: any) {
       console.error(error);
       toast({ 
         variant: "destructive", 
         title: "Error de combinación", 
-        description: error.message || "No se pudieron combinar los archivos. Verifica que no estén protegidos por contraseña." 
+        description: error.message || "No se pudieron procesar los archivos." 
       });
+      return null;
     } finally {
       setIsMerging(false);
     }
+  };
+
+  const mergeAndDownload = async () => {
+    const blob = await generatePdfBlob();
+    if (!blob) return;
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    
+    const fileName = outputName.trim() 
+      ? (outputName.toLowerCase().endsWith('.pdf') ? outputName : `${outputName}.pdf`)
+      : `MultiPrintTools-Merged-${Date.now()}.pdf`;
+      
+    link.download = fileName;
+    link.click();
+    
+    // Revocar después de un tiempo para liberar memoria
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    
+    toast({ title: "¡Éxito!", description: "Archivos combinados correctamente." });
+  };
+
+  const handlePreview = async () => {
+    const blob = await generatePdfBlob();
+    if (!blob) return;
+
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    
+    const url = URL.createObjectURL(blob);
+    setPreviewUrl(url);
+    setIsPreviewOpen(true);
   };
 
   if (!mounted) return null;
@@ -338,10 +375,19 @@ export default function PdfMergeTool() {
             )}
           </div>
 
-          <div className="pt-6">
+          <div className="pt-6 space-y-3">
+            <Button 
+              variant="outline"
+              className="w-full h-12 border-2 border-indigo-200 hover:border-indigo-500 text-indigo-600 font-black rounded-xl gap-2 uppercase tracking-widest text-[10px] transition-all active:scale-95"
+              onClick={handlePreview}
+              disabled={files.length < 2 || isMerging}
+            >
+              <Eye className="h-4 w-4" />
+              {t.preview}
+            </Button>
             <Button 
               className="w-full h-14 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-2xl shadow-xl shadow-indigo-500/20 uppercase tracking-widest text-xs gap-3 transition-all active:scale-95"
-              onClick={mergePdfs}
+              onClick={mergeAndDownload}
               disabled={files.length < 2 || isMerging}
             >
               {isMerging ? <Loader2 className="h-5 w-5 animate-spin" /> : <Download className="h-5 w-5" />}
@@ -360,14 +406,24 @@ export default function PdfMergeTool() {
                 className="h-10 border-none bg-muted font-bold text-sm rounded-xl text-center"
               />
             </div>
-            <Button 
-              className="w-full h-14 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-2xl shadow-2xl uppercase tracking-widest text-sm gap-3 border-4 border-white/10"
-              onClick={mergePdfs}
-              disabled={files.length < 2 || isMerging}
-            >
-              {isMerging ? <Loader2 className="h-5 w-5 animate-spin" /> : <Download className="h-5 w-5" />}
-              {isMerging ? t.merging : t.mergeAction}
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                variant="secondary"
+                className="h-14 aspect-square p-0 rounded-2xl shadow-xl bg-white border-2 border-indigo-100 text-indigo-600 active:scale-95"
+                onClick={handlePreview}
+                disabled={files.length < 2 || isMerging}
+              >
+                <Eye className="h-6 w-6" />
+              </Button>
+              <Button 
+                className="flex-1 h-14 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-2xl shadow-xl shadow-indigo-500/20 uppercase tracking-widest text-sm gap-3 border-4 border-white/10"
+                onClick={mergeAndDownload}
+                disabled={files.length < 2 || isMerging}
+              >
+                {isMerging ? <Loader2 className="h-5 w-5 animate-spin" /> : <Download className="h-5 w-5" />}
+                {isMerging ? t.merging : t.mergeAction}
+              </Button>
+            </div>
           </div>
         )}
       </main>
@@ -380,6 +436,45 @@ export default function PdfMergeTool() {
         onChange={handleFileSelect} 
         className="hidden" 
       />
+
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="max-w-5xl w-[95vw] h-[90vh] p-0 gap-0 overflow-hidden flex flex-col rounded-[2rem] border-none shadow-2xl">
+          <DialogHeader className="p-6 bg-indigo-600 text-white shrink-0">
+            <div className="flex items-center justify-between">
+              <div>
+                <DialogTitle className="text-xl font-headline font-black uppercase tracking-tighter">{t.preview}</DialogTitle>
+                <DialogDescription className="text-indigo-100 font-medium">Revisa el documento antes de la descarga final</DialogDescription>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="text-white hover:bg-indigo-500 rounded-full"
+                onClick={() => setIsPreviewOpen(false)}
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+          </DialogHeader>
+          <div className="flex-1 bg-muted relative overflow-hidden">
+            {previewUrl && (
+              <iframe 
+                src={`${previewUrl}#toolbar=0`} 
+                className="w-full h-full border-none"
+                title="PDF Preview"
+              />
+            )}
+          </div>
+          <div className="p-4 bg-background border-t border-border flex justify-end gap-3 shrink-0">
+            <Button variant="ghost" className="font-bold uppercase tracking-widest text-xs" onClick={() => setIsPreviewOpen(false)}>
+              Cerrar
+            </Button>
+            <Button className="bg-indigo-600 hover:bg-indigo-700 text-white font-black px-8 rounded-xl gap-2 text-xs uppercase tracking-widest" onClick={mergeAndDownload}>
+              <Download className="h-4 w-4" />
+              Descargar Ahora
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -103,6 +103,7 @@ export const translations = {
     mergeAction: 'Merge Files',
     outputFileName: 'Output Filename',
     outputFileNamePlaceholder: 'Final file name...',
+    preview: 'Preview PDF',
     // PDF Split
     splitTitle: 'Split PDF',
     splitDesc: 'Extract specific pages from a PDF document into a new file quickly.',
@@ -243,6 +244,7 @@ export const translations = {
     mergeAction: 'Combinar Archivos',
     outputFileName: 'Nombre del Archivo Final',
     outputFileNamePlaceholder: 'Nombre del archivo...',
+    preview: 'Vista Previa',
     // PDF Split
     splitTitle: 'Separar PDF',
     splitDesc: 'Extrae páginas específicas de un documento PDF en un nuevo archivo de forma rápida.',
@@ -257,7 +259,7 @@ export const translations = {
     pdfToImgDesc: 'Convierte las páginas de tu PDF en imágenes JPEG o PNG de alta calidad localmente.',
     exportImages: 'Exportar como Imágenes',
     convertingToImg: 'Convirtiendo a imágenes...',
-    format: 'Formato',
+    format: 'Format',
     qualityImg: 'Calidad de Imagen',
     // Text Tools
     textToolsTitle: 'Convertidor de Mayúsculas',
