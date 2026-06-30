@@ -18,7 +18,8 @@ import {
   AlertCircle,
   Copy,
   FileType,
-  Eye
+  Eye,
+  ExternalLink
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -37,9 +38,11 @@ import { useToast } from "@/hooks/use-toast";
 import { Language, translations } from "@/lib/translations";
 import { LanguageSelector } from "./LanguageSelector";
 import { PDFDocument } from "pdf-lib";
+import * as pdfjsLib from "pdfjs-dist";
 import logo from "@/app/icono.png";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./ThemeToggle";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface PdfFile {
   id: string;
@@ -54,6 +57,7 @@ export default function PdfMergeTool() {
   const t = translations[lang];
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isMobile = useIsMobile();
 
   const [files, setFiles] = useState<PdfFile[]>([]);
   const [isMerging, setIsMerging] = useState(false);
@@ -63,14 +67,35 @@ export default function PdfMergeTool() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewTitle, setPreviewTitle] = useState("");
+  const [mobileThumbnail, setMobileThumbnail] = useState<string | null>(null);
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    const savedLang = localStorage.getItem('pref-lang') as Language;
-    if (savedLang === 'en' || savedLang === 'es') {
-      setLang(savedLang);
+    if (typeof window !== 'undefined') {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
     }
   }, []);
+
+  const generateThumbnail = async (blob: Blob) => {
+    try {
+      const arrayBuffer = await blob.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const page = await pdf.getPage(1);
+      const viewport = page.getViewport({ scale: 0.8 });
+      const canvas = document.createElement("canvas");
+      const context = canvas.getContext("2d");
+      if (context) {
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+        await page.render({ canvasContext: context, viewport }).promise;
+        return canvas.toDataURL();
+      }
+    } catch (e) {
+      console.error("Error generating preview thumbnail", e);
+    }
+    return null;
+  };
 
   const processFiles = (newFiles: FileList | File[]) => {
     const pdfFiles: PdfFile[] = Array.from(newFiles)
@@ -199,18 +224,34 @@ export default function PdfMergeTool() {
 
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     
+    setIsLoadingPreview(true);
     const url = URL.createObjectURL(blob);
     setPreviewUrl(url);
     setPreviewTitle(t.preview);
+    
+    if (isMobile) {
+      const thumb = await generateThumbnail(blob);
+      setMobileThumbnail(thumb);
+    }
+
     setIsPreviewOpen(true);
+    setIsLoadingPreview(false);
   };
 
-  const handleIndividualPreview = (file: File, name: string) => {
+  const handleIndividualPreview = async (file: File, name: string) => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setIsLoadingPreview(true);
     const url = URL.createObjectURL(file);
     setPreviewUrl(url);
     setPreviewTitle(name);
+
+    if (isMobile) {
+      const thumb = await generateThumbnail(file);
+      setMobileThumbnail(thumb);
+    }
+
     setIsPreviewOpen(true);
+    setIsLoadingPreview(false);
   };
 
   if (!mounted) return null;
@@ -456,12 +497,12 @@ export default function PdfMergeTool() {
       />
 
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-        <DialogContent className="max-w-5xl w-[95vw] h-[90vh] p-0 gap-0 overflow-hidden flex flex-col rounded-[2rem] border-none shadow-2xl">
-          <DialogHeader className="p-6 bg-indigo-600 text-white shrink-0">
+        <DialogContent className="max-w-5xl w-[95vw] h-[90vh] md:h-[85vh] p-0 gap-0 overflow-hidden flex flex-col rounded-[2rem] border-none shadow-2xl">
+          <DialogHeader className="p-4 md:p-6 bg-indigo-600 text-white shrink-0">
             <div className="flex items-center justify-between">
               <div className="min-w-0 pr-4">
-                <DialogTitle className="text-xl font-headline font-black uppercase tracking-tighter truncate">{previewTitle}</DialogTitle>
-                <DialogDescription className="text-indigo-100 font-medium truncate">Revisa el documento antes de continuar</DialogDescription>
+                <DialogTitle className="text-lg md:text-xl font-headline font-black uppercase tracking-tighter truncate">{previewTitle}</DialogTitle>
+                <DialogDescription className="text-indigo-100 font-medium truncate text-xs">Revisa el documento antes de continuar</DialogDescription>
               </div>
               <Button 
                 variant="ghost" 
@@ -473,20 +514,47 @@ export default function PdfMergeTool() {
               </Button>
             </div>
           </DialogHeader>
-          <div className="flex-1 bg-muted relative overflow-hidden">
-            {previewUrl && (
-              <iframe 
-                src={`${previewUrl}#toolbar=0`} 
-                className="w-full h-full border-none"
-                title="PDF Preview"
-              />
+          
+          <div className="flex-1 bg-muted relative overflow-y-auto flex flex-col items-center justify-center p-4">
+            {isLoadingPreview ? (
+              <div className="flex flex-col items-center gap-4">
+                <Loader2 className="h-10 w-10 text-indigo-600 animate-spin" />
+                <span className="text-xs font-black text-indigo-600 uppercase tracking-widest">Cargando Vista Previa...</span>
+              </div>
+            ) : isMobile && mobileThumbnail ? (
+              <div className="w-full h-full flex flex-col items-center gap-6 animate-in fade-in duration-500">
+                <div className="relative bg-white shadow-2xl rounded-sm border border-border overflow-hidden max-w-[90%] max-h-[70%]">
+                  <img src={mobileThumbnail} alt="PDF Preview" className="w-full h-auto object-contain" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
+                </div>
+                <div className="flex flex-col items-center text-center gap-4 max-w-[280px]">
+                  <p className="text-xs font-medium text-muted-foreground">La previsualización móvil muestra la primera página. Para ver el documento completo, usa el botón de abajo.</p>
+                  <Button 
+                    variant="outline" 
+                    className="border-2 border-indigo-600 text-indigo-600 font-black rounded-xl gap-2 h-12 px-6 uppercase text-[10px] tracking-widest w-full"
+                    onClick={() => previewUrl && window.open(previewUrl, '_blank')}
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    Abrir Pantalla Completa
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              previewUrl && (
+                <iframe 
+                  src={`${previewUrl}#toolbar=0&navpanes=0`} 
+                  className="w-full h-full border-none rounded-b-[1.5rem]"
+                  title="PDF Preview"
+                />
+              )
             )}
           </div>
-          <div className="p-4 bg-background border-t border-border flex justify-end gap-3 shrink-0">
-            <Button variant="ghost" className="font-bold uppercase tracking-widest text-xs" onClick={() => setIsPreviewOpen(false)}>
+
+          <div className="p-4 bg-background border-t border-border flex flex-col sm:flex-row justify-end gap-3 shrink-0">
+            <Button variant="ghost" className="font-bold uppercase tracking-widest text-[10px] h-11" onClick={() => setIsPreviewOpen(false)}>
               Cerrar
             </Button>
-            <Button className="bg-indigo-600 hover:bg-indigo-700 text-white font-black px-8 rounded-xl gap-2 text-xs uppercase tracking-widest" onClick={mergeAndDownload}>
+            <Button className="bg-indigo-600 hover:bg-indigo-700 text-white font-black px-8 h-11 rounded-xl gap-2 text-[10px] uppercase tracking-widest" onClick={mergeAndDownload}>
               <Download className="h-4 w-4" />
               Descargar Ahora
             </Button>
