@@ -455,7 +455,7 @@ export default function PdfMergeTool() {
           </div>
         </aside>
 
-        {files.length > 0 && (
+        {files.length > 0 && !isPreviewOpen && (
           <div className="md:hidden fixed bottom-6 left-6 right-6 z-[100] animate-in slide-in-from-bottom-10 flex flex-col gap-3">
             <div className="bg-card p-3 rounded-2xl shadow-2xl border-2 border-border">
               <Input 
