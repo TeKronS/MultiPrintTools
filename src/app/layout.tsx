@@ -5,7 +5,7 @@ import { ThemeProvider } from '@/components/ThemeProvider';
 import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://tekron-web-studio.vercel.app/'),
+  metadataBase: new URL('https://www.multiprinttools.com'),
   title: {
     default: 'MultiPrintTools | Split Image for Poster Printing & Automation',
     template: '%s | MultiPrintTools'
@@ -32,13 +32,13 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'es_ES',
-    url: 'https://tekron-web-studio.vercel.app/',
+    url: 'https://www.multiprinttools.com',
     siteName: 'MultiPrintTools',
     title: 'MultiPrintTools | Split Image for Poster Printing',
     description: 'The flagship tool to split images for printing technical posters. Optimize your workflow with local processing.',
     images: [
       {
-        url: 'https://picsum.photos/seed/seo-preview/1200/630',
+        url: 'https://picsum.photos/seed/multiprint-app/1200/630',
         width: 1200,
         height: 630,
         alt: 'MultiPrintTools - Split Image for Poster Printing',
@@ -49,7 +49,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Split Image for Poster Printing | MultiPrintTools',
     description: 'Create giant posters by splitting photos into multiple sheets automatically with total privacy.',
-    images: ['https://picsum.photos/seed/seo-preview/1200/630'],
+    images: ['https://picsum.photos/seed/multiprint-app/1200/630'],
   },
 };
 
