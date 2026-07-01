@@ -16,10 +16,14 @@ import {
   FileImage,
   Zap,
   Type,
-  StickyNote
+  StickyNote,
+  Info,
+  MessageCircle,
+  ExternalLink
 } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Language, translations } from "@/lib/translations";
@@ -140,8 +144,9 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 md:px-8 py-8 md:py-16">
-        <div className="max-w-3xl mb-10 md:mb-16 space-y-3 md:space-y-4 text-center sm:text-left">
+      <main className="max-w-7xl mx-auto px-4 md:px-8 py-8 md:py-16 space-y-24">
+        {/* Hero Section */}
+        <div className="max-w-3xl space-y-3 md:space-y-4 text-center sm:text-left">
           <Badge variant="secondary" className="px-3 py-1 text-[10px] font-black uppercase tracking-widest bg-primary/10 text-primary border-none flex items-center w-fit mx-auto sm:mx-0 gap-2">
             <Zap className="h-3 w-3" /> {t.heroBadge}
           </Badge>
@@ -153,7 +158,8 @@ export default function Home() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
+        {/* Tools Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
           {tools.map((tool) => (
             <Link 
               key={tool.title} 
@@ -191,7 +197,50 @@ export default function Home() {
           ))}
         </div>
 
-        <div className="mt-16 md:mt-24 pt-8 border-t border-border flex flex-col md:flex-row items-center justify-between gap-4">
+        {/* About Section */}
+        <section className="bg-primary/5 rounded-[2.5rem] p-8 md:p-16 border border-primary/10 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full -mr-32 -mt-32 blur-3xl pointer-events-none" />
+          <div className="max-w-4xl space-y-6 relative z-10">
+            <div className="flex items-center gap-3 text-primary mb-2">
+              <Info className="h-6 w-6" />
+              <h2 className="text-xl md:text-3xl font-headline font-black uppercase tracking-tighter">{t.aboutTitle}</h2>
+            </div>
+            <p className="text-base md:text-lg text-muted-foreground font-medium leading-relaxed">
+              {t.aboutDesc}
+            </p>
+          </div>
+        </section>
+
+        {/* Contact/Hire Section */}
+        <section className="text-center space-y-8 py-8 border-y border-border">
+          <div className="space-y-3">
+            <div className="flex items-center justify-center gap-2 text-primary font-black uppercase tracking-widest text-[10px]">
+              <MessageCircle className="h-4 w-4" />
+              {t.contactTitle}
+            </div>
+            <h3 className="text-2xl md:text-4xl font-headline font-black tracking-tighter">
+              {lang === 'es' ? '¿Tienes un proyecto en mente?' : 'Let\'s build something together'}
+            </h3>
+            <p className="text-muted-foreground font-medium max-w-xl mx-auto">
+              {t.contactDesc}
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Button 
+              size="lg" 
+              className="bg-primary hover:bg-primary/90 text-white font-black rounded-2xl px-8 gap-3 h-14 uppercase tracking-widest shadow-xl shadow-primary/20 transition-all active:scale-95"
+              asChild
+            >
+              <a href="https://tekron-web-studio.vercel.app/" target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="h-5 w-5" />
+                {t.contactButton}
+              </a>
+            </Button>
+          </div>
+        </section>
+
+        {/* Footer */}
+        <div className="pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-xs md:text-sm text-muted-foreground font-medium text-center md:text-left">{t.footerRights}</p>
           <div className="flex items-center gap-2 text-primary">
             <Sparkles className="h-4 w-4" />

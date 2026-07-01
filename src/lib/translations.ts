@@ -141,7 +141,13 @@ export const translations = {
     totalStickers: 'Total Stickers',
     stickersPerPage: 'Stickers per Page',
     changeSticker: 'Change Sticker',
-    spacing: 'Spacing (cm)'
+    spacing: 'Spacing (cm)',
+    // About & Contact
+    aboutTitle: 'About MultiPrintTools',
+    aboutDesc: 'A specialized digital toolkit for reprography and printing professionals. Our goal is to automate technical tasks like poster grids and PDF management with 100% local processing, ensuring your files never leave your device.',
+    contactTitle: 'Feedback & Collaboration',
+    contactDesc: 'Have a suggestion, a bug report, or a professional inquiry? We value your input to keep improving our tools.',
+    contactButton: 'Visit Developer Portfolio'
   },
   es: {
     title: 'CUADRÍCULA POSTER',
@@ -282,6 +288,12 @@ export const translations = {
     totalStickers: 'Stickers Totales',
     stickersPerPage: 'Stickers por Hoja',
     changeSticker: 'Cambiar Sticker',
-    spacing: 'Separación (cm)'
+    spacing: 'Separación (cm)',
+    // About & Contact
+    aboutTitle: 'Sobre MultiPrintTools',
+    aboutDesc: 'Una suite de herramientas digitales especializada para profesionales de la impresión. Nuestro objetivo es automatizar tareas técnicas como cuadrículas para pósters y gestión de PDFs con procesamiento 100% local, garantizando que tus archivos nunca salgan de tu equipo.',
+    contactTitle: 'Feedback y Colaboración',
+    contactDesc: '¿Tienes alguna sugerencia, reporte de error o propuesta profesional? Valoramos mucho tu opinión para seguir mejorando nuestras herramientas.',
+    contactButton: 'Ver Portafolio del Desarrollador'
   }
 };
