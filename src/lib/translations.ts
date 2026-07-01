@@ -41,7 +41,7 @@ export const translations = {
     heroTitleSuffix: 'printing workflow.',
     heroDesc: 'A professional suite to split image for poster printing and automate repetitive tasks in copy centers and modern offices.',
     support: 'Support',
-    footerRights: '© 2026 Tekron Web Studio - Printing & Office Automation.',
+    footerRights: '© 2026 Tekron Web Studio - Everyday tools for Printing and Office work.',
     newTools: 'New tools every month',
     openApp: 'Launch App',
     muralisTitle: 'Poster Grid',
@@ -144,7 +144,7 @@ export const translations = {
     spacing: 'Spacing (cm)',
     // About & Contact
     aboutTitle: 'About MultiPrintTools',
-    aboutDesc: 'A specialized digital toolkit for printing and office professionals. Our goal is to facilitate work tasks such as poster grids and PDF management. We prioritize local browser-side processing for most tools, guaranteeing privacy and independence, and we use secure cloud services only for complex conversions when necessary.',
+    aboutDesc: 'A specialized digital toolkit for printing and office professionals. Our goal is to facilitate everyday tasks such as poster grids and PDF management. We prioritize local browser-side processing for most tools, guaranteeing privacy and independence, and we use secure cloud services only for complex conversions when necessary.',
     contactTitle: 'Feedback & Collaboration',
     contactDesc: 'Have a suggestion, a bug report, or a professional inquiry? We value your input to keep improving our tools.',
     contactButton: 'Visit Developer Portfolio'
@@ -188,7 +188,7 @@ export const translations = {
     heroTitleSuffix: 'trabajo de impresión.',
     heroDesc: 'Una suite digital profesional diseñada para automatizar tareas repetitivas en centros de copiado, artes gráficas y oficinas modernas.',
     support: 'Soporte',
-    footerRights: '© 2026 Tekron Web Studio - Automatización Profesional para Impresión y Oficinas.',
+    footerRights: '© 2026 Tekron Web Studio - Herramientas para el día a día en trabajos de Impresión y Oficinas.',
     newTools: 'Nuevas herramientas cada mes',
     openApp: 'Abrir Aplicación',
     muralisTitle: 'Cuadrícula para Poster',
