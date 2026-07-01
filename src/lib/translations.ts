@@ -144,7 +144,7 @@ export const translations = {
     spacing: 'Spacing (cm)',
     // About & Contact
     aboutTitle: 'About MultiPrintTools',
-    aboutDesc: 'A specialized digital toolkit for reprography and printing professionals. Our goal is to automate technical tasks like poster grids and PDF management. We prioritize local browser-side processing for most tools to ensure privacy and independence, only using secure cloud services for complex conversions when necessary.',
+    aboutDesc: 'A specialized digital toolkit for printing and office professionals. Our goal is to facilitate work tasks such as poster grids and PDF management. We prioritize local browser-side processing for most tools, guaranteeing privacy and independence, and we use secure cloud services only for complex conversions when necessary.',
     contactTitle: 'Feedback & Collaboration',
     contactDesc: 'Have a suggestion, a bug report, or a professional inquiry? We value your input to keep improving our tools.',
     contactButton: 'Visit Developer Portfolio'
@@ -291,7 +291,7 @@ export const translations = {
     spacing: 'Separación (cm)',
     // About & Contact
     aboutTitle: 'Sobre MultiPrintTools',
-    aboutDesc: 'Una suite de herramientas digitales especializada para profesionales de la impresión y oficinas. Nuestro objetivo es automatizar tareas técnicas como cuadrículas para pósters y gestión de PDFs. Priorizamos el procesamiento local en el navegador para la mayoría de herramientas, garantizando privacidad e independencia, y utilizamos servicios seguros en la nube solo para conversiones complejas cuando es necesario.',
+    aboutDesc: 'Una suite de herramientas digitales especializada para profesionales de la impresión y oficinas. Nuestro objetivo es facilitar tareas del trabajo como cuadrículas para pósters y gestión de PDFs. Priorizamos el procesamiento local en el navegador para la mayoría de herramientas, garantizando privacidad e independencia, y utilizamos servicios seguros en la nube solo para conversiones complejas cuando es necesario.',
     contactTitle: 'Feedback y Colaboración',
     contactDesc: '¿Tienes alguna sugerencia, reporte de error o propuesta profesional? Valoramos mucho tu opinión para seguir mejorando nuestras herramientas.',
     contactButton: 'Ver Portafolio del Desarrollador'

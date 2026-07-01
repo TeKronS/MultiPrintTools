@@ -7,10 +7,10 @@ import { Toaster } from '@/components/ui/toaster';
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.multiprinttools.com'),
   title: {
-    default: 'MultiPrintTools | Split Image for Poster Printing & Automation',
+    default: 'MultiPrintTools | Suite Digital de Impresión e Independencia Técnica',
     template: '%s | MultiPrintTools'
   },
-  description: 'Ultimate suite to split image for poster printing and automate reprography workflows. Professional tools for tiled printing, PDF management, and image optimization.',
+  description: 'Herramientas digitales para expertos en impresión y oficinas. Automatiza cuadrículas para pósters y gestión de PDF con procesamiento local y privacidad garantizada.',
   keywords: [
     'split image for poster printing', 'tiled printing automation', 'dividir imagen para imprimir', 
     'dividir imagen en varias hojas', 'reprography automation', 'poster grid maker',
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     url: 'https://www.multiprinttools.com',
     siteName: 'MultiPrintTools',
     title: 'MultiPrintTools | Split Image for Poster Printing',
-    description: 'The flagship tool to split images for printing technical posters. Optimize your workflow with local processing.',
+    description: 'La suite definitiva para automatizar tareas de impresión. Crea cuadrículas técnicas para posters gigantes con total privacidad.',
     images: [
       {
         url: '/icono.png',
@@ -48,7 +48,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary',
     title: 'Split Image for Poster Printing | MultiPrintTools',
-    description: 'Create giant posters by splitting photos into multiple sheets automatically with total privacy.',
+    description: 'Divide fotos en múltiples hojas automáticamente con procesamiento local y privacidad total.',
     images: ['/icono.png'],
   },
 };
