@@ -38,18 +38,18 @@ export const metadata: Metadata = {
     description: 'The flagship tool to split images for printing technical posters. Optimize your workflow with local processing.',
     images: [
       {
-        url: 'https://picsum.photos/seed/multiprint-app/1200/630',
-        width: 1200,
-        height: 630,
-        alt: 'MultiPrintTools - Split Image for Poster Printing',
+        url: '/icono.png',
+        width: 512,
+        height: 512,
+        alt: 'MultiPrintTools Logo',
       },
     ],
   },
   twitter: {
-    card: 'summary_large_image',
+    card: 'summary',
     title: 'Split Image for Poster Printing | MultiPrintTools',
     description: 'Create giant posters by splitting photos into multiple sheets automatically with total privacy.',
-    images: ['https://picsum.photos/seed/multiprint-app/1200/630'],
+    images: ['/icono.png'],
   },
 };
 
