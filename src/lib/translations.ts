@@ -39,9 +39,9 @@ export const translations = {
     heroBadge: 'Flagship Tool: Poster Grid',
     heroTitlePrefix: 'Automate your ',
     heroTitleSuffix: 'printing workflow.',
-    heroDesc: 'The ultimate digital suite to split image for poster printing and automate repetitive tasks in copy centers and graphic arts.',
+    heroDesc: 'A professional suite to split image for poster printing and automate repetitive tasks in copy centers and modern offices.',
     support: 'Support',
-    footerRights: '© 2026 Tekron Web Studio - Professional Printing Automation.',
+    footerRights: '© 2026 Tekron Web Studio - Printing & Office Automation.',
     newTools: 'New tools every month',
     openApp: 'Launch App',
     muralisTitle: 'Poster Grid',
@@ -88,8 +88,8 @@ export const translations = {
     low: 'Draft (72 dpi)',
     medium: 'Standard (150 dpi)',
     high: 'Professional (300 dpi)',
-    localProcessing: '100% Local Processing',
-    privacyNote: 'Your images never leave this device. Private and fast.',
+    localProcessing: 'Local Processing',
+    privacyNote: 'Most of our tools process files directly in your browser for total privacy and independence.',
     // PDF Merge
     mergeTitle: 'PDF Merger',
     mergeSubtitle: 'Merge PDF Files',
@@ -144,7 +144,7 @@ export const translations = {
     spacing: 'Spacing (cm)',
     // About & Contact
     aboutTitle: 'About MultiPrintTools',
-    aboutDesc: 'A specialized digital toolkit for reprography and printing professionals. Our goal is to automate technical tasks like poster grids and PDF management with 100% local processing, ensuring your files never leave your device.',
+    aboutDesc: 'A specialized digital toolkit for reprography and printing professionals. Our goal is to automate technical tasks like poster grids and PDF management. We prioritize local browser-side processing for most tools to ensure privacy and independence, only using secure cloud services for complex conversions when necessary.',
     contactTitle: 'Feedback & Collaboration',
     contactDesc: 'Have a suggestion, a bug report, or a professional inquiry? We value your input to keep improving our tools.',
     contactButton: 'Visit Developer Portfolio'
@@ -186,9 +186,9 @@ export const translations = {
     heroBadge: 'Herramienta Estrella: Cuadrícula Poster',
     heroTitlePrefix: 'Automatiza tu ',
     heroTitleSuffix: 'trabajo de impresión.',
-    heroDesc: 'La suite digital definitiva diseñada para automatizar tareas repetitivas en centros de copiado, artes gráficas y oficinas modernas.',
+    heroDesc: 'Una suite digital profesional diseñada para automatizar tareas repetitivas en centros de copiado, artes gráficas y oficinas modernas.',
     support: 'Soporte',
-    footerRights: '© 2026 Tekron Web Studio - Automatización Profesional de Reprografía.',
+    footerRights: '© 2026 Tekron Web Studio - Automatización Profesional para Impresión y Oficinas.',
     newTools: 'Nuevas herramientas cada mes',
     openApp: 'Abrir Aplicación',
     muralisTitle: 'Cuadrícula para Poster',
@@ -235,8 +235,8 @@ export const translations = {
     low: 'Borrador (72 dpi)',
     medium: 'Estándar (150 dpi)',
     high: 'Profesional (300 dpi)',
-    localProcessing: 'Procesamiento 100% Local',
-    privacyNote: 'Tus imágenes nunca salen de este dispositivo. Privado y rápido.',
+    localProcessing: 'Procesamiento Local',
+    privacyNote: 'La mayoría de nuestras herramientas procesan los archivos directamente en tu navegador para total privacidad e independencia.',
     // PDF Merge
     mergeTitle: 'Combinar PDF',
     mergeSubtitle: 'Combinar Archivos PDF',
@@ -291,7 +291,7 @@ export const translations = {
     spacing: 'Separación (cm)',
     // About & Contact
     aboutTitle: 'Sobre MultiPrintTools',
-    aboutDesc: 'Una suite de herramientas digitales especializada para profesionales de la impresión. Nuestro objetivo es automatizar tareas técnicas como cuadrículas para pósters y gestión de PDFs con procesamiento 100% local, garantizando que tus archivos nunca salgan de tu equipo.',
+    aboutDesc: 'Una suite de herramientas digitales especializada para profesionales de la impresión y oficinas. Nuestro objetivo es automatizar tareas técnicas como cuadrículas para pósters y gestión de PDFs. Priorizamos el procesamiento local en el navegador para la mayoría de herramientas, garantizando privacidad e independencia, y utilizamos servicios seguros en la nube solo para conversiones complejas cuando es necesario.',
     contactTitle: 'Feedback y Colaboración',
     contactDesc: '¿Tienes alguna sugerencia, reporte de error o propuesta profesional? Valoramos mucho tu opinión para seguir mejorando nuestras herramientas.',
     contactButton: 'Ver Portafolio del Desarrollador'

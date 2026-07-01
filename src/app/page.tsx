@@ -241,7 +241,7 @@ export default function Home() {
 
         {/* Footer */}
         <div className="pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-xs md:text-sm text-muted-foreground font-medium text-center md:text-left">{t.footerRights}</p>
+          <p className="text-xs md:sm text-muted-foreground font-medium text-center md:text-left">{t.footerRights}</p>
           <div className="flex items-center gap-2 text-primary">
             <Sparkles className="h-4 w-4" />
             <span className="text-[10px] md:text-sm font-black uppercase tracking-widest">{t.newTools}</span>
