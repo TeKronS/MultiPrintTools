@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useMemo, useEffect } from "react";
+import { useState, useRef, useMemo, useEffect, useDeferredValue } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { 
@@ -82,6 +82,9 @@ export default function ImageToPdfConverter() {
   const [isExporting, setIsExporting] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+
+  // Optimización para evitar lag al desplazar el slider
+  const deferredMargin = useDeferredValue(margin);
 
   useEffect(() => {
     setMounted(true);
@@ -228,6 +231,7 @@ export default function ImageToPdfConverter() {
 
         const pageWidth = currentPageOrient === 'portrait' ? paper.width : paper.height;
         const pageHeight = currentPageOrient === 'portrait' ? paper.height : paper.width;
+        // Usar el valor real (no diferido) para la exportación final
         const marginMm = margin * 10;
         const usableWidth = pageWidth - (marginMm * 2);
         const usableHeight = pageHeight - (marginMm * 2);
@@ -524,7 +528,8 @@ export default function ImageToPdfConverter() {
                   const paperW = currentOrient === 'portrait' ? paper.width : paper.height;
                   const paperH = currentOrient === 'portrait' ? paper.height : paper.width;
                   const aspect = paperW / paperH;
-                  const marginMm = margin * 10;
+                  // Usar el valor diferido para una previsualización fluida en móvil
+                  const marginMm = deferredMargin * 10;
                   const marginX = (marginMm / paperW) * 100;
                   const marginY = (marginMm / paperH) * 100;
 
