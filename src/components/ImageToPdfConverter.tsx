@@ -6,6 +6,7 @@ import Link from "next/link";
 import { 
   ChevronLeft, 
   Plus, 
+  Minus,
   Trash2, 
   FileDown, 
   Loader2, 
@@ -44,6 +45,7 @@ import logo from "@/app/icono.png";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "./ThemeToggle";
+import { Slider } from "@/components/ui/slider";
 
 const PAPER_DIMENSIONS: Record<string, { width: number; height: number; format: string }> = {
   'Carta': { width: 215.9, height: 279.4, format: 'letter' },
@@ -296,17 +298,17 @@ export default function ImageToPdfConverter() {
   if (!mounted) return null;
 
   const renderSettingsContent = () => (
-    <div className="space-y-2">
+    <div className="space-y-4">
       <div className="flex items-center gap-2 mb-1">
         <Settings2 className="h-4 w-4 text-primary" />
         <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Configuración</h2>
       </div>
 
-      <div className="space-y-1.5">
+      <div className="space-y-4">
         <div className="space-y-0.5">
           <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-wider">{t.paperSize}</Label>
           <Select value={paperSize} onValueChange={setPaperSize}>
-            <SelectTrigger className="font-bold border-2 h-8 text-xs bg-card">
+            <SelectTrigger className="font-bold border-2 h-9 text-xs bg-card rounded-xl">
               <span className="truncate">{paperSize}</span>
             </SelectTrigger>
             <SelectContent>
@@ -320,7 +322,7 @@ export default function ImageToPdfConverter() {
         <div className="space-y-0.5">
           <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-wider">{t.orientation} Global</Label>
           <Select value={orientation} onValueChange={(v: any) => setOrientation(v)}>
-            <SelectTrigger className="font-bold border-2 h-8 text-xs bg-card">
+            <SelectTrigger className="font-bold border-2 h-9 text-xs bg-card rounded-xl">
               <span className="truncate">{orientation === 'portrait' ? t.portrait : t.landscape}</span>
             </SelectTrigger>
             <SelectContent>
@@ -333,7 +335,7 @@ export default function ImageToPdfConverter() {
         <div className="space-y-0.5">
           <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-wider">{t.imagesPerPage}</Label>
           <Select value={imagesPerPage} onValueChange={setImagesPerPage}>
-            <SelectTrigger className="font-bold border-2 h-8 text-xs bg-card">
+            <SelectTrigger className="font-bold border-2 h-9 text-xs bg-card rounded-xl">
               <span className="truncate">{imagesPerPage}</span>
             </SelectTrigger>
             <SelectContent>
@@ -347,7 +349,7 @@ export default function ImageToPdfConverter() {
         <div className="space-y-0.5">
           <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-wider">{t.imageFit}</Label>
           <Select value={fitMode} onValueChange={(v: any) => setFitMode(v)}>
-            <SelectTrigger className="font-bold border-2 h-8 text-xs bg-card">
+            <SelectTrigger className="font-bold border-2 h-9 text-xs bg-card rounded-xl">
               <span className="truncate">{fitMode === 'fit' ? t.fit : t.fill}</span>
             </SelectTrigger>
             <SelectContent>
@@ -357,22 +359,34 @@ export default function ImageToPdfConverter() {
           </Select>
         </div>
 
-        <div className="space-y-0.5">
-          <div className="flex justify-between">
+        <div className="space-y-2">
+          <div className="flex justify-between items-center">
             <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-wider">{t.margins}</Label>
-            <span className="text-[10px] font-black text-primary">{margin} cm</span>
+            <span className="text-[10px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded-md">{margin.toFixed(1)} cm</span>
           </div>
-          <div className="flex items-center gap-2 py-0.5">
-            <Button variant="outline" size="icon" className="h-7 w-7 rounded-lg shrink-0" onClick={() => setMargin(Math.max(0, margin - 0.5))}>
-              <X className="h-3 w-3 rotate-45" />
+          <div className="flex items-center gap-3 py-1">
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className="h-8 w-8 rounded-lg shrink-0 border-2" 
+              onClick={() => setMargin(prev => Math.max(0.5, parseFloat((prev - 0.1).toFixed(1))))}
+            >
+              <Minus className="h-3 w-3" />
             </Button>
-            <div className="flex-1 h-1 bg-muted rounded-full relative overflow-hidden">
-              <div 
-                className="absolute h-full bg-primary rounded-full transition-all" 
-                style={{ width: `${(margin / 5) * 100}%` }}
-              />
-            </div>
-            <Button variant="outline" size="icon" className="h-7 w-7 rounded-lg shrink-0" onClick={() => setMargin(Math.min(5, margin + 0.5))}>
+            <Slider 
+              value={[margin]} 
+              onValueChange={(v) => setMargin(v[0])} 
+              min={0.5} 
+              max={6} 
+              step={0.1} 
+              className="flex-1" 
+            />
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className="h-8 w-8 rounded-lg shrink-0 border-2" 
+              onClick={() => setMargin(prev => Math.min(6, parseFloat((prev + 0.1).toFixed(1))))}
+            >
               <Plus className="h-3 w-3" />
             </Button>
           </div>
