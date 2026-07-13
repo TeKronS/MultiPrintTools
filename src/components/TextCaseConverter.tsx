@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -82,6 +81,11 @@ export default function TextCaseConverter() {
     setTimeout(() => setIsCopied(false), 2000);
   };
 
+  const handleClear = () => {
+    setText("");
+    // Se mantiene el activeMode para que lo siguiente que se pegue se convierta automáticamente
+  };
+
   const charCount = text.length;
   const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
 
@@ -130,11 +134,8 @@ export default function TextCaseConverter() {
                   variant="secondary" 
                   size="icon" 
                   className="rounded-xl shadow-lg"
-                  onClick={() => {
-                    setText("");
-                    setActiveMode('none');
-                  }}
-                  disabled={!text && activeMode === 'none'}
+                  onClick={handleClear}
+                  disabled={!text}
                 >
                   <Trash2 className="h-5 w-5 text-destructive" />
                 </Button>
