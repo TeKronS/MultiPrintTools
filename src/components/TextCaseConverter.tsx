@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -23,6 +24,9 @@ import { Language, translations } from "@/lib/translations";
 import { LanguageSelector } from "./LanguageSelector";
 import { ThemeToggle } from "./ThemeToggle";
 import logo from "@/app/icono.png";
+import { cn } from "@/lib/utils";
+
+type CaseMode = 'none' | 'uppercase' | 'lowercase' | 'sentence' | 'capitalize';
 
 export default function TextCaseConverter() {
   const [mounted, setMounted] = useState(false);
@@ -32,10 +36,43 @@ export default function TextCaseConverter() {
 
   const [text, setText] = useState("");
   const [isCopied, setIsCopied] = useState(false);
+  const [activeMode, setActiveMode] = useState<CaseMode>('none');
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  const applyConversion = (input: string, mode: CaseMode): string => {
+    if (!input || mode === 'none') return input;
+
+    switch (mode) {
+      case 'uppercase':
+        return input.toUpperCase();
+      case 'lowercase':
+        return input.toLowerCase();
+      case 'sentence':
+        return input.toLowerCase().replace(/(^|[.!?]\s+)([a-z])/g, (m) => m.toUpperCase());
+      case 'capitalize':
+        return input.toLowerCase().split(' ').map(word => 
+          word.charAt(0).toUpperCase() + word.slice(1)
+        ).join(' ');
+      default:
+        return input;
+    }
+  };
+
+  const handleModeToggle = (mode: CaseMode) => {
+    const newMode = activeMode === mode ? 'none' : mode;
+    setActiveMode(newMode);
+    if (text) {
+      setText(applyConversion(text, newMode));
+    }
+  };
+
+  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const rawValue = e.target.value;
+    setText(applyConversion(rawValue, activeMode));
+  };
 
   const handleCopy = () => {
     if (!text) return;
@@ -43,21 +80,6 @@ export default function TextCaseConverter() {
     setIsCopied(true);
     toast({ title: t.copied });
     setTimeout(() => setIsCopied(false), 2000);
-  };
-
-  const toUppercase = () => setText(text.toUpperCase());
-  const toLowercase = () => setText(text.toLowerCase());
-  
-  const toSentenceCase = () => {
-    const transformed = text.toLowerCase().replace(/(^|[.!?]\s+)([a-z])/g, (m) => m.toUpperCase());
-    setText(transformed);
-  };
-
-  const toCapitalize = () => {
-    const transformed = text.toLowerCase().split(' ').map(word => 
-      word.charAt(0).toUpperCase() + word.slice(1)
-    ).join(' ');
-    setText(transformed);
   };
 
   const charCount = text.length;
@@ -100,7 +122,7 @@ export default function TextCaseConverter() {
                 placeholder={lang === 'es' ? "Pega tu texto aquí..." : "Paste your text here..."}
                 className="min-h-[40vh] w-full p-8 text-lg font-medium border-none focus-visible:ring-0 resize-none leading-relaxed"
                 value={text}
-                onChange={(e) => setText(e.target.value)}
+                onChange={handleTextChange}
               />
               
               <div className="absolute bottom-6 right-6 flex items-center gap-3">
@@ -108,8 +130,11 @@ export default function TextCaseConverter() {
                   variant="secondary" 
                   size="icon" 
                   className="rounded-xl shadow-lg"
-                  onClick={() => setText("")}
-                  disabled={!text}
+                  onClick={() => {
+                    setText("");
+                    setActiveMode('none');
+                  }}
+                  disabled={!text && activeMode === 'none'}
                 >
                   <Trash2 className="h-5 w-5 text-destructive" />
                 </Button>
@@ -124,49 +149,68 @@ export default function TextCaseConverter() {
               </div>
             </div>
 
-            {/* Opciones de conversión */}
+            {/* Opciones de conversión con estados activos */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <Button 
                 variant="outline" 
-                className="h-14 font-black rounded-2xl border-2 border-border hover:border-amber-500 hover:bg-amber-50 text-xs uppercase"
-                onClick={toUppercase}
-                disabled={!text}
+                className={cn(
+                  "h-14 font-black rounded-2xl border-2 transition-all uppercase text-[10px] sm:text-xs",
+                  activeMode === 'uppercase' 
+                    ? "bg-amber-600 text-white border-amber-600 hover:bg-amber-700 hover:text-white" 
+                    : "border-border hover:border-amber-500 hover:bg-amber-50"
+                )}
+                onClick={() => handleModeToggle('uppercase')}
               >
                 {t.uppercase}
               </Button>
               <Button 
                 variant="outline" 
-                className="h-14 font-black rounded-2xl border-2 border-border hover:border-amber-500 hover:bg-amber-50 text-xs uppercase"
-                onClick={toLowercase}
-                disabled={!text}
+                className={cn(
+                  "h-14 font-black rounded-2xl border-2 transition-all uppercase text-[10px] sm:text-xs",
+                  activeMode === 'lowercase' 
+                    ? "bg-amber-600 text-white border-amber-600 hover:bg-amber-700 hover:text-white" 
+                    : "border-border hover:border-amber-500 hover:bg-amber-50"
+                )}
+                onClick={() => handleModeToggle('lowercase')}
               >
                 {t.lowercase}
               </Button>
               <Button 
                 variant="outline" 
-                className="h-14 font-black rounded-2xl border-2 border-border hover:border-amber-500 hover:bg-amber-50 text-xs uppercase"
-                onClick={toSentenceCase}
-                disabled={!text}
+                className={cn(
+                  "h-14 font-black rounded-2xl border-2 transition-all uppercase text-[10px] sm:text-xs",
+                  activeMode === 'sentence' 
+                    ? "bg-amber-600 text-white border-amber-600 hover:bg-amber-700 hover:text-white" 
+                    : "border-border hover:border-amber-500 hover:bg-amber-50"
+                )}
+                onClick={() => handleModeToggle('sentence')}
               >
                 {t.sentenceCase}
               </Button>
               <Button 
                 variant="outline" 
-                className="h-14 font-black rounded-2xl border-2 border-border hover:border-amber-500 hover:bg-amber-50 text-xs uppercase"
-                onClick={toCapitalize}
-                disabled={!text}
+                className={cn(
+                  "h-14 font-black rounded-2xl border-2 transition-all uppercase text-[10px] sm:text-xs",
+                  activeMode === 'capitalize' 
+                    ? "bg-amber-600 text-white border-amber-600 hover:bg-amber-700 hover:text-white" 
+                    : "border-border hover:border-amber-500 hover:bg-amber-50"
+                )}
+                onClick={() => handleModeToggle('capitalize')}
               >
                 {t.capitalize}
               </Button>
             </div>
 
-            {/* Título y descripción ahora después de las opciones y más pequeño */}
+            {/* Título y descripción */}
             <div className="text-center space-y-2 pt-4">
               <Badge className="bg-amber-500/10 text-amber-600 border-amber-200 font-black px-3 py-1">
                 <Zap className="h-3 w-3 mr-2" /> {t.localProcessing}
               </Badge>
               <h2 className="text-xl font-headline font-black tracking-tighter text-foreground/80 uppercase">
-                {t.textToolsDesc}
+                {activeMode !== 'none' 
+                  ? (lang === 'es' ? `Auto-conversión activa: ${activeMode.toUpperCase()}` : `Auto-conversion active: ${activeMode.toUpperCase()}`)
+                  : t.textToolsDesc
+                }
               </h2>
             </div>
           </div>
@@ -203,6 +247,17 @@ export default function TextCaseConverter() {
                   <span className="text-sm font-black text-foreground">{wordCount}</span>
                 </div>
               </div>
+              
+              {activeMode !== 'none' && (
+                <div className="p-4 bg-amber-500/5 border border-dashed border-amber-500/20 rounded-2xl">
+                   <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest flex items-center gap-2 mb-1">
+                     <Zap className="h-3 w-3" /> Modo Inteligente
+                   </p>
+                   <p className="text-[10px] text-muted-foreground font-medium leading-tight">
+                     Todo el texto pegado o escrito se convertirá automáticamente mientras este modo esté activo.
+                   </p>
+                </div>
+              )}
             </div>
           </div>
         </aside>
