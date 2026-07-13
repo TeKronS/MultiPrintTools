@@ -83,7 +83,6 @@ export default function TextCaseConverter() {
 
   const handleClear = () => {
     setText("");
-    // Se mantiene el activeMode para que lo siguiente que se pegue se convierta automáticamente
   };
 
   const charCount = text.length;
@@ -120,94 +119,65 @@ export default function TextCaseConverter() {
         <div className="flex-1 overflow-y-auto p-4 sm:p-12 bg-muted/30 flex flex-col items-center">
           <div className="w-full max-w-4xl space-y-8">
             
-            {/* Area de Texto principal */}
-            <div className="relative group rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-card bg-card">
-              <Textarea 
-                placeholder={lang === 'es' ? "Pega tu texto aquí..." : "Paste your text here..."}
-                className="min-h-[40vh] w-full p-8 text-lg font-medium border-none focus-visible:ring-0 resize-none leading-relaxed"
-                value={text}
-                onChange={handleTextChange}
-              />
+            <div className="relative group rounded-[2rem] overflow-hidden shadow-2xl border-4 border-card bg-card transition-all focus-within:ring-4 focus-within:ring-amber-500/10">
+              <div className="p-1">
+                <Textarea 
+                  placeholder={lang === 'es' ? "Pega tu texto aquí..." : "Paste your text here..."}
+                  className="min-h-[45vh] w-full p-6 text-lg font-medium border-none focus-visible:ring-0 resize-none leading-relaxed bg-transparent scrollbar-hide"
+                  value={text}
+                  onChange={handleTextChange}
+                />
+              </div>
               
-              <div className="absolute bottom-6 right-6 flex items-center gap-3">
+              <div className="absolute bottom-6 right-6 flex items-center gap-3 bg-card/80 backdrop-blur-md p-1.5 rounded-2xl shadow-xl border border-border/50">
                 <Button 
                   variant="secondary" 
                   size="icon" 
-                  className="rounded-xl shadow-lg"
+                  className="h-10 w-10 rounded-xl hover:bg-destructive/10 hover:text-destructive transition-colors"
                   onClick={handleClear}
                   disabled={!text}
                 >
-                  <Trash2 className="h-5 w-5 text-destructive" />
+                  <Trash2 className="h-5 w-5" />
                 </Button>
                 <Button 
-                  className="bg-amber-600 hover:bg-amber-700 text-white font-black gap-2 rounded-xl shadow-lg px-6"
+                  className="bg-amber-600 hover:bg-amber-700 text-white font-black gap-2 rounded-xl h-10 px-6 transition-all active:scale-95"
                   onClick={handleCopy}
                   disabled={!text}
                 >
                   {isCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                  {isCopied ? t.copied : t.copy}
+                  <span className="hidden sm:inline">{isCopied ? t.copied : t.copy}</span>
                 </Button>
               </div>
             </div>
 
-            {/* Opciones de conversión con estados activos */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <Button 
-                variant="outline" 
-                className={cn(
-                  "h-14 font-black rounded-2xl border-2 transition-all uppercase text-[10px] sm:text-xs",
-                  activeMode === 'uppercase' 
-                    ? "bg-amber-600 text-white border-amber-600 hover:bg-amber-700 hover:text-white" 
-                    : "border-border hover:border-amber-500 hover:bg-amber-50"
-                )}
-                onClick={() => handleModeToggle('uppercase')}
-              >
-                {t.uppercase}
-              </Button>
-              <Button 
-                variant="outline" 
-                className={cn(
-                  "h-14 font-black rounded-2xl border-2 transition-all uppercase text-[10px] sm:text-xs",
-                  activeMode === 'lowercase' 
-                    ? "bg-amber-600 text-white border-amber-600 hover:bg-amber-700 hover:text-white" 
-                    : "border-border hover:border-amber-500 hover:bg-amber-50"
-                )}
-                onClick={() => handleModeToggle('lowercase')}
-              >
-                {t.lowercase}
-              </Button>
-              <Button 
-                variant="outline" 
-                className={cn(
-                  "h-14 font-black rounded-2xl border-2 transition-all uppercase text-[10px] sm:text-xs",
-                  activeMode === 'sentence' 
-                    ? "bg-amber-600 text-white border-amber-600 hover:bg-amber-700 hover:text-white" 
-                    : "border-border hover:border-amber-500 hover:bg-amber-50"
-                )}
-                onClick={() => handleModeToggle('sentence')}
-              >
-                {t.sentenceCase}
-              </Button>
-              <Button 
-                variant="outline" 
-                className={cn(
-                  "h-14 font-black rounded-2xl border-2 transition-all uppercase text-[10px] sm:text-xs",
-                  activeMode === 'capitalize' 
-                    ? "bg-amber-600 text-white border-amber-600 hover:bg-amber-700 hover:text-white" 
-                    : "border-border hover:border-amber-500 hover:bg-amber-50"
-                )}
-                onClick={() => handleModeToggle('capitalize')}
-              >
-                {t.capitalize}
-              </Button>
+              {[
+                { mode: 'uppercase', label: t.uppercase },
+                { mode: 'lowercase', label: t.lowercase },
+                { mode: 'sentence', label: t.sentenceCase },
+                { mode: 'capitalize', label: t.capitalize }
+              ].map((btn) => (
+                <Button 
+                  key={btn.mode}
+                  variant="outline" 
+                  className={cn(
+                    "h-14 font-black rounded-2xl border-2 transition-all uppercase text-[10px] sm:text-xs shadow-sm active:scale-95",
+                    activeMode === btn.mode 
+                      ? "bg-amber-600 text-white border-amber-600 hover:bg-amber-700 hover:text-white ring-4 ring-amber-500/10" 
+                      : "border-border hover:border-amber-500 hover:bg-amber-50"
+                  )}
+                  onClick={() => handleModeToggle(btn.mode as CaseMode)}
+                >
+                  {btn.label}
+                </Button>
+              ))}
             </div>
 
-            {/* Título y descripción */}
-            <div className="text-center space-y-2 pt-4">
+            <div className="text-center space-y-2 pt-4 animate-fade-in">
               <Badge className="bg-amber-500/10 text-amber-600 border-amber-200 font-black px-3 py-1">
                 <Zap className="h-3 w-3 mr-2" /> {t.localProcessing}
               </Badge>
-              <h2 className="text-xl font-headline font-black tracking-tighter text-foreground/80 uppercase">
+              <h2 className="text-sm sm:text-xl font-headline font-black tracking-tighter text-foreground/80 uppercase">
                 {activeMode !== 'none' 
                   ? (lang === 'es' ? `Auto-conversión activa: ${activeMode.toUpperCase()}` : `Auto-conversion active: ${activeMode.toUpperCase()}`)
                   : t.textToolsDesc
@@ -232,7 +202,7 @@ export default function TextCaseConverter() {
             <Separator />
 
             <div className="space-y-4">
-              <div className="bg-muted p-4 rounded-2xl border border-border space-y-4">
+              <div className="bg-muted p-4 rounded-2xl border border-border space-y-4 shadow-inner">
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-2">
                     <AlignLeft className="h-3 w-3 text-amber-600" />
@@ -250,7 +220,7 @@ export default function TextCaseConverter() {
               </div>
               
               {activeMode !== 'none' && (
-                <div className="p-4 bg-amber-500/5 border border-dashed border-amber-500/20 rounded-2xl">
+                <div className="p-4 bg-amber-500/5 border border-dashed border-amber-500/20 rounded-2xl animate-in zoom-in-95">
                    <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest flex items-center gap-2 mb-1">
                      <Zap className="h-3 w-3" /> Modo Inteligente
                    </p>
