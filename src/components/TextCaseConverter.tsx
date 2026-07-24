@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { 
@@ -32,6 +32,7 @@ export default function TextCaseConverter() {
   const [lang, setLang] = useState<Language>('es');
   const t = translations[lang];
   const { toast } = useToast();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const [text, setText] = useState("");
   const [isCopied, setIsCopied] = useState(false);
@@ -83,6 +84,10 @@ export default function TextCaseConverter() {
 
   const handleClear = () => {
     setText("");
+    // Enfocar el textarea automáticamente después de borrar
+    setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 0);
   };
 
   const charCount = text.length;
@@ -120,8 +125,9 @@ export default function TextCaseConverter() {
           <div className="w-full max-w-4xl space-y-8">
             
             <div className="relative group rounded-[2rem] overflow-hidden shadow-2xl border-4 border-card bg-card transition-all focus-within:ring-4 focus-within:ring-amber-500/10">
-              <div className="p-1">
+              <div className="p-1 h-full">
                 <Textarea 
+                  ref={textareaRef}
                   placeholder={lang === 'es' ? "Pega tu texto aquí..." : "Paste your text here..."}
                   className="min-h-[45vh] w-full p-6 text-lg font-medium border-none focus-visible:ring-0 resize-none leading-relaxed bg-transparent scrollbar-hide"
                   value={text}
