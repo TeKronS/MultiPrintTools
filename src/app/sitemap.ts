@@ -2,7 +2,7 @@
 import { MetadataRoute } from 'next'
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://tekron-web-studio.vercel.app/'
+  const baseUrl = 'https://www.multiprinttools.com/'
   const lastModified = new Date()
 
   const routes = [
@@ -15,6 +15,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     'pdf-to-img',
     'image-to-pdf',
     'pdf-to-word',
+    'muralis',
+    'sticker-sheet',
   ]
 
   return routes.map((route) => ({

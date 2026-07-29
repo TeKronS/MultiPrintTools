@@ -1,3 +1,4 @@
+
 import type {Metadata} from 'next';
 import './globals.css';
 import { ThemeProvider } from '@/components/ThemeProvider';
@@ -5,6 +6,9 @@ import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.multiprinttools.com'),
+  alternates: {
+    canonical: '/',
+  },
   title: {
     default: 'MultiPrintTools | Suite Digital de Impresión e Independencia Técnica',
     template: '%s | MultiPrintTools'
