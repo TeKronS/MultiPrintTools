@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useDeferredValue, useMemo } from "react";
@@ -388,15 +389,21 @@ export default function MuralisEditor() {
       const activeTargetH = parseFloat(isMenuOpen ? draftTargetHeight : targetHeight);
 
       const paperBase = PAPER_DIMENSIONS[activePaperSize];
-      const paper = activeOrientation === 'portrait' 
-        ? { width: Math.min(paperBase.width, paperBase.height), height: Math.max(paperBase.width, paperBase.height) }
-        : { width: Math.max(paperBase.width, paperBase.height), height: Math.min(paperBase.width, paperBase.height) };
+      
+      const standardFormats = ['letter', 'a4', 'a3', 'legal'];
+      const pdfFormat = standardFormats.includes(paperBase.format) 
+        ? paperBase.format 
+        : [paperBase.width, paperBase.height];
 
       const pdf = new jsPDF({
         orientation: activeOrientation === 'portrait' ? 'p' : 'l',
         unit: 'mm',
-        format: paperBase.format as any
+        format: pdfFormat as any
       });
+
+      const paper = activeOrientation === 'portrait' 
+        ? { width: Math.min(paperBase.width, paperBase.height), height: Math.max(paperBase.width, paperBase.height) }
+        : { width: Math.max(paperBase.width, paperBase.height), height: Math.min(paperBase.width, paperBase.height) };
 
       const printableW = paper.width - (activeMarginH * 20);
       const printableH = paper.height - (activeMarginV * 20);
@@ -412,7 +419,6 @@ export default function MuralisEditor() {
       const offsetX_mm = (totalGridW - finalW_mm) / 2;
       const offsetY_mm = (totalGridH - finalH_mm) / 2;
 
-      // Mejorar calidad: renderizar a 300 DPI (alta resolución profesional)
       const targetDPI = 300;
       const outputPxPerMm = targetDPI / 25.4;
       const sourcePxPerMm = img.width / finalW_mm;
@@ -423,7 +429,9 @@ export default function MuralisEditor() {
 
       for (let r = 0; r < activeRows; r++) {
         for (let c = 0; c < activeCols; c++) {
-          if (r > 0 || c > 0) pdf.addPage();
+          if (r > 0 || c > 0) {
+            pdf.addPage(pdfFormat as any, activeOrientation === 'portrait' ? 'p' : 'l');
+          }
           
           const sheetLeft_mm = c * effectiveSheetW;
           const sheetTop_mm = r * effectiveSheetH;
@@ -434,13 +442,11 @@ export default function MuralisEditor() {
           const visibleW_mm = Math.min(effectiveSheetW + overlapMm - drawInSheetX_mm, finalW_mm - Math.max(0, sheetLeft_mm - offsetX_mm));
           const visibleH_mm = Math.min(effectiveSheetH + overlapMm - drawInSheetY_mm, finalH_mm - Math.max(0, sheetTop_mm - offsetY_mm));
 
-          // Coordenadas en la imagen de origen
           const sx = Math.max(0, (sheetLeft_mm - offsetX_mm) * sourcePxPerMm);
           const sy = Math.max(0, (sheetTop_mm - offsetY_mm) * sourcePxPerMm);
           const sw = visibleW_mm * sourcePxPerMm;
           const sh = visibleH_mm * sourcePxPerMm;
 
-          // Coordenadas en el canvas de destino de alta resolución
           const dw = visibleW_mm * outputPxPerMm;
           const dh = visibleH_mm * outputPxPerMm;
 
@@ -477,7 +483,6 @@ export default function MuralisEditor() {
             pdf.line(activeMarginH * 10, gy, activeMarginH * 10 + printableW, gy);
           }
           
-          // PIE DE PÁGINA TÉCNICO ADAPTATIVO
           pdf.setFontSize(7);
           pdf.setTextColor(180);
           const footerText = `MULTIPRINTTOOLS | ${t.muralisTitle.toUpperCase()} | PANEL ${r+1}-${c+1} | ${activePaperSize} (${activeOrientation === 'portrait' ? 'P' : 'L'})`;
@@ -485,7 +490,6 @@ export default function MuralisEditor() {
           if (activeOrientation === 'portrait') {
             pdf.text(footerText, activeMarginH * 10, paper.height - (activeMarginV * 5));
           } else {
-            // Posicionamiento anclado al margen inferior físico (marginal horizontal de la hoja física)
             pdf.text(footerText, paper.width - (activeMarginH * 5), paper.height - (activeMarginV * 10), { angle: 90 });
           }
         }
@@ -493,6 +497,7 @@ export default function MuralisEditor() {
       pdf.save(`mural-grid-${Date.now()}.pdf`);
       toast({ title: t.export, description: "Documento exportado en alta resolución." });
     } catch (e) {
+      console.error(e);
       toast({ variant: "destructive", title: "Error", description: "No se pudo generar el PDF." });
     } finally {
       setIsExporting(false);

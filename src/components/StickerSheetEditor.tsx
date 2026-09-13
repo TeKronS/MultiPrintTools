@@ -241,10 +241,15 @@ export default function StickerSheetEditor() {
       img.src = image.url;
       await new Promise((resolve) => img.onload = resolve);
 
+      const standardFormats = ['letter', 'a4', 'a3', 'legal'];
+      const pdfFormat = standardFormats.includes(paper.format) 
+        ? paper.format 
+        : [paper.width, paper.height];
+
       const pdf = new jsPDF({
         orientation: orientation === 'portrait' ? 'p' : 'l',
         unit: 'mm',
-        format: paper.format as any
+        format: pdfFormat as any
       });
 
       const canvas = document.createElement('canvas');
@@ -290,6 +295,7 @@ export default function StickerSheetEditor() {
       pdf.save(`MultiPrint-Stickers-${Date.now()}.pdf`);
       toast({ title: t.export, description: "La plancha de stickers se ha descargado correctamente." });
     } catch (e) {
+      console.error(e);
       toast({ variant: "destructive", title: "Error", description: "Ocurrió un error al generar el PDF." });
     } finally {
       setIsExporting(false);

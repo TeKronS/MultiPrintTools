@@ -357,42 +357,67 @@ export default function PosterGridEditor() {
       const activeTargetW = parseFloat(isMenuOpen ? draftTargetWidth : targetWidth);
       const activeTargetH = parseFloat(isMenuOpen ? draftTargetHeight : targetHeight);
       const activeShowOutline = isMenuOpen ? draftShowOutline : showOutline;
+      
       const paperBase = PAPER_DIMENSIONS[activePaperSize];
+      
+      // jsPDF requiere formatos estándar como string, o dimensiones personalizadas como [w, h]
+      const standardFormats = ['letter', 'a4', 'a3', 'legal'];
+      const pdfFormat = standardFormats.includes(paperBase.format) 
+        ? paperBase.format 
+        : [paperBase.width, paperBase.height];
+
+      const pdf = new jsPDF({ 
+        orientation: activeOrientation === 'portrait' ? 'p' : 'l', 
+        unit: 'mm', 
+        format: pdfFormat as any 
+      });
+
       const paper = activeOrientation === 'portrait' ? { width: Math.min(paperBase.width, paperBase.height), height: Math.max(paperBase.width, paperBase.height) } : { width: Math.max(paperBase.width, paperBase.height), height: Math.min(paperBase.width, paperBase.height) };
       const { appliedMH, appliedMV } = getAppliedMargins(activeOrientation, activeMarginV, activeMarginH);
-      const pdf = new jsPDF({ orientation: activeOrientation === 'portrait' ? 'p' : 'l', unit: 'mm', format: paperBase.format as any });
+      
       const printableW = paper.width - (appliedMH * 20);
       const printableH = paper.height - (appliedMV * 20);
       const overlapMm = activeOverlap * 10;
       const effectiveSheetW = printableW - overlapMm;
       const effectiveSheetH = printableH - overlapMm;
+
       const totalGridW = (activeCols * effectiveSheetW) + overlapMm;
       const totalGridH = (activeRows * effectiveSheetH) + overlapMm;
+
       const finalW_mm = activeTargetW * 10;
       const finalH_mm = activeTargetH * 10;
       const offsetX_mm = (totalGridW - finalW_mm) / 2;
       const offsetY_mm = (totalGridH - finalH_mm) / 2;
+
       const targetDPI = 300;
       const outputPxPerMm = targetDPI / 25.4;
       const sourcePxPerMm = img.width / finalW_mm;
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       if (!ctx) throw new Error("Canvas fail");
+
       for (let r = 0; r < activeRows; r++) {
         for (let c = 0; c < activeCols; c++) {
-          if (r > 0 || c > 0) pdf.addPage();
+          if (r > 0 || c > 0) {
+            pdf.addPage(pdfFormat as any, activeOrientation === 'portrait' ? 'p' : 'l');
+          }
+          
           const sheetLeft_mm = c * effectiveSheetW;
           const sheetTop_mm = r * effectiveSheetH;
+          
           const drawInSheetX_mm = Math.max(0, offsetX_mm - sheetLeft_mm);
           const drawInSheetY_mm = Math.max(0, offsetY_mm - sheetTop_mm);
+          
           const visibleW_mm = Math.min(effectiveSheetW + overlapMm - drawInSheetX_mm, finalW_mm - Math.max(0, sheetLeft_mm - offsetX_mm));
           const visibleH_mm = Math.min(effectiveSheetH + overlapMm - drawInSheetY_mm, finalH_mm - Math.max(0, sheetTop_mm - offsetY_mm));
+          
           const sx = Math.max(0, (sheetLeft_mm - offsetX_mm) * sourcePxPerMm);
           const sy = Math.max(0, (sheetTop_mm - offsetY_mm) * sourcePxPerMm);
           const sw = visibleW_mm * sourcePxPerMm;
           const sh = visibleH_mm * sourcePxPerMm;
           const dw = visibleW_mm * outputPxPerMm;
           const dh = visibleH_mm * outputPxPerMm;
+
           if (sw > 0 && sh > 0) {
             canvas.width = Math.max(1, dw); canvas.height = Math.max(1, dh);
             ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
@@ -419,7 +444,12 @@ export default function PosterGridEditor() {
       }
       pdf.save(`poster-grid-${Date.now()}.pdf`);
       toast({ title: t.export, description: "PDF generado en alta resolución con éxito." });
-    } catch (e) { toast({ variant: "destructive", title: "Error", description: "No se pudo generar el PDF." }); } finally { setIsExporting(false); }
+    } catch (e) { 
+      console.error(e);
+      toast({ variant: "destructive", title: "Error", description: "No se pudo generar el PDF." }); 
+    } finally { 
+      setIsExporting(false); 
+    }
   };
 
   const getMeasures = (r: number, c: number, ov: number, mV: number, mH: number, pS: string, orient: 'portrait' | 'landscape', tW: string, tH: string) => {

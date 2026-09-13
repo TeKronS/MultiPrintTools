@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, useMemo, useEffect, useDeferredValue } from "react";
@@ -83,7 +84,6 @@ export default function ImageToPdfConverter() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
 
-  // Optimización para evitar lag al desplazar el slider
   const deferredMargin = useDeferredValue(margin);
 
   useEffect(() => {
@@ -212,10 +212,15 @@ export default function ImageToPdfConverter() {
         ? expandedImagesList[0].orientation 
         : orientation;
 
+      const standardFormats = ['letter', 'a4', 'a3', 'legal'];
+      const pdfFormat = standardFormats.includes(paper.format) 
+        ? paper.format 
+        : [paper.width, paper.height];
+
       const pdf = new jsPDF({
         orientation: initialOrient === 'portrait' ? 'p' : 'l',
         unit: 'mm',
-        format: paper.format as any
+        format: pdfFormat as any
       });
 
       for (let i = 0; i < expandedImagesList.length; i += nPerPage) {
@@ -226,12 +231,11 @@ export default function ImageToPdfConverter() {
         }
 
         if (i > 0) {
-          pdf.addPage(paper.format as any, currentPageOrient === 'portrait' ? 'p' : 'l');
+          pdf.addPage(pdfFormat as any, currentPageOrient === 'portrait' ? 'p' : 'l');
         }
 
         const pageWidth = currentPageOrient === 'portrait' ? paper.width : paper.height;
         const pageHeight = currentPageOrient === 'portrait' ? paper.height : paper.width;
-        // Usar el valor real (no diferido) para la exportación final
         const marginMm = margin * 10;
         const usableWidth = pageWidth - (marginMm * 2);
         const usableHeight = pageHeight - (marginMm * 2);
@@ -293,6 +297,7 @@ export default function ImageToPdfConverter() {
       pdf.save(`MultiPrintTools-ImageToPdf-${Date.now()}.pdf`);
       toast({ title: "PDF Generado", description: "El documento se ha descargado con éxito." });
     } catch (error) {
+      console.error(error);
       toast({ variant: "destructive", title: "Error", description: "No se pudo generar el PDF." });
     } finally {
       setIsExporting(false);
@@ -528,7 +533,6 @@ export default function ImageToPdfConverter() {
                   const paperW = currentOrient === 'portrait' ? paper.width : paper.height;
                   const paperH = currentOrient === 'portrait' ? paper.height : paper.width;
                   const aspect = paperW / paperH;
-                  // Usar el valor diferido para una previsualización fluida en móvil
                   const marginMm = deferredMargin * 10;
                   const marginX = (marginMm / paperW) * 100;
                   const marginY = (marginMm / paperH) * 100;
