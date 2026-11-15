@@ -68,8 +68,8 @@ export default function PosterGridEditor() {
   
   const [rows, setRows] = useState(2);
   const [cols, setCols] = useState(2);
-  const [overlap, setOverlap] = useState(1); 
-  const [marginV, setMarginV] = useState(1.2); 
+  const [overlap, setOverlap] = useState(0.3); 
+  const [marginV, setMarginV] = useState(0.7); 
   const [marginH, setMarginH] = useState(0.7); 
   const [paperSize, setPaperSize] = useState('Carta');
   const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait');
@@ -81,8 +81,8 @@ export default function PosterGridEditor() {
 
   const [draftRows, setDraftRows] = useState(2);
   const [draftCols, setDraftCols] = useState(2);
-  const [draftOverlap, setDraftOverlap] = useState(1);
-  const [draftMarginV, setDraftMarginV] = useState(1.2);
+  const [draftOverlap, setDraftOverlap] = useState(0.3);
+  const [draftMarginV, setDraftMarginV] = useState(0.7);
   const [draftMarginH, setDraftMarginH] = useState(0.7);
   const [draftPaperSize, setDraftPaperSize] = useState('Carta');
   const [draftOrientation, setDraftOrientation] = useState<'portrait' | 'landscape'>('portrait');
@@ -360,7 +360,6 @@ export default function PosterGridEditor() {
       
       const paperBase = PAPER_DIMENSIONS[activePaperSize];
       
-      // jsPDF requiere formatos estándar como string, o dimensiones personalizadas como [w, h]
       const standardFormats = ['letter', 'a4', 'a3', 'legal'];
       const pdfFormat = standardFormats.includes(paperBase.format) 
         ? paperBase.format 
