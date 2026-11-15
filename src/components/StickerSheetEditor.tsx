@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useRef, useEffect, useMemo } from "react";
@@ -174,7 +173,6 @@ export default function StickerSheetEditor() {
     setStickers(prev => prev.filter(s => s.id !== id));
   };
 
-  // Cálculo de stickers para previsualización
   const itemsToDraw = useMemo(() => {
     if (stickers.length === 0) return [];
     
@@ -189,7 +187,6 @@ export default function StickerSheetEditor() {
     let maxRowHeight = 0;
     const results: any[] = [];
 
-    // Primero colocamos los manuales
     const manualStickers = stickers.filter(s => s.quantityMode === 'manual');
     const autoStickers = stickers.filter(s => s.quantityMode === 'auto');
 
@@ -198,7 +195,6 @@ export default function StickerSheetEditor() {
       for(let i=0; i<s.quantity; i++) drawList.push(s);
     });
 
-    // Simulador de llenado para los manuales
     const processItem = (s: StickerData) => {
       const sW = s.width * 10;
       const sH = s.height * 10;
@@ -207,7 +203,7 @@ export default function StickerSheetEditor() {
         currentY += maxRowHeight + spacingMm;
         maxRowHeight = 0;
       }
-      if (currentY + sH > printableH) return false; // No cabe más en esta página (simulada)
+      if (currentY + sH > printableH) return false;
       
       results.push({ ...s, x: currentX, y: currentY });
       maxRowHeight = Math.max(maxRowHeight, sH);
@@ -217,7 +213,6 @@ export default function StickerSheetEditor() {
 
     drawList.forEach(item => processItem(item));
 
-    // Rellenamos con los Auto (Round Robin para balancear)
     if (autoStickers.length > 0) {
       let autoIdx = 0;
       let possible = true;
@@ -225,7 +220,7 @@ export default function StickerSheetEditor() {
         const s = autoStickers[autoIdx];
         possible = processItem(s);
         autoIdx = (autoIdx + 1) % autoStickers.length;
-        if (results.length > 500) break; // Límite de seguridad
+        if (results.length > 500) break;
       }
     }
 
@@ -248,6 +243,11 @@ export default function StickerSheetEditor() {
     e.stopPropagation(); if (e.cancelable) e.preventDefault();
     const touch = e.touches[0];
     startDragging(touch.clientX, touch.clientY, type);
+  };
+
+  const handleDragEnd = () => {
+    setIsDragging(false);
+    setDragType(null);
   };
 
   const performDragging = (clientX: number, clientY: number, container: DOMRect) => {
@@ -311,7 +311,6 @@ export default function StickerSheetEditor() {
       let currentY = marginYMm;
       let maxRowHeight = 0;
 
-      // Generar assets cacheados
       const assets = new Map();
       for (const s of stickers) {
         const img = new window.Image();
@@ -356,25 +355,19 @@ export default function StickerSheetEditor() {
         currentX += sW + spacingMm;
       };
 
-      // Primero manuales
       manualStickers.forEach(s => {
         for(let i=0; i<s.quantity; i++) placeSticker(s);
       });
 
-      // Luego auto balanceados (solo una página para el export auto si es muy denso, o seguir?)
-      // El usuario quiere que rellene "Esa hoja" (singular), pero lo haremos para que aproveche.
       if (autoStickers.length > 0) {
         let autoIdx = 0;
         let originalPageCount = pdf.internal.pages.length;
-        // Solo rellenamos la página actual y si sobra espacio generamos máximo 3 hojas totales para evitar loops infinitos si el tamaño es ínfimo
         while(pdf.internal.pages.length <= Math.max(originalPageCount, 3)) {
           const s = autoStickers[autoIdx];
           const sW = s.width * 10;
           const sH = s.height * 10;
-          
           const willNeedNewPage = (currentY + sH > marginYMm + printableH + 0.1) && (currentX + sW > marginXMm + printableW + 0.1);
           if (willNeedNewPage && pdf.internal.pages.length >= Math.max(originalPageCount, 3)) break;
-
           placeSticker(s);
           autoIdx = (autoIdx + 1) % autoStickers.length;
         }
@@ -572,7 +565,7 @@ export default function StickerSheetEditor() {
 
         <aside className="hidden lg:flex w-80 bg-card border-l border-border flex-col shrink-0 shadow-2xl z-20">
           <div className="flex-1 overflow-y-auto p-6">{renderSettings()}</div>
-          {stickers.length > 0 && !isCropping && (<div className="p-6 border-t bg-muted/50"><Button className="w-full h-14 bg-yellow-600 hover:bg-yellow-700 text-white font-black rounded-2xl shadow-xl shadow-yellow-600/20 uppercase tracking-widest text-xs gap-3 transition-all active:scale-95" onClick={exportPdf} disabled={isExporting}>{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-5 w-5" />}{isExporting ? "Generando..." : "Descargar Plancha PDF"}</Button></div>)}
+          {stickers.length > 0 && !isCropping && (<div className="p-6 border-t bg-muted/50"><Button className="w-full h-14 bg-yellow-600 hover:bg-yellow-700 text-white font-black rounded-2xl shadow-xl shadow-yellow-600/20 uppercase tracking-widest text-xs gap-3 transition-all active:scale-95" onClick={exportPdf} disabled={isExporting}>{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}{isExporting ? "Generando..." : "Descargar Plancha PDF"}</Button></div>)}
         </aside>
 
         {stickers.length > 0 && !isCropping && (
@@ -585,4 +578,3 @@ export default function StickerSheetEditor() {
     </div>
   );
 }
-
