@@ -383,8 +383,8 @@ export default function StickerSheetEditor() {
     }
   };
 
-  const renderSettings = () => (
-    <div className="space-y-6">
+  const renderSettings = (isMobile?: boolean) => (
+    <div className={cn("space-y-6", isMobile ? "p-4 pt-1 pb-32" : "")}>
       <div className="space-y-4">
         <div className="flex items-center gap-2">
           <Settings2 className="h-4 w-4 text-yellow-500" />
@@ -395,7 +395,7 @@ export default function StickerSheetEditor() {
           <div className="space-y-1">
             <Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Papel</Label>
             <Select value={paperSize} onValueChange={setPaperSize}>
-              <SelectTrigger className="h-8 font-bold text-[10px] border-2 rounded-lg bg-white">
+              <SelectTrigger className="h-8 font-bold text-[10px] border-2 rounded-lg bg-card">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -408,7 +408,7 @@ export default function StickerSheetEditor() {
           <div className="space-y-1">
             <Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Orientación</Label>
             <Select value={orientation} onValueChange={(v: any) => setOrientation(v)}>
-              <SelectTrigger className="h-8 font-bold text-[10px] border-2 rounded-lg bg-white">
+              <SelectTrigger className="h-8 font-bold text-[10px] border-2 rounded-lg bg-card">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -421,15 +421,15 @@ export default function StickerSheetEditor() {
 
         <div className="space-y-4">
           <div className="space-y-1">
-            <div className="flex justify-between"><Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Separación (cm)</Label><span className="text-[9px] font-black text-yellow-600 bg-yellow-50 px-1.5 rounded">{spacing} cm</span></div>
+            <div className="flex justify-between"><Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Separación (cm)</Label><span className="text-[9px] font-black text-yellow-600 bg-yellow-50 dark:bg-yellow-500/10 px-1.5 rounded">{spacing} cm</span></div>
             <Slider value={[spacing]} onValueChange={(v) => setSpacing(v[0])} min={0} max={2} step={0.05} />
           </div>
           <div className="space-y-1">
-            <div className="flex justify-between"><Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Margen V</Label><span className="text-[9px] font-black text-yellow-600 bg-yellow-50 px-1.5 rounded">{marginV} cm</span></div>
+            <div className="flex justify-between"><Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Margen V</Label><span className="text-[9px] font-black text-yellow-600 bg-yellow-50 dark:bg-yellow-500/10 px-1.5 rounded">{marginV} cm</span></div>
             <Slider value={[marginV]} onValueChange={(v) => setMarginV(v[0])} min={0} max={5} step={0.1} />
           </div>
           <div className="space-y-1">
-            <div className="flex justify-between"><Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Margen H</Label><span className="text-[9px] font-black text-yellow-600 bg-yellow-50 px-1.5 rounded">{marginH} cm</span></div>
+            <div className="flex justify-between"><Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Margen H</Label><span className="text-[9px] font-black text-yellow-600 bg-yellow-50 dark:bg-yellow-500/10 px-1.5 rounded">{marginH} cm</span></div>
             <Slider value={[marginH]} onValueChange={(v) => setMarginH(v[0])} min={0} max={5} step={0.1} />
           </div>
         </div>
@@ -446,13 +446,13 @@ export default function StickerSheetEditor() {
           <Badge variant="secondary" className="font-black text-[9px]">{stickers.length}</Badge>
         </div>
 
-        <div className="space-y-4 max-h-[35vh] overflow-y-auto pr-2 custom-scrollbar">
+        <div className={cn("space-y-4 overflow-y-auto pr-2 custom-scrollbar", isMobile ? "max-h-none" : "max-h-[35vh]")}>
           {stickers.map((s, idx) => (
             <div key={s.id} className="bg-muted/50 p-3 rounded-2xl border-2 border-border space-y-3 relative group">
-              <button onClick={() => removeSticker(s.id)} className="absolute -top-2 -right-2 w-6 h-6 bg-destructive text-white rounded-full flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 className="h-3 w-3" /></button>
+              <button onClick={() => removeSticker(s.id)} className="absolute -top-2 -right-2 w-6 h-6 bg-destructive text-white rounded-full flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-10"><Trash2 className="h-3 w-3" /></button>
               
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-white rounded-lg border overflow-hidden shrink-0"><img src={s.url} className="w-full h-full object-cover" /></div>
+                <div className="w-12 h-12 bg-white dark:bg-slate-300 rounded-lg border overflow-hidden shrink-0"><img src={s.url} className="w-full h-full object-cover" /></div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[9px] font-black text-muted-foreground uppercase truncate">Sticker #{idx + 1}</p>
                   <div className="flex items-center justify-between mt-1">
@@ -472,8 +472,8 @@ export default function StickerSheetEditor() {
               </div>
 
               <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1"><Label className="text-[8px] font-bold text-muted-foreground uppercase">Ancho (cm)</Label><Input type="number" value={s.width} onChange={(e) => updateStickerSize(s.id, parseFloat(e.target.value), 'w')} className="h-7 text-[10px] font-black bg-white" /></div>
-                <div className="space-y-1"><Label className="text-[8px] font-bold text-muted-foreground uppercase">Alto (cm)</Label><Input type="number" value={s.height} onChange={(e) => updateStickerSize(s.id, parseFloat(e.target.value), 'h')} className="h-7 text-[10px] font-black bg-white" /></div>
+                <div className="space-y-1"><Label className="text-[8px] font-bold text-muted-foreground uppercase">Ancho (cm)</Label><Input type="number" value={s.width} onChange={(e) => updateStickerSize(s.id, parseFloat(e.target.value), 'w')} className="h-7 text-[10px] font-black bg-card" /></div>
+                <div className="space-y-1"><Label className="text-[8px] font-bold text-muted-foreground uppercase">Alto (cm)</Label><Input type="number" value={s.height} onChange={(e) => updateStickerSize(s.id, parseFloat(e.target.value), 'h')} className="h-7 text-[10px] font-black bg-card" /></div>
               </div>
             </div>
           ))}
@@ -569,9 +569,44 @@ export default function StickerSheetEditor() {
         </aside>
 
         {stickers.length > 0 && !isCropping && (
-          <div className="lg:hidden fixed bottom-6 left-6 right-6 z-[100] flex gap-3 pointer-events-auto">
-            <div className="flex-1"><Button className="w-full h-14 bg-yellow-600 hover:bg-yellow-700 text-white font-black rounded-2xl shadow-xl shadow-yellow-600/20 uppercase tracking-widest text-sm gap-3 border-4 border-white/10" onClick={exportPdf} disabled={isExporting}>{isExporting ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileDown className="h-5 w-5" />}{isExporting ? "..." : "Exportar"}</Button></div>
-            <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}><Button size="icon" className="h-14 w-14 shrink-0 rounded-full shadow-2xl bg-slate-800 text-white hover:bg-slate-900 transition-all active:scale-95 border-4 border-white" onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); setIsMenuOpen(!isMenuOpen); }}><Settings2 className="h-6 w-6" /></Button><SheetContent side="right" className="w-[85%] sm:w-[400px] p-6 bg-card backdrop-blur-xl shadow-2xl overflow-y-auto"><SheetHeader className="sr-only"><SheetTitle>Ajustes de Plancha</SheetTitle><SheetDescription>Configura tamaños, papel y espaciado</SheetDescription></SheetHeader>{renderSettings()}</SheetContent></Sheet>
+          <div className="lg:hidden fixed bottom-6 left-6 right-6 z-[40] flex gap-3 pointer-events-auto">
+            <div className="flex-1"><Button className="w-full h-14 bg-yellow-600 hover:bg-yellow-700 text-white font-black rounded-2xl shadow-xl shadow-yellow-600/20 uppercase tracking-widest text-sm gap-3 border-4 border-white/10" onClick={exportPdf} disabled={isExporting}>{isExporting ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileDown className="h-4 w-4" />}{isExporting ? "..." : "Exportar"}</Button></div>
+            <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+              <Button 
+                size="icon" 
+                className="h-14 w-14 shrink-0 rounded-full shadow-2xl bg-slate-800 text-white hover:bg-slate-900 transition-all active:scale-95 border-4 border-white"
+                onPointerDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsMenuOpen(!isMenuOpen);
+                }}
+              >
+                <Settings2 className="h-6 w-6" />
+              </Button>
+              <SheetContent 
+                side="right" 
+                className="w-[85%] sm:w-[400px] p-0 bg-background/95 backdrop-blur-xl shadow-2xl overflow-hidden flex flex-col z-[200]"
+                onOpenAutoFocus={(e) => e.preventDefault()}
+              >
+                <SheetHeader className="sr-only">
+                  <SheetTitle>Ajustes de Plancha</SheetTitle>
+                  <SheetDescription>Configura tamaños, papel y espaciado</SheetDescription>
+                </SheetHeader>
+                <div className="p-4 bg-yellow-500/5 border-b shrink-0">
+                  <Button 
+                    className="w-full h-12 bg-yellow-600 hover:bg-yellow-700 text-white font-black rounded-xl shadow-lg transition-all active:scale-95 text-xs uppercase tracking-widest gap-2"
+                    onClick={exportPdf}
+                    disabled={isExporting}
+                  >
+                    {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+                    {isExporting ? "..." : "Exportar PDF"}
+                  </Button>
+                </div>
+                <div className="flex-1 overflow-y-auto">
+                  {renderSettings(true)}
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
         )}
       </main>
