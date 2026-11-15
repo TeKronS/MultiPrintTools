@@ -5,28 +5,18 @@ import Image from "next/image";
 import Link from "next/link";
 import { 
   ChevronLeft, 
-  StickyNote, 
   FileDown, 
   Loader2, 
   Settings2,
   RefreshCcw,
-  Maximize2,
-  Ruler,
-  Zap,
-  Crop,
-  Check,
   Plus,
   Minus,
-  Layout,
-  Scissors,
-  FileText,
-  Move,
   Maximize,
   Trash2,
   PlusCircle,
   ImageIcon,
   Layers,
-  Sparkles
+  Check
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -54,7 +44,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Language, translations } from "@/lib/translations";
 import { LanguageSelector } from "./LanguageSelector";
 import { ThemeToggle } from "./ThemeToggle";
-import { ImageUploader } from "./ImageUploader";
 import logo from "@/app/icono.png";
 import { cn } from "@/lib/utils";
 
@@ -81,7 +70,7 @@ interface StickerData {
 }
 
 /**
- * Guillotine Packer Algorithm to maximize sheet usage
+ * Guillotine Packer Algorithm to maximize sheet usage with correct area splitting
  */
 class GuillotinePacker {
   width: number;
@@ -93,7 +82,6 @@ class GuillotinePacker {
     this.width = w;
     this.height = h;
     this.spacing = spacing;
-    // We start with one big rectangle representing the whole printable area
     this.freeRects = [{ x: 0, y: 0, w: w, h: h }];
   }
 
@@ -102,18 +90,12 @@ class GuillotinePacker {
     const h = h_cm * 10;
     const s = this.spacing * 10;
 
-    // We look for a rectangle that can fit the sticker PLUS the spacing
-    // unless it's at the very edge, but for simplicity we add it to all
-    const neededW = w + s;
-    const neededH = h + s;
-
     let bestRectIdx = -1;
     let minArea = Infinity;
 
     for (let i = 0; i < this.freeRects.length; i++) {
       const fr = this.freeRects[i];
       if (fr.w >= w - 0.001 && fr.h >= h - 0.001) {
-        // Best fit: smallest area that fits
         const area = fr.w * fr.h;
         if (area < minArea) {
           minArea = area;
@@ -125,46 +107,21 @@ class GuillotinePacker {
     if (bestRectIdx === -1) return null;
 
     const rect = this.freeRects.splice(bestRectIdx, 1)[0];
-    
-    // Placement
     const pos = { x: rect.x, y: rect.y };
 
-    // Split remaining space into two rectangles (Guillotine split)
-    // We split in a way that preserves the largest possible remaining area
-    const remainingW = rect.w - w - s;
-    const remainingH = rect.h - h - s;
+    const w_diff = rect.w - w - s;
+    const h_diff = rect.h - h - s;
 
-    if (remainingW > 0) {
-      this.freeRects.push({
-        x: rect.x + w + s,
-        y: rect.y,
-        w: remainingW,
-        h: h
-      });
+    // Split using the Shorter Axis Split Rule to preserve larger usable spaces
+    if (w_diff > h_diff) {
+      if (w_diff > 0) this.freeRects.push({ x: rect.x + w + s, y: rect.y, w: w_diff, h: rect.h });
+      if (h_diff > 0) this.freeRects.push({ x: rect.x, y: rect.y + h + s, w: w, h: h_diff });
+    } else {
+      if (h_diff > 0) this.freeRects.push({ x: rect.x, y: rect.y + h + s, w: rect.w, h: h_diff });
+      if (w_diff > 0) this.freeRects.push({ x: rect.x + w + s, y: rect.y, w: w_diff, h: h });
     }
 
-    if (remainingH > 0) {
-      this.freeRects.push({
-        x: rect.x,
-        y: rect.y + h + s,
-        w: rect.w,
-        h: remainingH
-      });
-    }
-
-    // Optional: add the tiny corner rectangle if both remainings exist
-    if (remainingW > 0 && remainingH > 0) {
-        this.freeRects.push({
-            x: rect.x + w + s,
-            y: rect.y + h + s,
-            w: remainingW,
-            h: remainingH
-        });
-    }
-
-    // Re-sort free rects to prioritize packing from top-left
     this.freeRects.sort((a, b) => (a.y - b.y) || (a.x - b.x));
-    
     return pos;
   }
 }
@@ -178,7 +135,7 @@ export default function StickerSheetEditor() {
   const [stickers, setStickers] = useState<StickerData[]>([]);
   const [isCropping, setIsCropping] = useState(false);
   const [currentImage, setCurrentImage] = useState<{ url: string; file: File; width: number; height: number } | null>(null);
-  const [crop, setCrop] = useState({ x: 10, y: 10, width: 80, height: 80 });
+  const [crop, setCrop] = useState({ x: 0, y: 0, width: 100, height: 100 });
   
   const [isDragging, setIsDragging] = useState(false);
   const [dragType, setDragType] = useState<'move' | 'nw' | 'ne' | 'sw' | 'se' | null>(null);
@@ -213,13 +170,16 @@ export default function StickerSheetEditor() {
     img.onload = () => {
       setCurrentImage({ url, file, width: img.width, height: img.height });
       setIsCropping(true);
-      setCrop({ x: 10, y: 10, width: 80, height: 80 });
+      setCrop({ x: 0, y: 0, width: 100, height: 100 });
     };
   };
 
   const confirmSticker = () => {
     if (!currentImage) return;
-    const cropAspect = (crop.width * currentImage.width) / (crop.height * currentImage.height);
+    const cropW = (crop.width / 100) * currentImage.width;
+    const cropH = (crop.height / 100) * currentImage.height;
+    const cropAspect = cropW / cropH;
+    
     const newSticker: StickerData = {
       id: Math.random().toString(36).substring(2, 9),
       url: currentImage.url,
@@ -279,24 +239,19 @@ export default function StickerSheetEditor() {
 
     const results: any[] = [];
 
-    // 1. Prioritize manual stickers
     manualStickers.forEach(s => {
       for(let i = 0; i < s.quantity; i++) {
         const pos = packer.pack(s.width, s.height);
-        if (pos) {
-          results.push({ ...s, x: pos.x, y: pos.y });
-        }
+        if (pos) results.push({ ...s, x: pos.x, y: pos.y });
       }
     });
 
-    // 2. Equitable filling for auto stickers
     if (autoStickers.length > 0) {
       const counts = new Map(autoStickers.map(s => [s.id, 0]));
       let addedInRound = true;
 
       while (addedInRound) {
         addedInRound = false;
-        // Sort by least count to keep it equitable
         const sortedAuto = [...autoStickers].sort((a, b) => (counts.get(a.id) || 0) - (counts.get(b.id) || 0));
 
         for (const s of sortedAuto) {
@@ -307,31 +262,12 @@ export default function StickerSheetEditor() {
             addedInRound = true;
           }
         }
-
-        if (results.length > 800) break; // Security break
+        if (results.length > 800) break;
       }
     }
 
     return results;
   }, [stickers, paper, spacing, marginV, marginH]);
-
-  const startDragging = (clientX: number, clientY: number, type: 'move' | 'nw' | 'ne' | 'sw' | 'se') => {
-    setIsDragging(true);
-    setDragType(type);
-    setStartPos({ x: clientX, y: clientY });
-    setStartCrop({ ...crop });
-  };
-
-  const handleMouseDown = (e: React.MouseEvent, type: 'move' | 'nw' | 'ne' | 'sw' | 'se') => {
-    e.preventDefault(); e.stopPropagation();
-    startDragging(e.clientX, e.clientY, type);
-  };
-
-  const handleTouchStart = (e: React.TouchEvent, type: 'move' | 'nw' | 'ne' | 'sw' | 'se') => {
-    e.stopPropagation(); if (e.cancelable) e.preventDefault();
-    const touch = e.touches[0];
-    startDragging(touch.clientX, touch.clientY, type);
-  };
 
   const performDragging = (clientX: number, clientY: number, container: DOMRect) => {
     if (!isDragging || !dragType) return;
@@ -389,7 +325,6 @@ export default function StickerSheetEditor() {
       const printableW = paper.width - (marginXMm * 2);
       const printableH = paper.height - (marginYMm * 2);
 
-      // Pre-process high-res crops
       const assets = new Map();
       for (const s of stickers) {
         const img = new window.Image();
@@ -410,20 +345,18 @@ export default function StickerSheetEditor() {
         assets.set(s.id, canvas.toDataURL('image/png', 1.0));
       }
 
-      const manualStickers = stickers.filter(s => s.quantityMode === 'manual');
-      const autoStickers = stickers.filter(s => s.quantityMode === 'auto');
-
-      // Helper function to fill pages using the Packer
       const fillWithPacker = (limitPages: number) => {
           let currentPage = 1;
           let currentPacker = new GuillotinePacker(printableW, printableH, spacing);
+          
+          const manualStickers = stickers.filter(s => s.quantityMode === 'manual');
+          const autoStickers = stickers.filter(s => s.quantityMode === 'auto');
           const counts = new Map(autoStickers.map(s => [s.id, 0]));
 
-          // Place manuals first on first page(s)
           manualStickers.forEach(s => {
               for(let i = 0; i < s.quantity; i++) {
                   let pos = currentPacker.pack(s.width, s.height);
-                  if (!pos) {
+                  if (!pos && currentPage < limitPages) {
                       pdf.addPage(pdfFormat as any, orientation === 'portrait' ? 'p' : 'l');
                       currentPage++;
                       currentPacker = new GuillotinePacker(printableW, printableH, spacing);
@@ -433,7 +366,6 @@ export default function StickerSheetEditor() {
               }
           });
 
-          // Fill auto stickers until limit
           if (autoStickers.length > 0) {
               let addedInRound = true;
               while (addedInRound && currentPage <= limitPages) {
@@ -442,15 +374,11 @@ export default function StickerSheetEditor() {
 
                   for (const s of sortedAuto) {
                       let pos = currentPacker.pack(s.width, s.height);
-                      if (!pos) {
-                          if (currentPage < limitPages) {
-                              pdf.addPage(pdfFormat as any, orientation === 'portrait' ? 'p' : 'l');
-                              currentPage++;
-                              currentPacker = new GuillotinePacker(printableW, printableH, spacing);
-                              pos = currentPacker.pack(s.width, s.height);
-                          } else {
-                              continue;
-                          }
+                      if (!pos && currentPage < limitPages) {
+                          pdf.addPage(pdfFormat as any, orientation === 'portrait' ? 'p' : 'l');
+                          currentPage++;
+                          currentPacker = new GuillotinePacker(printableW, printableH, spacing);
+                          pos = currentPacker.pack(s.width, s.height);
                       }
                       
                       if (pos) {
@@ -463,10 +391,10 @@ export default function StickerSheetEditor() {
           }
       };
 
-      fillWithPacker(5); // Limit to 5 pages for performance
+      fillWithPacker(5); 
 
       pdf.save(`MultiPrint-Stickers-${Date.now()}.pdf`);
-      toast({ title: "PDF Generado", description: "La plancha de stickers se ha descargado correctamente con empaquetado optimizado." });
+      toast({ title: "PDF Generado", description: "La plancha de stickers se ha descargado correctamente." });
     } catch (e) {
       console.error(e);
       toast({ variant: "destructive", title: "Error", description: "Ocurrió un error al generar el PDF." });
@@ -613,12 +541,12 @@ export default function StickerSheetEditor() {
               <div className="relative bg-black rounded-3xl overflow-hidden shadow-2xl group border-4 border-card cursor-crosshair touch-none" onMouseMove={handleMouseMove} onMouseUp={handleDragEnd} onMouseLeave={handleDragEnd} onTouchMove={handleTouchMove} onTouchEnd={handleDragEnd}>
                 <img src={currentImage.url} alt="To Crop" className="max-h-[55vh] object-contain select-none" draggable={false} />
                 <div className="absolute inset-0 bg-black/60 pointer-events-none" />
-                <div className="absolute border-2 border-white shadow-[0_0_0_9999px_rgba(0,0,0,0.6)] cursor-move" style={{ left: `${crop.x}%`, top: `${crop.y}%`, width: `${crop.width}%`, height: `${crop.height}%` }} onMouseDown={(e) => handleMouseDown(e, 'move')} onTouchStart={(e) => handleTouchStart(e, 'move')}>
+                <div className="absolute border-2 border-white shadow-[0_0_0_9999px_rgba(0,0,0,0.6)] cursor-move" style={{ left: `${crop.x}%`, top: `${crop.y}%`, width: `${crop.width}%`, height: `${crop.height}%` }} onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); setDragType('move'); setStartPos({ x: e.clientX, y: e.clientY }); setStartCrop({ ...crop }); }} onTouchStart={(e) => { e.stopPropagation(); const touch = e.touches[0]; setIsDragging(true); setDragType('move'); setStartPos({ x: touch.clientX, y: touch.clientY }); setStartCrop({ ...crop }); }}>
                   <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 opacity-30 pointer-events-none">{Array.from({ length: 9 }).map((_, i) => (<div key={i} className="border-[0.5px] border-white" />))}</div>
-                  <div className="absolute -top-5 -left-5 w-10 h-10 bg-white rounded-full border-2 border-yellow-600 cursor-nw-resize z-[60] shadow-xl flex items-center justify-center" onMouseDown={(e) => handleMouseDown(e, 'nw')} onTouchStart={(e) => handleTouchStart(e, 'nw')}><div className="w-2 h-2 bg-yellow-600 rounded-full"/></div>
-                  <div className="absolute -top-5 -right-5 w-10 h-10 bg-white rounded-full border-2 border-yellow-600 cursor-ne-resize z-[60] shadow-xl flex items-center justify-center" onMouseDown={(e) => handleMouseDown(e, 'ne')} onTouchStart={(e) => handleTouchStart(e, 'ne')}><div className="w-2 h-2 bg-yellow-600 rounded-full"/></div>
-                  <div className="absolute -bottom-5 -left-5 w-10 h-10 bg-white rounded-full border-2 border-yellow-600 cursor-sw-resize z-[60] shadow-xl flex items-center justify-center" onMouseDown={(e) => handleMouseDown(e, 'sw')} onTouchStart={(e) => handleTouchStart(e, 'sw')}><div className="w-2 h-2 bg-yellow-600 rounded-full"/></div>
-                  <div className="absolute -bottom-5 -right-5 w-10 h-10 bg-white rounded-full border-2 border-yellow-600 cursor-se-resize z-[60] shadow-xl flex items-center justify-center" onMouseDown={(e) => handleMouseDown(e, 'se')} onTouchStart={(e) => handleTouchStart(e, 'se')}><div className="w-2 h-2 bg-yellow-600 rounded-full"/></div>
+                  <div className="absolute -top-5 -left-5 w-10 h-10 bg-white rounded-full border-2 border-yellow-600 cursor-nw-resize z-[60] shadow-xl flex items-center justify-center" onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); setDragType('nw'); setStartPos({ x: e.clientX, y: e.clientY }); setStartCrop({ ...crop }); }}><div className="w-2 h-2 bg-yellow-600 rounded-full"/></div>
+                  <div className="absolute -top-5 -right-5 w-10 h-10 bg-white rounded-full border-2 border-yellow-600 cursor-ne-resize z-[60] shadow-xl flex items-center justify-center" onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); setDragType('ne'); setStartPos({ x: e.clientX, y: e.clientY }); setStartCrop({ ...crop }); }}><div className="w-2 h-2 bg-yellow-600 rounded-full"/></div>
+                  <div className="absolute -bottom-5 -left-5 w-10 h-10 bg-white rounded-full border-2 border-yellow-600 cursor-sw-resize z-[60] shadow-xl flex items-center justify-center" onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); setDragType('sw'); setStartPos({ x: e.clientX, y: e.clientY }); setStartCrop({ ...crop }); }}><div className="w-2 h-2 bg-yellow-600 rounded-full"/></div>
+                  <div className="absolute -bottom-5 -right-5 w-10 h-10 bg-white rounded-full border-2 border-yellow-600 cursor-se-resize z-[60] shadow-xl flex items-center justify-center" onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); setDragType('se'); setStartPos({ x: e.clientX, y: e.clientY }); setStartCrop({ ...crop }); }}><div className="w-2 h-2 bg-yellow-600 rounded-full"/></div>
                 </div>
               </div>
               <div className="flex gap-4">
