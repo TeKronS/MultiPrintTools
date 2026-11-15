@@ -80,6 +80,95 @@ interface StickerData {
   crop: { x: number; y: number; width: number; height: number };
 }
 
+/**
+ * Guillotine Packer Algorithm to maximize sheet usage
+ */
+class GuillotinePacker {
+  width: number;
+  height: number;
+  spacing: number;
+  freeRects: { x: number; y: number; w: number; h: number }[];
+
+  constructor(w: number, h: number, spacing: number) {
+    this.width = w;
+    this.height = h;
+    this.spacing = spacing;
+    // We start with one big rectangle representing the whole printable area
+    this.freeRects = [{ x: 0, y: 0, w: w, h: h }];
+  }
+
+  pack(w_cm: number, h_cm: number) {
+    const w = w_cm * 10;
+    const h = h_cm * 10;
+    const s = this.spacing * 10;
+
+    // We look for a rectangle that can fit the sticker PLUS the spacing
+    // unless it's at the very edge, but for simplicity we add it to all
+    const neededW = w + s;
+    const neededH = h + s;
+
+    let bestRectIdx = -1;
+    let minArea = Infinity;
+
+    for (let i = 0; i < this.freeRects.length; i++) {
+      const fr = this.freeRects[i];
+      if (fr.w >= w - 0.001 && fr.h >= h - 0.001) {
+        // Best fit: smallest area that fits
+        const area = fr.w * fr.h;
+        if (area < minArea) {
+          minArea = area;
+          bestRectIdx = i;
+        }
+      }
+    }
+
+    if (bestRectIdx === -1) return null;
+
+    const rect = this.freeRects.splice(bestRectIdx, 1)[0];
+    
+    // Placement
+    const pos = { x: rect.x, y: rect.y };
+
+    // Split remaining space into two rectangles (Guillotine split)
+    // We split in a way that preserves the largest possible remaining area
+    const remainingW = rect.w - w - s;
+    const remainingH = rect.h - h - s;
+
+    if (remainingW > 0) {
+      this.freeRects.push({
+        x: rect.x + w + s,
+        y: rect.y,
+        w: remainingW,
+        h: h
+      });
+    }
+
+    if (remainingH > 0) {
+      this.freeRects.push({
+        x: rect.x,
+        y: rect.y + h + s,
+        w: rect.w,
+        h: remainingH
+      });
+    }
+
+    // Optional: add the tiny corner rectangle if both remainings exist
+    if (remainingW > 0 && remainingH > 0) {
+        this.freeRects.push({
+            x: rect.x + w + s,
+            y: rect.y + h + s,
+            w: remainingW,
+            h: remainingH
+        });
+    }
+
+    // Re-sort free rects to prioritize packing from top-left
+    this.freeRects.sort((a, b) => (a.y - b.y) || (a.x - b.x));
+    
+    return pos;
+  }
+}
+
 export default function StickerSheetEditor() {
   const [mounted, setMounted] = useState(false);
   const [lang, setLang] = useState<Language>('es');
@@ -112,7 +201,7 @@ export default function StickerSheetEditor() {
   }, []);
 
   const paper = useMemo(() => {
-    const p = PAPER_DIMENSIONS[paperSize];
+    const p = PAPER_DIMENSIONS[paperSize] || PAPER_DIMENSIONS['A4'];
     return orientation === 'portrait' 
       ? { width: Math.min(p.width, p.height), height: Math.max(p.width, p.height), format: p.format }
       : { width: Math.max(p.width, p.height), height: Math.min(p.width, p.height), format: p.format };
@@ -151,7 +240,7 @@ export default function StickerSheetEditor() {
   const updateStickerSize = (id: string, val: number, source: 'w' | 'h') => {
     setStickers(prev => prev.map(s => {
       if (s.id !== id) return s;
-      const num = Math.max(0.1, Math.round(val * 100) / 100);
+      const num = Math.max(0.01, Math.round(val * 100) / 100);
       const cropW = (s.crop.width / 100) * s.originalWidth;
       const cropH = (s.crop.height / 100) * s.originalHeight;
       const aspect = cropW / cropH;
@@ -181,75 +270,45 @@ export default function StickerSheetEditor() {
   const itemsToDraw = useMemo(() => {
     if (stickers.length === 0) return [];
     
-    const marginXMm = marginH * 10;
-    const marginYMm = marginV * 10;
-    const spacingMm = spacing * 10;
-    const printableW = paper.width - (marginXMm * 2);
-    const printableH = paper.height - (marginYMm * 2);
-
-    let currentX = 0;
-    let currentY = 0;
-    let maxRowHeight = 0;
-    const results: any[] = [];
+    const printableW = paper.width - (marginH * 20);
+    const printableH = paper.height - (marginV * 20);
+    const packer = new GuillotinePacker(printableW, printableH, spacing);
 
     const manualStickers = stickers.filter(s => s.quantityMode === 'manual');
     const autoStickers = stickers.filter(s => s.quantityMode === 'auto');
 
-    // Primero colocamos los manuales en orden
+    const results: any[] = [];
+
+    // 1. Prioritize manual stickers
     manualStickers.forEach(s => {
       for(let i = 0; i < s.quantity; i++) {
-        const sW = s.width * 10;
-        const sH = s.height * 10;
-        if (currentX + sW > printableW + 0.1) {
-          currentX = 0;
-          currentY += maxRowHeight + spacingMm;
-          maxRowHeight = 0;
+        const pos = packer.pack(s.width, s.height);
+        if (pos) {
+          results.push({ ...s, x: pos.x, y: pos.y });
         }
-        if (currentY + sH > printableH + 0.1) return; // No cabe más en la primera página preview
-        
-        results.push({ ...s, x: currentX, y: currentY });
-        maxRowHeight = Math.max(maxRowHeight, sH);
-        currentX += sW + spacingMm;
       }
     });
 
-    // Luego llenamos con los automáticos usando algoritmo de mejor ajuste y equidad
+    // 2. Equitable filling for auto stickers
     if (autoStickers.length > 0) {
       const counts = new Map(autoStickers.map(s => [s.id, 0]));
-      
-      while (true) {
-        const remW = printableW - currentX;
-        
-        // Buscamos stickers que quepan en el ancho restante de la fila actual
-        const fittingStickers = autoStickers
-          .filter(s => (s.width * 10) <= remW + 0.1 && (currentY + (s.height * 10)) <= printableH + 0.1)
-          .sort((a, b) => (counts.get(a.id) || 0) - (counts.get(b.id) || 0));
+      let addedInRound = true;
 
-        if (fittingStickers.length > 0) {
-          // Si hay stickers que caben, ponemos el que tenga menor conteo (equidad)
-          const s = fittingStickers[0];
-          const sW = s.width * 10;
-          const sH = s.height * 10;
-          
-          results.push({ ...s, x: currentX, y: currentY });
-          counts.set(s.id, (counts.get(s.id) || 0) + 1);
-          maxRowHeight = Math.max(maxRowHeight, sH);
-          currentX += sW + spacingMm;
-        } else {
-          // Si ninguno cabe en el ancho restante, saltamos de fila
-          currentX = 0;
-          currentY += maxRowHeight + spacingMm;
-          maxRowHeight = 0;
-          
-          // Verificamos si al menos uno cabe en la nueva fila limpia
-          const canFitAny = autoStickers.some(s => 
-            (s.width * 10) <= printableW + 0.1 && (currentY + (s.height * 10)) <= printableH + 0.1
-          );
-          
-          if (!canFitAny) break; // Hoja llena
+      while (addedInRound) {
+        addedInRound = false;
+        // Sort by least count to keep it equitable
+        const sortedAuto = [...autoStickers].sort((a, b) => (counts.get(a.id) || 0) - (counts.get(b.id) || 0));
+
+        for (const s of sortedAuto) {
+          const pos = packer.pack(s.width, s.height);
+          if (pos) {
+            results.push({ ...s, x: pos.x, y: pos.y });
+            counts.set(s.id, (counts.get(s.id) || 0) + 1);
+            addedInRound = true;
+          }
         }
-        
-        if (results.length > 1000) break; // Límite de seguridad
+
+        if (results.length > 800) break; // Security break
       }
     }
 
@@ -327,10 +386,10 @@ export default function StickerSheetEditor() {
 
       const marginXMm = marginH * 10;
       const marginYMm = marginV * 10;
-      const spacingMm = spacing * 10;
       const printableW = paper.width - (marginXMm * 2);
       const printableH = paper.height - (marginYMm * 2);
 
+      // Pre-process high-res crops
       const assets = new Map();
       for (const s of stickers) {
         const img = new window.Image();
@@ -348,84 +407,66 @@ export default function StickerSheetEditor() {
         canvas.width = (s.width * 10) * mmToPx;
         canvas.height = (s.height * 10) * mmToPx;
         ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
-        assets.set(s.id, canvas.toDataURL('image/png'));
+        assets.set(s.id, canvas.toDataURL('image/png', 1.0));
       }
-
-      let currentX = 0;
-      let currentY = 0;
-      let maxRowHeight = 0;
 
       const manualStickers = stickers.filter(s => s.quantityMode === 'manual');
       const autoStickers = stickers.filter(s => s.quantityMode === 'auto');
 
-      const placeItemOnPdf = (s: StickerData) => {
-        const sW = s.width * 10;
-        const sH = s.height * 10;
-        
-        if (currentX + sW > printableW + 0.1) {
-          currentX = 0;
-          currentY += maxRowHeight + spacingMm;
-          maxRowHeight = 0;
-        }
+      // Helper function to fill pages using the Packer
+      const fillWithPacker = (limitPages: number) => {
+          let currentPage = 1;
+          let currentPacker = new GuillotinePacker(printableW, printableH, spacing);
+          const counts = new Map(autoStickers.map(s => [s.id, 0]));
 
-        if (currentY + sH > printableH + 0.1) {
-          pdf.addPage(pdfFormat as any, orientation === 'portrait' ? 'p' : 'l');
-          currentX = 0;
-          currentY = 0;
-          maxRowHeight = 0;
-        }
+          // Place manuals first on first page(s)
+          manualStickers.forEach(s => {
+              for(let i = 0; i < s.quantity; i++) {
+                  let pos = currentPacker.pack(s.width, s.height);
+                  if (!pos) {
+                      pdf.addPage(pdfFormat as any, orientation === 'portrait' ? 'p' : 'l');
+                      currentPage++;
+                      currentPacker = new GuillotinePacker(printableW, printableH, spacing);
+                      pos = currentPacker.pack(s.width, s.height);
+                  }
+                  if (pos) pdf.addImage(assets.get(s.id), 'PNG', marginXMm + pos.x, marginYMm + pos.y, s.width * 10, s.height * 10);
+              }
+          });
 
-        pdf.addImage(assets.get(s.id), 'PNG', marginXMm + currentX, marginYMm + currentY, sW, sH);
-        maxRowHeight = Math.max(maxRowHeight, sH);
-        currentX += sW + spacingMm;
+          // Fill auto stickers until limit
+          if (autoStickers.length > 0) {
+              let addedInRound = true;
+              while (addedInRound && currentPage <= limitPages) {
+                  addedInRound = false;
+                  const sortedAuto = [...autoStickers].sort((a, b) => (counts.get(a.id) || 0) - (counts.get(b.id) || 0));
+
+                  for (const s of sortedAuto) {
+                      let pos = currentPacker.pack(s.width, s.height);
+                      if (!pos) {
+                          if (currentPage < limitPages) {
+                              pdf.addPage(pdfFormat as any, orientation === 'portrait' ? 'p' : 'l');
+                              currentPage++;
+                              currentPacker = new GuillotinePacker(printableW, printableH, spacing);
+                              pos = currentPacker.pack(s.width, s.height);
+                          } else {
+                              continue;
+                          }
+                      }
+                      
+                      if (pos) {
+                          pdf.addImage(assets.get(s.id), 'PNG', marginXMm + pos.x, marginYMm + pos.y, s.width * 10, s.height * 10);
+                          counts.set(s.id, (counts.get(s.id) || 0) + 1);
+                          addedInRound = true;
+                      }
+                  }
+              }
+          }
       };
 
-      // Colocar manuales
-      manualStickers.forEach(s => {
-        for(let i = 0; i < s.quantity; i++) placeItemOnPdf(s);
-      });
+      fillWithPacker(5); // Limit to 5 pages for performance
 
-      // Llenar con automáticos (hasta un máximo razonable de páginas, ej. 3)
-      if (autoStickers.length > 0) {
-        const counts = new Map(autoStickers.map(s => [s.id, 0]));
-        const maxPages = 3;
-        
-        while (pdf.internal.pages.length - 1 <= maxPages) {
-          const remW = printableW - currentX;
-          const fitting = autoStickers
-            .filter(s => (s.width * 10) <= remW + 0.1 && (currentY + (s.height * 10)) <= printableH + 0.1)
-            .sort((a, b) => (counts.get(a.id) || 0) - (counts.get(b.id) || 0));
-
-          if (fitting.length > 0) {
-            const s = fitting[0];
-            placeItemOnPdf(s);
-            counts.set(s.id, (counts.get(s.id) || 0) + 1);
-          } else {
-            currentX = 0;
-            currentY += maxRowHeight + spacingMm;
-            maxRowHeight = 0;
-            
-            const canFitAny = autoStickers.some(s => 
-              (s.width * 10) <= printableW + 0.1 && (currentY + (s.height * 10)) <= printableH + 0.1
-            );
-            
-            if (!canFitAny) {
-              // Si no cabe nada en la fila limpia, intentamos nueva página
-              if (pdf.internal.pages.length - 1 < maxPages) {
-                pdf.addPage(pdfFormat as any, orientation === 'portrait' ? 'p' : 'l');
-                currentX = 0;
-                currentY = 0;
-                maxRowHeight = 0;
-              } else {
-                break; // Límite de páginas alcanzado
-              }
-            }
-          }
-        }
-      }
-
-      pdf.save(`MultiPrint-StickerSheet-${Date.now()}.pdf`);
-      toast({ title: "PDF Generado", description: "La plancha de stickers se ha descargado correctamente." });
+      pdf.save(`MultiPrint-Stickers-${Date.now()}.pdf`);
+      toast({ title: "PDF Generado", description: "La plancha de stickers se ha descargado correctamente con empaquetado optimizado." });
     } catch (e) {
       console.error(e);
       toast({ variant: "destructive", title: "Error", description: "Ocurrió un error al generar el PDF." });
@@ -435,7 +476,7 @@ export default function StickerSheetEditor() {
   };
 
   const renderSettings = (isMobile?: boolean) => (
-    <div className={cn("space-y-6", isMobile ? "p-4 pt-1 pb-32" : "")}>
+    <div className={cn("space-y-6", isMobile ? "p-4 pt-1 pb-40" : "")}>
       <div className="space-y-4">
         <div className="flex items-center gap-2">
           <Settings2 className="h-4 w-4 text-yellow-500" />
@@ -492,20 +533,20 @@ export default function StickerSheetEditor() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Layers className="h-4 w-4 text-yellow-500" />
-            <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Stickers en lista</h2>
+            <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Lista de Stickers</h2>
           </div>
           <Badge variant="secondary" className="font-black text-[9px]">{stickers.length}</Badge>
         </div>
 
         <div className={cn("space-y-4 overflow-y-auto pr-2 custom-scrollbar", isMobile ? "max-h-none" : "max-h-[35vh]")}>
           {stickers.map((s, idx) => (
-            <div key={s.id} className="bg-muted/50 p-3 rounded-2xl border-2 border-border space-y-3 relative group">
+            <div key={s.id} className="bg-card p-3 rounded-2xl border-2 border-border space-y-3 relative group shadow-sm">
               <button onClick={() => removeSticker(s.id)} className="absolute -top-2 -right-2 w-6 h-6 bg-destructive text-white rounded-full flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-10"><Trash2 className="h-3 w-3" /></button>
               
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-white dark:bg-slate-300 rounded-lg border overflow-hidden shrink-0"><img src={s.url} className="w-full h-full object-cover" /></div>
+                <div className="w-12 h-12 bg-muted rounded-lg border overflow-hidden shrink-0"><img src={s.url} className="w-full h-full object-cover" /></div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[9px] font-black text-muted-foreground uppercase truncate">Sticker #{idx + 1}</p>
+                  <p className="text-[9px] font-black text-muted-foreground uppercase truncate">Diseño #{idx + 1}</p>
                   <div className="flex items-center justify-between mt-1">
                     <div className="flex items-center gap-2">
                       <Label className="text-[8px] font-bold text-muted-foreground uppercase">Auto</Label>
@@ -523,15 +564,15 @@ export default function StickerSheetEditor() {
               </div>
 
               <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1"><Label className="text-[8px] font-bold text-muted-foreground uppercase">Ancho (cm)</Label><Input type="number" step="0.01" value={s.width} onChange={(e) => updateStickerSize(s.id, parseFloat(e.target.value), 'w')} className="h-7 text-[10px] font-black bg-card" /></div>
-                <div className="space-y-1"><Label className="text-[8px] font-bold text-muted-foreground uppercase">Alto (cm)</Label><Input type="number" step="0.01" value={s.height} onChange={(e) => updateStickerSize(s.id, parseFloat(e.target.value), 'h')} className="h-7 text-[10px] font-black bg-card" /></div>
+                <div className="space-y-1"><Label className="text-[8px] font-bold text-muted-foreground uppercase">Ancho (cm)</Label><Input type="number" step="0.01" value={s.width} onChange={(e) => updateStickerSize(s.id, parseFloat(e.target.value), 'w')} className="h-7 text-[10px] font-black bg-muted/30" /></div>
+                <div className="space-y-1"><Label className="text-[8px] font-bold text-muted-foreground uppercase">Alto (cm)</Label><Input type="number" step="0.01" value={s.height} onChange={(e) => updateStickerSize(s.id, parseFloat(e.target.value), 'h')} className="h-7 text-[10px] font-black bg-muted/30" /></div>
               </div>
             </div>
           ))}
           
           <Button 
             variant="outline" 
-            className="w-full border-2 border-dashed border-yellow-200 text-yellow-600 font-black h-12 rounded-2xl gap-2 uppercase text-[10px] tracking-widest"
+            className="w-full border-2 border-dashed border-yellow-200 text-yellow-600 font-black h-12 rounded-2xl gap-2 uppercase text-[10px] tracking-widest hover:bg-yellow-50"
             onClick={() => {
               const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*';
               input.onchange = (e: any) => { const file = e.target.files?.[0]; if (file) handleImageUpload(file, URL.createObjectURL(file)); };
@@ -608,7 +649,7 @@ export default function StickerSheetEditor() {
               <div className="flex items-center gap-4 bg-card/80 backdrop-blur-md px-4 py-2 rounded-2xl border border-border shadow-xl">
                  <div className="flex flex-col"><span className="text-[8px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">Capacidad Estimada</span><span className="text-xs font-black text-foreground">{itemsToDraw.length} Stickers</span></div>
                  <Separator orientation="vertical" className="h-6" />
-                 <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" /><span className="text-[9px] font-black text-yellow-600 uppercase tracking-widest">Ajuste Inteligente Activo</span></div>
+                 <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" /><span className="text-[9px] font-black text-yellow-600 uppercase tracking-widest">Empaquetado 2D Optimizado</span></div>
               </div>
             </div>
           )}
