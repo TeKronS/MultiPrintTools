@@ -173,6 +173,11 @@ export default function StickerSheetEditor() {
     setStickers(prev => prev.filter(s => s.id !== id));
   };
 
+  const handleDragEnd = () => {
+    setIsDragging(false);
+    setDragType(null);
+  };
+
   const itemsToDraw = useMemo(() => {
     if (stickers.length === 0) return [];
     
@@ -190,37 +195,61 @@ export default function StickerSheetEditor() {
     const manualStickers = stickers.filter(s => s.quantityMode === 'manual');
     const autoStickers = stickers.filter(s => s.quantityMode === 'auto');
 
-    const drawList = [];
+    // Primero colocamos los manuales en orden
     manualStickers.forEach(s => {
-      for(let i=0; i<s.quantity; i++) drawList.push(s);
+      for(let i = 0; i < s.quantity; i++) {
+        const sW = s.width * 10;
+        const sH = s.height * 10;
+        if (currentX + sW > printableW + 0.1) {
+          currentX = 0;
+          currentY += maxRowHeight + spacingMm;
+          maxRowHeight = 0;
+        }
+        if (currentY + sH > printableH + 0.1) return; // No cabe más en la primera página preview
+        
+        results.push({ ...s, x: currentX, y: currentY });
+        maxRowHeight = Math.max(maxRowHeight, sH);
+        currentX += sW + spacingMm;
+      }
     });
 
-    const processItem = (s: StickerData) => {
-      const sW = s.width * 10;
-      const sH = s.height * 10;
-      if (currentX + sW > printableW) {
-        currentX = 0;
-        currentY += maxRowHeight + spacingMm;
-        maxRowHeight = 0;
-      }
-      if (currentY + sH > printableH) return false;
-      
-      results.push({ ...s, x: currentX, y: currentY });
-      maxRowHeight = Math.max(maxRowHeight, sH);
-      currentX += sW + spacingMm;
-      return true;
-    };
-
-    drawList.forEach(item => processItem(item));
-
+    // Luego llenamos con los automáticos usando algoritmo de mejor ajuste y equidad
     if (autoStickers.length > 0) {
-      let autoIdx = 0;
-      let possible = true;
-      while(possible) {
-        const s = autoStickers[autoIdx];
-        possible = processItem(s);
-        autoIdx = (autoIdx + 1) % autoStickers.length;
-        if (results.length > 500) break;
+      const counts = new Map(autoStickers.map(s => [s.id, 0]));
+      
+      while (true) {
+        const remW = printableW - currentX;
+        
+        // Buscamos stickers que quepan en el ancho restante de la fila actual
+        const fittingStickers = autoStickers
+          .filter(s => (s.width * 10) <= remW + 0.1 && (currentY + (s.height * 10)) <= printableH + 0.1)
+          .sort((a, b) => (counts.get(a.id) || 0) - (counts.get(b.id) || 0));
+
+        if (fittingStickers.length > 0) {
+          // Si hay stickers que caben, ponemos el que tenga menor conteo (equidad)
+          const s = fittingStickers[0];
+          const sW = s.width * 10;
+          const sH = s.height * 10;
+          
+          results.push({ ...s, x: currentX, y: currentY });
+          counts.set(s.id, (counts.get(s.id) || 0) + 1);
+          maxRowHeight = Math.max(maxRowHeight, sH);
+          currentX += sW + spacingMm;
+        } else {
+          // Si ninguno cabe en el ancho restante, saltamos de fila
+          currentX = 0;
+          currentY += maxRowHeight + spacingMm;
+          maxRowHeight = 0;
+          
+          // Verificamos si al menos uno cabe en la nueva fila limpia
+          const canFitAny = autoStickers.some(s => 
+            (s.width * 10) <= printableW + 0.1 && (currentY + (s.height * 10)) <= printableH + 0.1
+          );
+          
+          if (!canFitAny) break; // Hoja llena
+        }
+        
+        if (results.length > 1000) break; // Límite de seguridad
       }
     }
 
@@ -243,11 +272,6 @@ export default function StickerSheetEditor() {
     e.stopPropagation(); if (e.cancelable) e.preventDefault();
     const touch = e.touches[0];
     startDragging(touch.clientX, touch.clientY, type);
-  };
-
-  const handleDragEnd = () => {
-    setIsDragging(false);
-    setDragType(null);
   };
 
   const performDragging = (clientX: number, clientY: number, container: DOMRect) => {
@@ -307,10 +331,6 @@ export default function StickerSheetEditor() {
       const printableW = paper.width - (marginXMm * 2);
       const printableH = paper.height - (marginYMm * 2);
 
-      let currentX = marginXMm;
-      let currentY = marginYMm;
-      let maxRowHeight = 0;
-
       const assets = new Map();
       for (const s of stickers) {
         const img = new window.Image();
@@ -331,45 +351,76 @@ export default function StickerSheetEditor() {
         assets.set(s.id, canvas.toDataURL('image/png'));
       }
 
+      let currentX = 0;
+      let currentY = 0;
+      let maxRowHeight = 0;
+
       const manualStickers = stickers.filter(s => s.quantityMode === 'manual');
       const autoStickers = stickers.filter(s => s.quantityMode === 'auto');
 
-      const placeSticker = (s: StickerData) => {
+      const placeItemOnPdf = (s: StickerData) => {
         const sW = s.width * 10;
         const sH = s.height * 10;
-        if (currentX + sW > marginXMm + printableW + 0.1) {
-          currentX = marginXMm;
+        
+        if (currentX + sW > printableW + 0.1) {
+          currentX = 0;
           currentY += maxRowHeight + spacingMm;
           maxRowHeight = 0;
         }
 
-        if (currentY + sH > marginYMm + printableH + 0.1) {
+        if (currentY + sH > printableH + 0.1) {
           pdf.addPage(pdfFormat as any, orientation === 'portrait' ? 'p' : 'l');
-          currentX = marginXMm;
-          currentY = marginYMm;
+          currentX = 0;
+          currentY = 0;
           maxRowHeight = 0;
         }
 
-        pdf.addImage(assets.get(s.id), 'PNG', currentX, currentY, sW, sH);
+        pdf.addImage(assets.get(s.id), 'PNG', marginXMm + currentX, marginYMm + currentY, sW, sH);
         maxRowHeight = Math.max(maxRowHeight, sH);
         currentX += sW + spacingMm;
       };
 
+      // Colocar manuales
       manualStickers.forEach(s => {
-        for(let i=0; i<s.quantity; i++) placeSticker(s);
+        for(let i = 0; i < s.quantity; i++) placeItemOnPdf(s);
       });
 
+      // Llenar con automáticos (hasta un máximo razonable de páginas, ej. 3)
       if (autoStickers.length > 0) {
-        let autoIdx = 0;
-        let originalPageCount = pdf.internal.pages.length;
-        while(pdf.internal.pages.length <= Math.max(originalPageCount, 3)) {
-          const s = autoStickers[autoIdx];
-          const sW = s.width * 10;
-          const sH = s.height * 10;
-          const willNeedNewPage = (currentY + sH > marginYMm + printableH + 0.1) && (currentX + sW > marginXMm + printableW + 0.1);
-          if (willNeedNewPage && pdf.internal.pages.length >= Math.max(originalPageCount, 3)) break;
-          placeSticker(s);
-          autoIdx = (autoIdx + 1) % autoStickers.length;
+        const counts = new Map(autoStickers.map(s => [s.id, 0]));
+        const maxPages = 3;
+        
+        while (pdf.internal.pages.length - 1 <= maxPages) {
+          const remW = printableW - currentX;
+          const fitting = autoStickers
+            .filter(s => (s.width * 10) <= remW + 0.1 && (currentY + (s.height * 10)) <= printableH + 0.1)
+            .sort((a, b) => (counts.get(a.id) || 0) - (counts.get(b.id) || 0));
+
+          if (fitting.length > 0) {
+            const s = fitting[0];
+            placeItemOnPdf(s);
+            counts.set(s.id, (counts.get(s.id) || 0) + 1);
+          } else {
+            currentX = 0;
+            currentY += maxRowHeight + spacingMm;
+            maxRowHeight = 0;
+            
+            const canFitAny = autoStickers.some(s => 
+              (s.width * 10) <= printableW + 0.1 && (currentY + (s.height * 10)) <= printableH + 0.1
+            );
+            
+            if (!canFitAny) {
+              // Si no cabe nada en la fila limpia, intentamos nueva página
+              if (pdf.internal.pages.length - 1 < maxPages) {
+                pdf.addPage(pdfFormat as any, orientation === 'portrait' ? 'p' : 'l');
+                currentX = 0;
+                currentY = 0;
+                maxRowHeight = 0;
+              } else {
+                break; // Límite de páginas alcanzado
+              }
+            }
+          }
         }
       }
 
@@ -555,9 +606,9 @@ export default function StickerSheetEditor() {
                 <div className="absolute top-2 right-2 bg-black/5 px-2 py-0.5 rounded text-[7px] font-black text-black/30 uppercase tracking-widest pointer-events-none">{paperSize} {paper.width}x{paper.height}mm</div>
               </div>
               <div className="flex items-center gap-4 bg-card/80 backdrop-blur-md px-4 py-2 rounded-2xl border border-border shadow-xl">
-                 <div className="flex flex-col"><span className="text-[8px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">Capacidad Total</span><span className="text-xs font-black text-foreground">{itemsToDraw.length} Stickers</span></div>
+                 <div className="flex flex-col"><span className="text-[8px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">Capacidad Estimada</span><span className="text-xs font-black text-foreground">{itemsToDraw.length} Stickers</span></div>
                  <Separator orientation="vertical" className="h-6" />
-                 <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" /><span className="text-[9px] font-black text-yellow-600 uppercase tracking-widest">Autocompletado Activo</span></div>
+                 <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" /><span className="text-[9px] font-black text-yellow-600 uppercase tracking-widest">Ajuste Inteligente Activo</span></div>
               </div>
             </div>
           )}
