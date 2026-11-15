@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, useEffect, useMemo } from "react";
@@ -16,7 +17,8 @@ import {
   PlusCircle,
   ImageIcon,
   Layers,
-  Check
+  Check,
+  RotateCcw
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -70,7 +72,7 @@ interface StickerData {
 }
 
 /**
- * Guillotine Packer Algorithm to maximize sheet usage with correct area splitting
+ * Guillotine Packer Algorithm to maximize sheet usage with correct area splitting and rotation support
  */
 class GuillotinePacker {
   width: number;
@@ -85,21 +87,37 @@ class GuillotinePacker {
     this.freeRects = [{ x: 0, y: 0, w: w, h: h }];
   }
 
-  pack(w_cm: number, h_cm: number) {
+  pack(w_cm: number, h_cm: number, allowRotation: boolean = true) {
     const w = w_cm * 10;
     const h = h_cm * 10;
     const s = this.spacing * 10;
 
     let bestRectIdx = -1;
     let minArea = Infinity;
+    let isRotated = false;
 
     for (let i = 0; i < this.freeRects.length; i++) {
       const fr = this.freeRects[i];
+      
+      // Try normal orientation
       if (fr.w >= w - 0.001 && fr.h >= h - 0.001) {
         const area = fr.w * fr.h;
         if (area < minArea) {
           minArea = area;
           bestRectIdx = i;
+          isRotated = false;
+        }
+      }
+      
+      // Try rotated orientation if beneficial
+      if (allowRotation && w !== h) {
+        if (fr.w >= h - 0.001 && fr.h >= w - 0.001) {
+          const area = fr.w * fr.h;
+          if (area < minArea) {
+            minArea = area;
+            bestRectIdx = i;
+            isRotated = true;
+          }
         }
       }
     }
@@ -107,18 +125,21 @@ class GuillotinePacker {
     if (bestRectIdx === -1) return null;
 
     const rect = this.freeRects.splice(bestRectIdx, 1)[0];
-    const pos = { x: rect.x, y: rect.y };
+    const pos = { x: rect.x, y: rect.y, rotated: isRotated };
 
-    const w_diff = rect.w - w - s;
-    const h_diff = rect.h - h - s;
+    const actualW = isRotated ? h : w;
+    const actualH = isRotated ? w : h;
+
+    const w_diff = rect.w - actualW - s;
+    const h_diff = rect.h - actualH - s;
 
     // Split using the Shorter Axis Split Rule to preserve larger usable spaces
     if (w_diff > h_diff) {
-      if (w_diff > 0) this.freeRects.push({ x: rect.x + w + s, y: rect.y, w: w_diff, h: rect.h });
-      if (h_diff > 0) this.freeRects.push({ x: rect.x, y: rect.y + h + s, w: w, h: h_diff });
+      if (w_diff > 0) this.freeRects.push({ x: rect.x + actualW + s, y: rect.y, w: w_diff, h: rect.h });
+      if (h_diff > 0) this.freeRects.push({ x: rect.x, y: rect.y + actualH + s, w: actualW, h: h_diff });
     } else {
-      if (h_diff > 0) this.freeRects.push({ x: rect.x, y: rect.y + h + s, w: rect.w, h: h_diff });
-      if (w_diff > 0) this.freeRects.push({ x: rect.x + w + s, y: rect.y, w: w_diff, h: h });
+      if (h_diff > 0) this.freeRects.push({ x: rect.x, y: rect.y + actualH + s, w: rect.w, h: h_diff });
+      if (w_diff > 0) this.freeRects.push({ x: rect.x + actualW + s, y: rect.y, w: w_diff, h: actualH });
     }
 
     this.freeRects.sort((a, b) => (a.y - b.y) || (a.x - b.x));
@@ -147,6 +168,7 @@ export default function StickerSheetEditor() {
   const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait');
   const [marginV, setMarginV] = useState(0.7); 
   const [marginH, setMarginH] = useState(0.5); 
+  const [autoRotate, setAutoRotate] = useState(true);
   
   const [isExporting, setIsExporting] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -239,35 +261,38 @@ export default function StickerSheetEditor() {
 
     const results: any[] = [];
 
+    // Prioritize manual quantity stickers
     manualStickers.forEach(s => {
       for(let i = 0; i < s.quantity; i++) {
-        const pos = packer.pack(s.width, s.height);
-        if (pos) results.push({ ...s, x: pos.x, y: pos.y });
+        const pos = packer.pack(s.width, s.height, autoRotate);
+        if (pos) results.push({ ...s, x: pos.x, y: pos.y, rotated: pos.rotated });
       }
     });
 
+    // Distribute automatic quantity stickers evenly
     if (autoStickers.length > 0) {
       const counts = new Map(autoStickers.map(s => [s.id, 0]));
       let addedInRound = true;
 
       while (addedInRound) {
         addedInRound = false;
+        // Sort auto-stickers by current count to maintain equality
         const sortedAuto = [...autoStickers].sort((a, b) => (counts.get(a.id) || 0) - (counts.get(b.id) || 0));
 
         for (const s of sortedAuto) {
-          const pos = packer.pack(s.width, s.height);
+          const pos = packer.pack(s.width, s.height, autoRotate);
           if (pos) {
-            results.push({ ...s, x: pos.x, y: pos.y });
+            results.push({ ...s, x: pos.x, y: pos.y, rotated: pos.rotated });
             counts.set(s.id, (counts.get(s.id) || 0) + 1);
             addedInRound = true;
           }
         }
-        if (results.length > 800) break;
+        if (results.length > 1000) break; // Safety limit
       }
     }
 
     return results;
-  }, [stickers, paper, spacing, marginV, marginH]);
+  }, [stickers, paper, spacing, marginV, marginH, autoRotate]);
 
   const performDragging = (clientX: number, clientY: number, container: DOMRect) => {
     if (!isDragging || !dragType) return;
@@ -322,9 +347,8 @@ export default function StickerSheetEditor() {
 
       const marginXMm = marginH * 10;
       const marginYMm = marginV * 10;
-      const printableW = paper.width - (marginXMm * 2);
-      const printableH = paper.height - (marginYMm * 2);
 
+      // Pre-process assets with correct cropping and scaling
       const assets = new Map();
       for (const s of stickers) {
         const img = new window.Image();
@@ -345,53 +369,28 @@ export default function StickerSheetEditor() {
         assets.set(s.id, canvas.toDataURL('image/png', 1.0));
       }
 
-      const fillWithPacker = (limitPages: number) => {
-          let currentPage = 1;
-          let currentPacker = new GuillotinePacker(printableW, printableH, spacing);
-          
-          const manualStickers = stickers.filter(s => s.quantityMode === 'manual');
-          const autoStickers = stickers.filter(s => s.quantityMode === 'auto');
-          const counts = new Map(autoStickers.map(s => [s.id, 0]));
-
-          manualStickers.forEach(s => {
-              for(let i = 0; i < s.quantity; i++) {
-                  let pos = currentPacker.pack(s.width, s.height);
-                  if (!pos && currentPage < limitPages) {
-                      pdf.addPage(pdfFormat as any, orientation === 'portrait' ? 'p' : 'l');
-                      currentPage++;
-                      currentPacker = new GuillotinePacker(printableW, printableH, spacing);
-                      pos = currentPacker.pack(s.width, s.height);
-                  }
-                  if (pos) pdf.addImage(assets.get(s.id), 'PNG', marginXMm + pos.x, marginYMm + pos.y, s.width * 10, s.height * 10);
-              }
+      // Draw packed items to PDF
+      for (const item of itemsToDraw) {
+        const x = marginXMm + item.x;
+        const y = marginYMm + item.y;
+        const imgData = assets.get(item.id);
+        
+        if (item.rotated) {
+          // If rotated, use jsPDF rotation parameter
+          // We swap width and height in the addImage call to match the packer's orientation
+          pdf.addImage({
+            imageData: imgData,
+            format: 'PNG',
+            x: x + (item.height * 10), // Adjust origin for rotation
+            y: y,
+            width: item.height * 10,
+            height: item.width * 10,
+            rotation: 90
           });
-
-          if (autoStickers.length > 0) {
-              let addedInRound = true;
-              while (addedInRound && currentPage <= limitPages) {
-                  addedInRound = false;
-                  const sortedAuto = [...autoStickers].sort((a, b) => (counts.get(a.id) || 0) - (counts.get(b.id) || 0));
-
-                  for (const s of sortedAuto) {
-                      let pos = currentPacker.pack(s.width, s.height);
-                      if (!pos && currentPage < limitPages) {
-                          pdf.addPage(pdfFormat as any, orientation === 'portrait' ? 'p' : 'l');
-                          currentPage++;
-                          currentPacker = new GuillotinePacker(printableW, printableH, spacing);
-                          pos = currentPacker.pack(s.width, s.height);
-                      }
-                      
-                      if (pos) {
-                          pdf.addImage(assets.get(s.id), 'PNG', marginXMm + pos.x, marginYMm + pos.y, s.width * 10, s.height * 10);
-                          counts.set(s.id, (counts.get(s.id) || 0) + 1);
-                          addedInRound = true;
-                      }
-                  }
-              }
-          }
-      };
-
-      fillWithPacker(5); 
+        } else {
+          pdf.addImage(imgData, 'PNG', x, y, item.width * 10, item.height * 10);
+        }
+      }
 
       pdf.save(`MultiPrint-Stickers-${Date.now()}.pdf`);
       toast({ title: "PDF Generado", description: "La plancha de stickers se ha descargado correctamente." });
@@ -451,6 +450,14 @@ export default function StickerSheetEditor() {
           <div className="space-y-1">
             <div className="flex justify-between"><Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Margen H</Label><span className="text-[9px] font-black text-yellow-600 bg-yellow-50 dark:bg-yellow-500/10 px-1.5 rounded">{marginH} cm</span></div>
             <Slider value={[marginH]} onValueChange={(v) => setMarginH(v[0])} min={0} max={5} step={0.1} />
+          </div>
+          
+          <div className="flex items-center justify-between pt-2">
+            <div className="flex items-center gap-2">
+              <RotateCcw className="h-3 w-3 text-muted-foreground" />
+              <Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest cursor-pointer" htmlFor="auto-rotate">{t.autoRotate}</Label>
+            </div>
+            <Switch id="auto-rotate" checked={autoRotate} onCheckedChange={setAutoRotate} className="scale-75" />
           </div>
         </div>
       </div>
@@ -566,11 +573,34 @@ export default function StickerSheetEditor() {
               <div className="relative bg-white dark:bg-slate-300 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.4)] rounded-sm overflow-hidden border border-border shrink-0" style={{ width: '320px', aspectRatio: `${paper.width} / ${paper.height}` }}>
                 <div className="absolute inset-0 bg-yellow-500/5 pointer-events-none border border-dashed border-yellow-600/20" style={{ top: `${(marginV * 10 * previewScale)}px`, bottom: `${(marginV * 10 * previewScale)}px`, left: `${(marginH * 10 * previewScale)}px`, right: `${(marginH * 10 * previewScale)}px` }} />
                 <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ paddingTop: `${marginV * 10 * previewScale}px`, paddingLeft: `${marginH * 10 * previewScale}px`, paddingRight: `${marginH * 10 * previewScale}px`, paddingBottom: `${marginV * 10 * previewScale}px` }}>
-                  {itemsToDraw.map((s, i) => (
-                    <div key={i} className="absolute bg-white shadow-[0_1px_3px_rgba(0,0,0,0.1)] border-[0.1px] border-black/10 overflow-hidden" style={{ width: `${s.width * 10 * previewScale}px`, height: `${s.height * 10 * previewScale}px`, left: `${(marginH * 10 + s.x) * previewScale}px`, top: `${(marginV * 10 + s.y) * previewScale}px` }}>
-                      <img src={s.url} alt="" className="absolute max-w-none" style={{ width: `${(100 / s.crop.width) * 100}%`, height: `${(100 / s.crop.height) * 100}%`, left: `-${(s.crop.x / s.crop.width) * 100}%`, top: `-${(s.crop.y / s.crop.height) * 100}%` }} />
-                    </div>
-                  ))}
+                  {itemsToDraw.map((s, i) => {
+                    const actualW = s.rotated ? s.height : s.width;
+                    const actualH = s.rotated ? s.width : s.height;
+                    
+                    return (
+                      <div key={i} className="absolute bg-white shadow-[0_1px_3px_rgba(0,0,0,0.1)] border-[0.1px] border-black/10 overflow-hidden" style={{ 
+                        width: `${actualW * 10 * previewScale}px`, 
+                        height: `${actualH * 10 * previewScale}px`, 
+                        left: `${(marginH * 10 + s.x) * previewScale}px`, 
+                        top: `${(marginV * 10 + s.y) * previewScale}px` 
+                      }}>
+                        <div style={{
+                          width: `${s.width * 10 * previewScale}px`,
+                          height: `${s.height * 10 * previewScale}px`,
+                          transform: s.rotated ? `rotate(90deg) translate(0, -100%)` : 'none',
+                          transformOrigin: 'top left',
+                          position: 'relative'
+                        }}>
+                          <img src={s.url} alt="" className="absolute max-w-none" style={{ 
+                            width: `${(100 / s.crop.width) * 100}%`, 
+                            height: `${(100 / s.crop.height) * 100}%`, 
+                            left: `-${(s.crop.x / s.crop.width) * 100}%`, 
+                            top: `-${(s.crop.y / s.crop.height) * 100}%` 
+                          }} />
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
                 <div className="absolute top-2 right-2 bg-black/5 px-2 py-0.5 rounded text-[7px] font-black text-black/30 uppercase tracking-widest pointer-events-none">{paperSize} {paper.width}x{paper.height}mm</div>
               </div>

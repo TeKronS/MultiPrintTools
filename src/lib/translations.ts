@@ -143,6 +143,7 @@ export const translations = {
     stickersPerPage: 'Stickers per Page',
     changeSticker: 'Change Sticker',
     spacing: 'Spacing (cm)',
+    autoRotate: 'Auto-rotate stickers',
     // About & Contact
     aboutTitle: 'About MultiPrintTools',
     aboutDesc: 'A specialized digital toolkit for printing and office professionals. Our goal is to facilitate everyday tasks such as poster grids and PDF management. We prioritize local browser-side processing for most tools, guaranteeing privacy and independence, and we use secure cloud services only for complex conversions when necessary.',
@@ -291,6 +292,7 @@ export const translations = {
     stickersPerPage: 'Stickers por Hoja',
     changeSticker: 'Cambiar Sticker',
     spacing: 'Separación (cm)',
+    autoRotate: 'Auto-rotar stickers',
     // About & Contact
     aboutTitle: 'Sobre MultiPrintTools',
     aboutDesc: 'Una suite de herramientas digitales especializada para profesionales de la impresión y oficinas. Nuestro objetivo es facilitar tareas del trabajo como cuadrículas para pósters y gestión de PDFs. Priorizamos el procesamiento local en el navegador para la mayoría de herramientas, garantizando privacidad e independencia, y utilizamos servicios seguros en la nube solo para conversiones complejas cuando es necesario.',
