@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useRef, useEffect, useMemo } from "react";
@@ -166,7 +165,7 @@ export default function StickerSheetEditor() {
   const [spacing, setSpacing] = useState(0.2); 
   const [paperSize, setPaperSize] = useState('A4');
   const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait');
-  const [marginV, setMarginV] = useState(0.7); 
+  const [marginV, setMarginV] = useState(0.5); 
   const [marginH, setMarginH] = useState(0.5); 
   const [autoRotate, setAutoRotate] = useState(true);
   
