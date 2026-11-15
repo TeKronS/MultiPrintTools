@@ -162,7 +162,7 @@ export default function StickerSheetEditor() {
   };
 
   const updateQuantity = (id: string, qty: number) => {
-    setStickers(prev => prev.map(s => s.id === id ? { ...s, quantity: Math.max(1, qty), quantityMode: 'manual' } : s));
+    setStickers(prev => prev.map(s => s.id === id ? { ...s, quantity: Math.max(1, qty) } : s));
   };
 
   const toggleMode = (id: string) => {
@@ -472,8 +472,8 @@ export default function StickerSheetEditor() {
               </div>
 
               <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1"><Label className="text-[8px] font-bold text-muted-foreground uppercase">Ancho (cm)</Label><Input type="number" value={s.width} onChange={(e) => updateStickerSize(s.id, parseFloat(e.target.value), 'w')} className="h-7 text-[10px] font-black bg-card" /></div>
-                <div className="space-y-1"><Label className="text-[8px] font-bold text-muted-foreground uppercase">Alto (cm)</Label><Input type="number" value={s.height} onChange={(e) => updateStickerSize(s.id, parseFloat(e.target.value), 'h')} className="h-7 text-[10px] font-black bg-card" /></div>
+                <div className="space-y-1"><Label className="text-[8px] font-bold text-muted-foreground uppercase">Ancho (cm)</Label><Input type="number" step="0.01" value={s.width} onChange={(e) => updateStickerSize(s.id, parseFloat(e.target.value), 'w')} className="h-7 text-[10px] font-black bg-card" /></div>
+                <div className="space-y-1"><Label className="text-[8px] font-bold text-muted-foreground uppercase">Alto (cm)</Label><Input type="number" step="0.01" value={s.height} onChange={(e) => updateStickerSize(s.id, parseFloat(e.target.value), 'h')} className="h-7 text-[10px] font-black bg-card" /></div>
               </div>
             </div>
           ))}
@@ -570,7 +570,7 @@ export default function StickerSheetEditor() {
 
         {stickers.length > 0 && !isCropping && (
           <div className="lg:hidden fixed bottom-6 left-6 right-6 z-[40] flex gap-3 pointer-events-auto">
-            <div className="flex-1"><Button className="w-full h-14 bg-yellow-600 hover:bg-yellow-700 text-white font-black rounded-2xl shadow-xl shadow-yellow-600/20 uppercase tracking-widest text-sm gap-3 border-4 border-white/10" onClick={exportPdf} disabled={isExporting}>{isExporting ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileDown className="h-4 w-4" />}{isExporting ? "..." : "Exportar"}</Button></div>
+            <div className="flex-1"><Button className="w-full h-14 bg-yellow-600 hover:bg-yellow-700 text-white font-black rounded-2xl shadow-xl shadow-yellow-600/20 uppercase tracking-widest text-sm gap-3 border-4 border-white/10" onClick={exportPdf} disabled={isExporting}>{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}{isExporting ? "..." : "Exportar"}</Button></div>
             <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
               <Button 
                 size="icon" 
