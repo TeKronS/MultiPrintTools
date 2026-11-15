@@ -21,7 +21,8 @@ import {
   Layout,
   Scissors,
   FileText,
-  Move
+  Move,
+  Maximize
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -177,7 +178,7 @@ export default function StickerSheetEditor() {
     e.stopPropagation();
     if (e.cancelable) e.preventDefault();
     const touch = e.touches[0];
-    startDragging(touch.clientX, touch.clientY, type);
+    startDragging(touch.clientX, touch.clientY, touch.clientX, touch.clientY, type);
   };
 
   const performDragging = (clientX: number, clientY: number, container: DOMRect) => {
@@ -241,9 +242,10 @@ export default function StickerSheetEditor() {
       img.src = image.url;
       await new Promise((resolve) => img.onload = resolve);
 
+      const paperBase = PAPER_DIMENSIONS[paperSize];
       const standardFormats = ['letter', 'a4', 'a3', 'legal'];
-      const pdfFormat = standardFormats.includes(paper.format) 
-        ? paper.format 
+      const pdfFormat = standardFormats.includes(paperBase.format) 
+        ? paperBase.format 
         : [paper.width, paper.height];
 
       const pdf = new jsPDF({
@@ -533,17 +535,27 @@ export default function StickerSheetEditor() {
                 </div>
               </div>
 
-              <Button 
-                className="bg-yellow-600 hover:bg-yellow-700 text-white font-black h-11 px-10 rounded-2xl shadow-xl gap-2 text-xs uppercase tracking-widest transition-all active:scale-95"
-                onClick={() => {
-                  setIsCropping(false);
-                  const finalAspect = (crop.width / 100 * image.width) / ((crop.height / 100 * image.height));
-                  setStickerHeight(parseFloat((stickerWidth / finalAspect).toFixed(2)));
-                }}
-              >
-                <Check className="h-5 w-5" />
-                {t.confirmCrop}
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-3 w-full justify-center">
+                <Button 
+                  variant="outline"
+                  className="border-2 border-yellow-600 text-yellow-600 font-black h-11 px-8 rounded-2xl shadow-sm gap-2 text-xs uppercase tracking-widest transition-all active:scale-95 bg-white hover:bg-yellow-50"
+                  onClick={() => setCrop({ x: 0, y: 0, width: 100, height: 100 })}
+                >
+                  <Maximize className="h-4 w-4" />
+                  {t.selectAll}
+                </Button>
+                <Button 
+                  className="bg-yellow-600 hover:bg-yellow-700 text-white font-black h-11 px-10 rounded-2xl shadow-xl gap-2 text-xs uppercase tracking-widest transition-all active:scale-95"
+                  onClick={() => {
+                    setIsCropping(false);
+                    const finalAspect = (crop.width / 100 * image.width) / ((crop.height / 100 * image.height));
+                    setStickerHeight(parseFloat((stickerWidth / finalAspect).toFixed(2)));
+                  }}
+                >
+                  <Check className="h-5 w-5" />
+                  {t.confirmCrop}
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="w-full max-w-6xl flex flex-col lg:flex-row items-center lg:items-start justify-center gap-6 md:gap-12 pb-20 sm:pb-0">
