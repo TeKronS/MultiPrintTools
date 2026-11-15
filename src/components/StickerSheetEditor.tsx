@@ -22,14 +22,19 @@ import {
   Scissors,
   FileText,
   Move,
-  Maximize
+  Maximize,
+  Trash2,
+  PlusCircle,
+  ImageIcon,
+  Layers
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
   Select, 
   SelectContent, 
   SelectItem, 
-  SelectTrigger 
+  SelectTrigger,
+  SelectValue
 } from "@/components/ui/select";
 import { 
   Sheet, 
@@ -62,24 +67,36 @@ const PAPER_DIMENSIONS: Record<string, { width: number; height: number; format: 
   'Extra Oficio (38cm)': { width: 216, height: 380, format: 'extra-oficio' }
 };
 
+interface StickerData {
+  id: string;
+  url: string;
+  file: File;
+  originalWidth: number;
+  originalHeight: number;
+  width: number;
+  height: number;
+  quantity: number;
+  crop: { x: number; y: number; width: number; height: number };
+}
+
 export default function StickerSheetEditor() {
   const [mounted, setMounted] = useState(false);
   const [lang, setLang] = useState<Language>('es');
   const t = translations[lang];
   const { toast } = useToast();
 
-  const [image, setImage] = useState<{ url: string; file: File; width: number; height: number } | null>(null);
-  const [isCropping, setIsCropping] = useState(true);
-  const [crop, setCrop] = useState({ x: 10, y: 10, width: 80, height: 80 }); 
+  const [stickers, setStickers] = useState<StickerData[]>([]);
+  const [isCropping, setIsCropping] = useState(false);
+  const [currentImage, setCurrentImage] = useState<{ url: string; file: File; width: number; height: number } | null>(null);
+  const [crop, setCrop] = useState({ x: 10, y: 10, width: 80, height: 80 });
+  
   const [isDragging, setIsDragging] = useState(false);
   const [dragType, setDragType] = useState<'move' | 'nw' | 'ne' | 'sw' | 'se' | null>(null);
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
   const [startCrop, setStartCrop] = useState({ x: 0, y: 0, width: 0, height: 0 });
 
-  const [stickerWidth, setStickerWidth] = useState(5); 
-  const [stickerHeight, setStickerHeight] = useState(5); 
   const [spacing, setSpacing] = useState(0.2); // cm
-  const [paperSize, setPaperSize] = useState('Carta');
+  const [paperSize, setPaperSize] = useState('A4');
   const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait');
   const [marginV, setMarginV] = useState(0.7); 
   const [marginH, setMarginH] = useState(0.5); 
@@ -98,28 +115,6 @@ export default function StickerSheetEditor() {
     }
   }, []);
 
-  const cropAspectRatio = useMemo(() => {
-    if (!image) return 1;
-    const w = (crop.width / 100) * image.width;
-    const h = (crop.height / 100) * image.height;
-    return w / h;
-  }, [image, crop]);
-
-  const updateSizes = (val: number, source: 'w' | 'h') => {
-    const num = Math.max(0.1, Math.round(val * 100) / 100);
-    if (source === 'w') {
-      setStickerWidth(num);
-      if (image) {
-        setStickerHeight(parseFloat((num / cropAspectRatio).toFixed(2)));
-      }
-    } else {
-      setStickerHeight(num);
-      if (image) {
-        setStickerWidth(parseFloat((num * cropAspectRatio).toFixed(2)));
-      }
-    }
-  };
-
   const paper = useMemo(() => {
     const p = PAPER_DIMENSIONS[paperSize];
     return orientation === 'portrait' 
@@ -127,38 +122,59 @@ export default function StickerSheetEditor() {
       : { width: Math.max(p.width, p.height), height: Math.min(p.width, p.height), format: p.format };
   }, [paperSize, orientation]);
 
-  const stats = useMemo(() => {
-    const printableW = paper.width - (marginH * 20);
-    const printableH = paper.height - (marginV * 20);
-    const stickerW_mm = stickerWidth * 10;
-    const stickerH_mm = stickerHeight * 10;
-    const spacing_mm = spacing * 10;
-
-    if (stickerW_mm <= 0 || stickerH_mm <= 0) return { cols: 0, rows: 0, total: 0, totalW_mm: 0, totalH_mm: 0 };
-
-    const cols = Math.floor((printableW + spacing_mm) / (stickerW_mm + spacing_mm));
-    const rows = Math.floor((printableH + spacing_mm) / (stickerH_mm + spacing_mm));
-
-    return {
-      cols: Math.max(0, cols),
-      rows: Math.max(0, rows),
-      total: Math.max(0, cols * rows),
-      totalW_mm: cols > 0 ? cols * stickerW_mm + (cols - 1) * spacing_mm : 0,
-      totalH_mm: rows > 0 ? rows * stickerH_mm + (rows - 1) * spacing_mm : 0
-    };
-  }, [paper, stickerWidth, stickerHeight, spacing, marginV, marginH]);
-
   const handleImageUpload = (file: File, url: string) => {
     const img = new window.Image();
     img.src = url;
     img.onload = () => {
-      setImage({ url, file, width: img.width, height: img.height });
+      setCurrentImage({ url, file, width: img.width, height: img.height });
       setIsCropping(true);
       setCrop({ x: 10, y: 10, width: 80, height: 80 });
-      const initialAspect = img.width / img.height;
-      setStickerWidth(5);
-      setStickerHeight(parseFloat((5 / initialAspect).toFixed(2)));
     };
+  };
+
+  const confirmSticker = () => {
+    if (!currentImage) return;
+
+    const cropAspect = (crop.width * currentImage.width) / (crop.height * currentImage.height);
+    const newSticker: StickerData = {
+      id: Math.random().toString(36).substring(2, 9),
+      url: currentImage.url,
+      file: currentImage.file,
+      originalWidth: currentImage.width,
+      originalHeight: currentImage.height,
+      width: 5,
+      height: parseFloat((5 / cropAspect).toFixed(2)),
+      quantity: 1,
+      crop: { ...crop }
+    };
+
+    setStickers(prev => [...prev, newSticker]);
+    setIsCropping(false);
+    setCurrentImage(null);
+  };
+
+  const updateStickerSize = (id: string, val: number, source: 'w' | 'h') => {
+    setStickers(prev => prev.map(s => {
+      if (s.id !== id) return s;
+      const num = Math.max(0.1, Math.round(val * 100) / 100);
+      const cropW = (s.crop.width / 100) * s.originalWidth;
+      const cropH = (s.crop.height / 100) * s.originalHeight;
+      const aspect = cropW / cropH;
+
+      if (source === 'w') {
+        return { ...s, width: num, height: parseFloat((num / aspect).toFixed(2)) };
+      } else {
+        return { ...s, height: num, width: parseFloat((num * aspect).toFixed(2)) };
+      }
+    }));
+  };
+
+  const updateQuantity = (id: string, qty: number) => {
+    setStickers(prev => prev.map(s => s.id === id ? { ...s, quantity: Math.max(1, qty) } : s));
+  };
+
+  const removeSticker = (id: string) => {
+    setStickers(prev => prev.filter(s => s.id !== id));
   };
 
   const startDragging = (clientX: number, clientY: number, type: 'move' | 'nw' | 'ne' | 'sw' | 'se') => {
@@ -234,18 +250,12 @@ export default function StickerSheetEditor() {
   };
 
   const exportPdf = async () => {
-    if (!image || stats.total === 0) return;
+    if (stickers.length === 0) return;
     setIsExporting(true);
 
     try {
-      const img = new window.Image();
-      img.src = image.url;
-      await new Promise((resolve) => img.onload = resolve);
-
-      const paperBase = PAPER_DIMENSIONS[paperSize];
-      const standardFormats = ['letter', 'a4', 'a3', 'legal'];
-      const pdfFormat = standardFormats.includes(paperBase.format) 
-        ? paperBase.format 
+      const pdfFormat = ['letter', 'a4', 'a3', 'legal'].includes(PAPER_DIMENSIONS[paperSize].format) 
+        ? PAPER_DIMENSIONS[paperSize].format 
         : [paper.width, paper.height];
 
       const pdf = new jsPDF({
@@ -254,48 +264,62 @@ export default function StickerSheetEditor() {
         format: pdfFormat as any
       });
 
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error("Canvas error");
+      const marginXMm = marginH * 10;
+      const marginYMm = marginV * 10;
+      const spacingMm = spacing * 10;
+      const printableW = paper.width - (marginXMm * 2);
+      const printableH = paper.height - (marginYMm * 2);
 
-      const sx = (crop.x / 100) * image.width;
-      const sy = (crop.y / 100) * image.height;
-      const sw = (crop.width / 100) * image.width;
-      const sh = (crop.height / 100) * image.height;
+      let currentX = marginXMm;
+      let currentY = marginYMm;
+      let maxRowHeight = 0;
 
-      const targetDpi = 300;
-      const mmToPx = targetDpi / 25.4;
-      const dw = (stickerWidth * 10) * mmToPx;
-      const dh = (stickerHeight * 10) * mmToPx;
+      for (const s of stickers) {
+        const img = new window.Image();
+        img.src = s.url;
+        await new Promise(resolve => img.onload = resolve);
 
-      canvas.width = dw;
-      canvas.height = dh;
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'high';
-      ctx.clearRect(0, 0, dw, dh);
-      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, dw, dh);
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) continue;
 
-      const stickerDataUrl = canvas.toDataURL('image/png');
-      const offsetX = (paper.width - stats.totalW_mm) / 2;
-      const offsetY = (paper.height - stats.totalH_mm) / 2;
-      const stepW = (stickerWidth + spacing) * 10;
-      const stepH = (stickerHeight + spacing) * 10;
+        const sx = (s.crop.x / 100) * s.originalWidth;
+        const sy = (s.crop.y / 100) * s.originalHeight;
+        const sw = (s.crop.width / 100) * s.originalWidth;
+        const sh = (s.crop.height / 100) * s.originalHeight;
 
-      for (let r = 0; r < stats.rows; r++) {
-        for (let c = 0; c < stats.cols; c++) {
-          pdf.addImage(
-            stickerDataUrl, 
-            'PNG', 
-            offsetX + (c * stepW), 
-            offsetY + (r * stepH), 
-            stickerWidth * 10, 
-            stickerHeight * 10
-          );
+        const targetDpi = 300;
+        const mmToPx = targetDpi / 25.4;
+        canvas.width = (s.width * 10) * mmToPx;
+        canvas.height = (s.height * 10) * mmToPx;
+        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+
+        const stickerDataUrl = canvas.toDataURL('image/png');
+        const sW = s.width * 10;
+        const sH = s.height * 10;
+
+        for (let q = 0; qty < s.quantity; q++) {
+          if (currentX + sW > marginXMm + printableW) {
+            currentX = marginXMm;
+            currentY += maxRowHeight + spacingMm;
+            maxRowHeight = 0;
+          }
+
+          if (currentY + sH > marginYMm + printableH) {
+            pdf.addPage(pdfFormat as any, orientation === 'portrait' ? 'p' : 'l');
+            currentX = marginXMm;
+            currentY = marginYMm;
+            maxRowHeight = 0;
+          }
+
+          pdf.addImage(stickerDataUrl, 'PNG', currentX, currentY, sW, sH);
+          maxRowHeight = Math.max(maxRowHeight, sH);
+          currentX += sW + spacingMm;
         }
       }
 
-      pdf.save(`MultiPrint-Stickers-${Date.now()}.pdf`);
-      toast({ title: t.export, description: "La plancha de stickers se ha descargado correctamente." });
+      pdf.save(`MultiPrint-StickerSheet-${Date.now()}.pdf`);
+      toast({ title: "PDF Generado", description: "La plancha de stickers se ha descargado correctamente." });
     } catch (e) {
       console.error(e);
       toast({ variant: "destructive", title: "Error", description: "Ocurrió un error al generar el PDF." });
@@ -305,79 +329,19 @@ export default function StickerSheetEditor() {
   };
 
   const renderSettings = () => (
-    <div className="space-y-4">
-      <div className="space-y-3">
+    <div className="space-y-6">
+      <div className="space-y-4">
         <div className="flex items-center gap-2">
           <Settings2 className="h-4 w-4 text-yellow-500" />
-          <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t.gridSettings}</h2>
+          <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Configuración de Hoja</h2>
         </div>
 
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-2 relative z-10">
-            <div className="space-y-1">
-               <Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">ANCHO</Label>
-               <div className="flex items-center gap-1">
-                  <Button variant="outline" size="icon" className="h-8 w-8 shrink-0 border-2 rounded-lg bg-white" onClick={() => updateSizes(stickerWidth - 0.1, 'w')}><Minus className="h-3 w-3"/></Button>
-                  <Input 
-                    type="number" 
-                    value={stickerWidth} 
-                    onChange={(e) => updateSizes(parseFloat(e.target.value), 'w')}
-                    className="h-8 flex-1 min-w-0 font-black text-xs bg-muted/20 border-2 rounded-lg text-center text-yellow-600 shadow-inner px-1"
-                  />
-                  <Button variant="outline" size="icon" className="h-8 w-8 shrink-0 border-2 rounded-lg bg-white" onClick={() => updateSizes(stickerWidth + 0.1, 'w')}><Plus className="h-3 w-3"/></Button>
-               </div>
-            </div>
-            <div className="space-y-1">
-               <Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">ALTO</Label>
-               <div className="flex items-center gap-1">
-                  <Button variant="outline" size="icon" className="h-8 w-8 shrink-0 border-2 rounded-lg bg-white" onClick={() => updateSizes(stickerHeight - 0.1, 'h')}><Minus className="h-3 w-3"/></Button>
-                  <Input 
-                    type="number" 
-                    value={stickerHeight} 
-                    onChange={(e) => updateSizes(parseFloat(e.target.value), 'h')}
-                    className="h-8 flex-1 min-w-0 font-black text-xs bg-muted/20 border-2 rounded-lg text-center text-yellow-600 shadow-inner px-1"
-                  />
-                  <Button variant="outline" size="icon" className="h-8 w-8 shrink-0 border-2 rounded-lg bg-white" onClick={() => updateSizes(stickerHeight + 0.1, 'h')}><Plus className="h-3 w-3"/></Button>
-               </div>
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">AJUSTAR TAMAÑO</Label>
-             <Slider 
-                value={[stickerWidth]} 
-                onValueChange={(v) => updateSizes(v[0], 'w')} 
-                min={0.5} 
-                max={20} 
-                step={0.01} 
-              />
-          </div>
-
-          <Separator className="opacity-50" />
-
-          <div className="space-y-2">
-             <Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">SEPARACIÓN (GAP CM)</Label>
-             <div className="flex items-center gap-2">
-                <Button variant="outline" size="icon" className="h-8 w-8 shrink-0 border-2 rounded-lg bg-white" onClick={() => setSpacing(Math.max(0, parseFloat((spacing - 0.05).toFixed(2))))}><Minus className="h-3 w-3"/></Button>
-                <Input 
-                  type="number" 
-                  value={spacing} 
-                  onChange={(e) => setSpacing(Math.max(0, parseFloat(e.target.value) || 0))}
-                  className="h-8 font-black text-xs bg-muted/20 border-2 rounded-lg text-center text-yellow-600"
-                />
-                <Button variant="outline" size="icon" className="h-8 w-8 shrink-0 border-2 rounded-lg bg-white" onClick={() => setSpacing(parseFloat((spacing + 0.05).toFixed(2)))}><Plus className="h-3 w-3"/></Button>
-             </div>
-          </div>
-        </div>
-
-        <Separator className="opacity-50" />
-
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
-            <Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">{t.paperSize}</Label>
+            <Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Papel</Label>
             <Select value={paperSize} onValueChange={setPaperSize}>
               <SelectTrigger className="h-8 font-bold text-[10px] border-2 rounded-lg bg-white">
-                <span className="truncate">{paperSize}</span>
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {Object.keys(PAPER_DIMENSIONS).map(size => (
@@ -388,34 +352,121 @@ export default function StickerSheetEditor() {
           </div>
 
           <div className="space-y-1">
-            <Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">{t.orientation}</Label>
+            <Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Orientación</Label>
             <Select value={orientation} onValueChange={(v: any) => setOrientation(v)}>
               <SelectTrigger className="h-8 font-bold text-[10px] border-2 rounded-lg bg-white">
-                <span className="truncate">{orientation === 'portrait' ? t.portrait : t.landscape}</span>
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="portrait" className="text-xs font-bold">{t.portrait}</SelectItem>
-                <SelectItem value="landscape" className="text-xs font-bold">{t.landscape}</SelectItem>
+                <SelectItem value="portrait" className="text-xs font-bold">Vertical</SelectItem>
+                <SelectItem value="landscape" className="text-xs font-bold">Horizontal</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-4">
           <div className="space-y-1">
             <div className="flex justify-between">
-              <Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">{t.marginsVertical}</Label>
-              <span className="text-[9px] font-black text-yellow-600">{marginV} cm</span>
+              <Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Separación (cm)</Label>
+              <span className="text-[9px] font-black text-yellow-600 bg-yellow-50 px-1.5 rounded">{spacing} cm</span>
+            </div>
+            <Slider value={[spacing]} onValueChange={(v) => setSpacing(v[0])} min={0} max={2} step={0.05} />
+          </div>
+          
+          <div className="space-y-1">
+            <div className="flex justify-between">
+              <Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Margen V</Label>
+              <span className="text-[9px] font-black text-yellow-600 bg-yellow-50 px-1.5 rounded">{marginV} cm</span>
             </div>
             <Slider value={[marginV]} onValueChange={(v) => setMarginV(v[0])} min={0} max={5} step={0.1} />
           </div>
+
           <div className="space-y-1">
             <div className="flex justify-between">
-              <Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">{t.marginsHorizontal}</Label>
-              <span className="text-[9px] font-black text-yellow-600">{marginH} cm</span>
+              <Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Margen H</Label>
+              <span className="text-[9px] font-black text-yellow-600 bg-yellow-50 px-1.5 rounded">{marginH} cm</span>
             </div>
             <Slider value={[marginH]} onValueChange={(v) => setMarginH(v[0])} min={0} max={5} step={0.1} />
           </div>
+        </div>
+      </div>
+
+      <Separator />
+
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Layers className="h-4 w-4 text-yellow-500" />
+            <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Stickers en lista</h2>
+          </div>
+          <Badge variant="secondary" className="font-black text-[9px]">{stickers.length}</Badge>
+        </div>
+
+        <div className="space-y-4 max-h-[35vh] overflow-y-auto pr-2 custom-scrollbar">
+          {stickers.map((s, idx) => (
+            <div key={s.id} className="bg-muted/50 p-3 rounded-2xl border-2 border-border space-y-3 relative group">
+              <button 
+                onClick={() => removeSticker(s.id)}
+                className="absolute -top-2 -right-2 w-6 h-6 bg-destructive text-white rounded-full flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <Trash2 className="h-3 w-3" />
+              </button>
+              
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-white rounded-lg border overflow-hidden shrink-0">
+                  <img src={s.url} className="w-full h-full object-cover" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[9px] font-black text-muted-foreground uppercase truncate">Sticker #{idx + 1}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <button onClick={() => updateQuantity(s.id, s.quantity - 1)} className="text-muted-foreground hover:text-yellow-600"><Minus className="h-3 w-3"/></button>
+                    <span className="text-xs font-black">Cant: {s.quantity}</span>
+                    <button onClick={() => updateQuantity(s.id, s.quantity + 1)} className="text-muted-foreground hover:text-yellow-600"><Plus className="h-3 w-3"/></button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-[8px] font-bold text-muted-foreground uppercase">Ancho (cm)</Label>
+                  <Input 
+                    type="number" 
+                    value={s.width} 
+                    onChange={(e) => updateStickerSize(s.id, parseFloat(e.target.value), 'w')}
+                    className="h-7 text-[10px] font-black bg-white"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[8px] font-bold text-muted-foreground uppercase">Alto (cm)</Label>
+                  <Input 
+                    type="number" 
+                    value={s.height} 
+                    onChange={(e) => updateStickerSize(s.id, parseFloat(e.target.value), 'h')}
+                    className="h-7 text-[10px] font-black bg-white"
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+          
+          <Button 
+            variant="outline" 
+            className="w-full border-2 border-dashed border-yellow-200 text-yellow-600 font-black h-12 rounded-2xl gap-2 uppercase text-[10px] tracking-widest"
+            onClick={() => {
+              const input = document.createElement('input');
+              input.type = 'file';
+              input.accept = 'image/*';
+              input.onchange = (e: any) => {
+                const file = e.target.files?.[0];
+                if (file) handleImageUpload(file, URL.createObjectURL(file));
+              };
+              input.click();
+            }}
+          >
+            <PlusCircle className="h-4 w-4" />
+            Añadir Sticker
+          </Button>
         </div>
       </div>
     </div>
@@ -427,52 +478,44 @@ export default function StickerSheetEditor() {
 
   return (
     <div className="flex flex-col h-screen bg-background font-body overflow-hidden transition-colors duration-300">
-      <header className="h-16 shrink-0 border-b border-border bg-background/80 backdrop-blur-md flex items-center justify-between px-3 sm:px-6 z-50 shadow-sm">
-        <div className="flex items-center gap-1 sm:gap-4 overflow-hidden">
+      <header className="h-16 shrink-0 border-b border-border bg-background/80 backdrop-blur-md flex items-center justify-between px-6 z-50 shadow-sm">
+        <div className="flex items-center gap-4">
           <Link href="/">
-            <Button variant="ghost" size="sm" className="gap-1 font-bold text-muted-foreground px-1 sm:px-2">
+            <Button variant="ghost" size="sm" className="gap-2 font-bold text-muted-foreground px-2">
               <ChevronLeft className="h-4 w-4" /> 
               <span className="hidden sm:inline text-xs">Inicio</span>
             </Button>
           </Link>
-          <div className="flex items-center gap-2 sm:gap-3 overflow-hidden">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 relative rounded-lg overflow-hidden border bg-white dark:bg-slate-200 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 relative rounded-lg overflow-hidden border bg-white dark:bg-slate-200">
               <Image src={logo} alt="Logo" fill className="object-contain" />
             </div>
-            <h1 className="text-xs xs:text-sm sm:text-xl font-headline font-black tracking-tighter text-yellow-600 uppercase truncate max-w-[100px] xs:max-w-[150px] sm:max-w-none shrink-0">
-              {t.stickerSheetTitle}
+            <h1 className="text-sm sm:text-xl font-headline font-black tracking-tighter text-yellow-600 uppercase">
+              PLANCHA DE STICKERS
             </h1>
           </div>
         </div>
-        <div className="flex items-center gap-1 sm:gap-4">
+        <div className="flex items-center gap-4">
           <ThemeToggle />
           <LanguageSelector language={lang} setLanguage={setLang} />
           <Button 
             className="hidden sm:flex bg-yellow-600 hover:bg-yellow-700 text-white font-black gap-2 h-9 px-6 rounded-xl shadow-md transition-all active:scale-95 text-xs" 
             onClick={exportPdf} 
-            disabled={!image || isExporting || stats.total === 0}
+            disabled={stickers.length === 0 || isExporting}
           >
             {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
-            {isExporting ? "..." : t.export}
+            {isExporting ? "..." : "Exportar PDF"}
           </Button>
         </div>
       </header>
 
       <main className="flex-1 flex overflow-hidden relative">
         <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-muted/30 flex flex-col items-center justify-start lg:justify-center relative">
-          {!image ? (
-            <div className="max-w-lg w-full">
-              <ImageUploader 
-                onImageUpload={handleImageUpload} 
-                language={lang} 
-                t={t} 
-              />
-            </div>
-          ) : isCropping ? (
-            <div className="w-full max-w-2xl space-y-4 flex flex-col items-center animate-in zoom-in-95 duration-300">
+          {isCropping && currentImage ? (
+            <div className="w-full max-w-2xl space-y-6 flex flex-col items-center animate-in zoom-in-95 duration-300 z-[60]">
               <div className="text-center space-y-1">
-                <h2 className="text-xl font-black uppercase tracking-tight text-foreground">{t.cropSticker}</h2>
-                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">Define el área de impresión</p>
+                <h2 className="text-2xl font-black uppercase tracking-tight text-foreground">Recortar Sticker</h2>
+                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">Define el área de este nuevo diseño</p>
               </div>
               
               <div 
@@ -484,7 +527,7 @@ export default function StickerSheetEditor() {
                 onTouchEnd={handleDragEnd}
               >
                 <img 
-                  src={image.url} 
+                  src={currentImage.url} 
                   alt="To Crop" 
                   className="max-h-[55vh] object-contain select-none"
                   draggable={false}
@@ -508,302 +551,191 @@ export default function StickerSheetEditor() {
                     ))}
                   </div>
 
-                  {/* NW handle */}
-                  <div className="absolute -top-5 -left-5 w-10 h-10 bg-white rounded-full border-2 border-yellow-600 cursor-nw-resize z-[60] shadow-xl flex items-center justify-center" 
-                    onMouseDown={(e) => handleMouseDown(e, 'nw')} 
-                    onTouchStart={(e) => handleTouchStart(e, 'nw')}>
-                    <div className="w-2 h-2 bg-yellow-600 rounded-full"/>
-                  </div>
-                  {/* NE handle */}
-                  <div className="absolute -top-5 -right-5 w-10 h-10 bg-white rounded-full border-2 border-yellow-600 cursor-ne-resize z-[60] shadow-xl flex items-center justify-center" 
-                    onMouseDown={(e) => handleMouseDown(e, 'ne')} 
-                    onTouchStart={(e) => handleTouchStart(e, 'ne')}>
-                    <div className="w-2 h-2 bg-yellow-600 rounded-full"/>
-                  </div>
-                  {/* SW handle */}
-                  <div className="absolute -bottom-5 -left-5 w-10 h-10 bg-white rounded-full border-2 border-yellow-600 cursor-sw-resize z-[60] shadow-xl flex items-center justify-center" 
-                    onMouseDown={(e) => handleMouseDown(e, 'sw')} 
-                    onTouchStart={(e) => handleTouchStart(e, 'sw')}>
-                    <div className="w-2 h-2 bg-yellow-600 rounded-full"/>
-                  </div>
-                  {/* SE handle */}
-                  <div className="absolute -bottom-5 -right-5 w-10 h-10 bg-white rounded-full border-2 border-yellow-600 cursor-se-resize z-[60] shadow-xl flex items-center justify-center" 
-                    onMouseDown={(e) => handleMouseDown(e, 'se')} 
-                    onTouchStart={(e) => handleTouchStart(e, 'se')}>
-                    <div className="w-2 h-2 bg-yellow-600 rounded-full"/>
-                  </div>
+                  <div className="absolute -top-5 -left-5 w-10 h-10 bg-white rounded-full border-2 border-yellow-600 cursor-nw-resize z-[60] shadow-xl flex items-center justify-center" onMouseDown={(e) => handleMouseDown(e, 'nw')} onTouchStart={(e) => handleTouchStart(e, 'nw')}><div className="w-2 h-2 bg-yellow-600 rounded-full"/></div>
+                  <div className="absolute -top-5 -right-5 w-10 h-10 bg-white rounded-full border-2 border-yellow-600 cursor-ne-resize z-[60] shadow-xl flex items-center justify-center" onMouseDown={(e) => handleMouseDown(e, 'ne')} onTouchStart={(e) => handleTouchStart(e, 'ne')}><div className="w-2 h-2 bg-yellow-600 rounded-full"/></div>
+                  <div className="absolute -bottom-5 -left-5 w-10 h-10 bg-white rounded-full border-2 border-yellow-600 cursor-sw-resize z-[60] shadow-xl flex items-center justify-center" onMouseDown={(e) => handleMouseDown(e, 'sw')} onTouchStart={(e) => handleTouchStart(e, 'sw')}><div className="w-2 h-2 bg-yellow-600 rounded-full"/></div>
+                  <div className="absolute -bottom-5 -right-5 w-10 h-10 bg-white rounded-full border-2 border-yellow-600 cursor-se-resize z-[60] shadow-xl flex items-center justify-center" onMouseDown={(e) => handleMouseDown(e, 'se')} onTouchStart={(e) => handleTouchStart(e, 'se')}><div className="w-2 h-2 bg-yellow-600 rounded-full"/></div>
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3 w-full justify-center">
+              <div className="flex gap-4">
                 <Button 
                   variant="outline"
-                  className="border-2 border-yellow-600 text-yellow-600 font-black h-11 px-8 rounded-2xl shadow-sm gap-2 text-xs uppercase tracking-widest transition-all active:scale-95 bg-white hover:bg-yellow-50"
+                  className="border-2 border-yellow-600 text-yellow-600 font-black h-12 px-8 rounded-2xl bg-white hover:bg-yellow-50"
                   onClick={() => setCrop({ x: 0, y: 0, width: 100, height: 100 })}
                 >
                   <Maximize className="h-4 w-4" />
-                  {t.selectAll}
+                  Toda la imagen
                 </Button>
                 <Button 
-                  className="bg-yellow-600 hover:bg-yellow-700 text-white font-black h-11 px-10 rounded-2xl shadow-xl gap-2 text-xs uppercase tracking-widest transition-all active:scale-95"
-                  onClick={() => {
-                    setIsCropping(false);
-                    const finalAspect = (crop.width / 100 * image.width) / ((crop.height / 100 * image.height));
-                    setStickerHeight(parseFloat((stickerWidth / finalAspect).toFixed(2)));
-                  }}
+                  className="bg-yellow-600 hover:bg-yellow-700 text-white font-black h-12 px-12 rounded-2xl shadow-xl gap-2 text-sm uppercase tracking-widest transition-all active:scale-95"
+                  onClick={confirmSticker}
                 >
                   <Check className="h-5 w-5" />
-                  {t.confirmCrop}
+                  Confirmar Sticker
                 </Button>
               </div>
             </div>
+          ) : stickers.length === 0 ? (
+            <div className="max-w-lg w-full">
+              <div 
+                onClick={() => {
+                  const input = document.createElement('input');
+                  input.type = 'file';
+                  input.accept = 'image/*';
+                  input.onchange = (e: any) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleImageUpload(file, URL.createObjectURL(file));
+                  };
+                  input.click();
+                }}
+                className="w-full aspect-video border-4 border-dashed border-yellow-200 bg-card rounded-[3rem] flex flex-col items-center justify-center cursor-pointer transition-all hover:border-yellow-400 group shadow-xl p-8 text-center"
+              >
+                <div className="p-8 bg-yellow-50 rounded-full group-hover:scale-110 transition-transform mb-6">
+                  <ImageIcon className="h-16 w-16 text-yellow-500" />
+                </div>
+                <h3 className="text-2xl font-black text-foreground uppercase tracking-tight">Carga tu primer sticker</h3>
+                <p className="mt-2 text-muted-foreground font-medium">Sube una imagen para empezar a crear tu plancha.</p>
+              </div>
+            </div>
           ) : (
-            <div className="w-full max-w-6xl flex flex-col lg:flex-row items-center lg:items-start justify-center gap-6 md:gap-12 pb-20 sm:pb-0">
-              
-              <div className="flex flex-col gap-3 w-full max-w-[340px] animate-in slide-in-from-left-10 duration-500 shrink-0">
-                <div className="bg-card p-4 rounded-[2rem] border-4 border-card shadow-2xl space-y-3 relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-yellow-500/5 rounded-full -mr-12 -mt-12 blur-2xl" />
+            <div className="w-full max-w-6xl flex flex-col lg:flex-row items-center justify-center gap-12 pb-20">
+              <div className="relative group/paper">
+                <div className="absolute -left-6 top-0 bottom-0 w-1 flex flex-col justify-between py-1 opacity-40">
+                   <div className="h-px w-3 bg-foreground/20" />
+                   <div className="h-px w-2 bg-foreground/20" />
+                   <div className="h-px w-3 bg-foreground/20" />
+                   <div className="h-px w-2 bg-foreground/20" />
+                   <div className="h-px w-3 bg-foreground/20" />
+                </div>
+                <div className="absolute left-0 -top-6 right-0 h-1 flex justify-between px-1 opacity-40">
+                   <div className="w-px h-3 bg-foreground/20" />
+                   <div className="w-px h-2 bg-foreground/20" />
+                   <div className="w-px h-3 bg-foreground/20" />
+                   <div className="w-px h-2 bg-foreground/20" />
+                   <div className="w-px h-3 bg-foreground/20" />
+                </div>
 
-                  <div className="flex items-center justify-between relative z-10 mb-1">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-xl bg-yellow-500/10 flex items-center justify-center">
-                        <Maximize2 className="h-4 w-4 text-yellow-600" />
+                <div 
+                  className="relative bg-white dark:bg-slate-300 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.4)] rounded-sm overflow-hidden border border-border shrink-0"
+                  style={{
+                    width: '320px',
+                    aspectRatio: `${paper.width} / ${paper.height}`
+                  }}
+                >
+                  <div 
+                    className="absolute inset-0 bg-yellow-500/5 pointer-events-none border border-dashed border-yellow-600/20"
+                    style={{
+                      top: `${(marginV * 10 * previewScale)}px`,
+                      bottom: `${(marginV * 10 * previewScale)}px`,
+                      left: `${(marginH * 10 * previewScale)}px`,
+                      right: `${(marginH * 10 * previewScale)}px`,
+                    }}
+                  />
+
+                  <div className="absolute inset-0 p-1 pointer-events-none flex flex-wrap content-start items-start gap-[var(--gap)] overflow-hidden"
+                       style={{ 
+                         paddingTop: `${marginV * 10 * previewScale}px`,
+                         paddingLeft: `${marginH * 10 * previewScale}px`,
+                         paddingRight: `${marginH * 10 * previewScale}px`,
+                         paddingBottom: `${marginV * 10 * previewScale}px`,
+                         columnGap: `${spacing * 10 * previewScale}px`,
+                         rowGap: `${spacing * 10 * previewScale}px`,
+                       } as any}>
+                    {stickers.flatMap(s => Array.from({ length: s.quantity }).map((_, i) => (
+                      <div 
+                        key={`${s.id}-${i}`} 
+                        className="bg-white shadow-[0_1px_3px_rgba(0,0,0,0.1)] border-[0.1px] border-black/10 overflow-hidden relative"
+                        style={{
+                          width: `${s.width * 10 * previewScale}px`,
+                          height: `${s.height * 10 * previewScale}px`,
+                        }}
+                      >
+                        <img 
+                          src={s.url}
+                          alt=""
+                          className="absolute max-w-none"
+                          style={{
+                            width: `${(100 / s.crop.width) * 100}%`,
+                            height: `${(100 / s.crop.height) * 100}%`,
+                            left: `-${(s.crop.x / s.crop.width) * 100}%`,
+                            top: `-${(s.crop.y / s.crop.height) * 100}%`,
+                          }}
+                        />
                       </div>
-                      <h3 className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Dimensiones</h3>
-                    </div>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      className="h-7 text-yellow-600 font-black text-[9px] uppercase gap-1 hover:bg-yellow-50 rounded-lg px-2"
-                      onClick={() => setIsCropping(true)}
-                    >
-                      <Crop className="h-3 w-3" />
-                      Recortar
-                    </Button>
+                    )))}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 relative z-10">
-                    <div className="space-y-1">
-                      <Label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">Ancho</Label>
-                      <div className="flex items-center gap-1">
-                         <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg shrink-0 border-2 shadow-sm bg-white" onClick={() => updateSizes(stickerWidth - 0.1, 'w')}><Minus className="h-3 w-3"/></Button>
-                         <Input 
-                           type="number" 
-                           value={stickerWidth} 
-                           onChange={(e) => updateSizes(parseFloat(e.target.value), 'w')}
-                           className="h-8 flex-1 min-w-0 font-black text-xs bg-muted/20 border-2 rounded-lg text-center text-yellow-600 shadow-inner px-1"
-                         />
-                         <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg shrink-0 border-2 shadow-sm bg-white" onClick={() => updateSizes(stickerWidth + 0.1, 'w')}><Plus className="h-3 w-3"/></Button>
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">Alto</Label>
-                      <div className="flex items-center gap-1">
-                         <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg shrink-0 border-2 shadow-sm bg-white" onClick={() => updateSizes(stickerHeight - 0.1, 'h')}><Minus className="h-3 w-3"/></Button>
-                         <Input 
-                           type="number" 
-                           value={stickerHeight} 
-                           onChange={(e) => updateSizes(parseFloat(e.target.value), 'h')}
-                           className="h-8 flex-1 min-w-0 font-black text-xs bg-muted/20 border-2 rounded-lg text-center text-yellow-600 shadow-inner px-1"
-                         />
-                         <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg shrink-0 border-2 shadow-sm bg-white" onClick={() => updateSizes(stickerHeight + 0.1, 'h')}><Plus className="h-3 w-3"/></Button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1 relative z-10 pt-1">
-                    <Slider 
-                      value={[stickerWidth]} 
-                      onValueChange={(v) => updateSizes(v[0], 'w')} 
-                      min={0.5} 
-                      max={20} 
-                      step={0.01} 
-                      className="py-1"
-                    />
-                  </div>
-
-                  <div className="bg-[#FFFDF0] p-3 rounded-2xl border border-yellow-100/50 shadow-inner relative z-10">
-                    <div className="grid grid-cols-2 gap-2 divide-x divide-yellow-100/50">
-                      <div className="flex flex-col items-center justify-center text-center">
-                        <span className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-1">Stickers por Hoja</span>
-                        <span className="text-xl md:text-2xl font-black text-[#D4AF37] tracking-tighter flex items-center gap-1">
-                          {stats.cols} <span className="text-yellow-400 text-base">×</span> {stats.rows}
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-center justify-center text-center pl-2">
-                        <span className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-1">Stickers Totales</span>
-                        <span className="text-2xl md:text-3xl font-black text-foreground tracking-tighter">{stats.total}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1 relative z-10">
-                    <div className="flex justify-between items-center bg-muted/30 p-2 rounded-xl border border-border shadow-sm">
-                      <div className="flex flex-col">
-                        <span className="text-[7px] font-black text-muted-foreground uppercase leading-none">Papel</span>
-                        <span className="text-[10px] font-black text-foreground uppercase tracking-tight truncate">{paperSize}</span>
-                      </div>
-                      <Badge variant="secondary" className="text-[8px] font-black uppercase px-2 py-0.5 bg-white shadow-sm border border-border/10 shrink-0">
-                        {orientation === 'portrait' ? 'Vertical' : 'Horizontal'}
-                      </Badge>
-                    </div>
-                  </div>
-
-                  <div className="pt-1 relative z-10">
-                    <Button 
-                      variant="outline" 
-                      className="w-full h-8 rounded-xl border-2 font-black uppercase text-[8px] tracking-widest gap-2 hover:bg-yellow-50 hover:text-yellow-600 hover:border-yellow-200 transition-all border-dashed border-muted-foreground/30"
-                      onClick={() => setImage(null)}
-                    >
-                      <RefreshCcw className="h-3 w-3" />
-                      {t.changeSticker}
-                    </Button>
+                  <div className="absolute top-2 right-2 bg-black/5 px-2 py-0.5 rounded text-[7px] font-black text-black/30 uppercase tracking-widest pointer-events-none">
+                    {paperSize} {paper.width}x{paper.height}mm
                   </div>
                 </div>
               </div>
 
-              <div className="flex-1 flex flex-col items-center animate-in slide-in-from-right-10 duration-500 w-full relative">
-                <div className="relative group/paper">
-                  <div className="absolute -left-6 top-0 bottom-0 w-1 flex flex-col justify-between py-1 opacity-40">
-                     <div className="h-px w-3 bg-foreground/20" />
-                     <div className="h-px w-2 bg-foreground/20" />
-                     <div className="h-px w-3 bg-foreground/20" />
-                     <div className="h-px w-2 bg-foreground/20" />
-                     <div className="h-px w-3 bg-foreground/20" />
-                  </div>
-                  <div className="absolute left-0 -top-6 right-0 h-1 flex justify-between px-1 opacity-40">
-                     <div className="w-px h-3 bg-foreground/20" />
-                     <div className="w-px h-2 bg-foreground/20" />
-                     <div className="w-px h-3 bg-foreground/20" />
-                     <div className="w-px h-2 bg-foreground/20" />
-                     <div className="w-px h-3 bg-foreground/20" />
-                  </div>
-
-                  <div 
-                    className="relative bg-white dark:bg-slate-300 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.4)] rounded-sm overflow-hidden border border-border shrink-0 transition-transform"
-                    style={{
-                      width: '320px',
-                      aspectRatio: `${paper.width} / ${paper.height}`
-                    }}
-                  >
-                    <div 
-                      className="absolute inset-0 bg-yellow-500/5 pointer-events-none border border-dashed border-yellow-600/20"
-                      style={{
-                        top: `${(marginV * 10 * previewScale)}px`,
-                        bottom: `${(marginV * 10 * previewScale)}px`,
-                        left: `${(marginH * 10 * previewScale)}px`,
-                        right: `${(marginH * 10 * previewScale)}px`,
-                      }}
-                    />
-
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      <div 
-                        className="grid"
-                        style={{
-                          gridTemplateColumns: `repeat(${stats.cols}, ${stickerWidth * 10 * previewScale}px)`,
-                          gridTemplateRows: `repeat(${stats.rows}, ${stickerHeight * 10 * previewScale}px)`,
-                          gap: `${spacing * 10 * previewScale}px`,
-                        }}
-                      >
-                        {Array.from({ length: stats.total }).map((_, i) => (
-                          <div 
-                            key={i} 
-                            className="bg-white shadow-[0_1px_3px_rgba(0,0,0,0.1)] border-[0.1px] border-black/10 overflow-hidden relative"
-                            style={{
-                              width: `${stickerWidth * 10 * previewScale}px`,
-                              height: `${stickerHeight * 10 * previewScale}px`,
-                            }}
-                          >
-                            <div className="w-full h-full relative overflow-hidden">
-                              <img 
-                                src={image.url}
-                                alt=""
-                                className="absolute max-w-none"
-                                style={{
-                                  width: `${(100 / crop.width) * 100}%`,
-                                  height: `${(100 / crop.height) * 100}%`,
-                                  left: `-${(crop.x / crop.width) * 100}%`,
-                                  top: `-${(crop.y / crop.height) * 100}%`,
-                                }}
-                                draggable={false}
-                              />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="absolute top-2 right-2 bg-black/5 px-2 py-0.5 rounded text-[7px] font-black text-black/30 uppercase tracking-widest pointer-events-none">
-                      {paperSize} {paper.width}x{paper.height}mm
-                    </div>
-                  </div>
+              <div className="mt-8 flex items-center gap-6 animate-fade-in lg:mt-0 lg:absolute lg:bottom-12">
+                <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-2xl border border-border shadow-sm">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Vista Previa Real</span>
                 </div>
-
-                <div className="mt-8 flex items-center gap-6 animate-fade-in">
-                  <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-2xl border border-border shadow-sm">
-                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Vista Previa Real</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-[9px] font-black text-yellow-600 uppercase tracking-widest bg-yellow-50 px-3 py-2 rounded-2xl border border-yellow-100">
-                    <Ruler className="h-3 w-3" />
-                    Espaciado: {spacing}cm
-                  </div>
+                <div className="flex items-center gap-2 text-[9px] font-black text-yellow-600 uppercase tracking-widest bg-yellow-50 px-3 py-2 rounded-2xl border border-yellow-100">
+                  <Ruler className="h-3 w-3" />
+                  Espaciado: {spacing}cm
                 </div>
               </div>
             </div>
           )}
         </div>
 
-        <aside className="hidden lg:flex w-72 bg-card border-l border-border flex-col shrink-0 shadow-2xl z-20">
-          <div className="flex-1 overflow-y-auto p-5">
+        <aside className="hidden lg:flex w-80 bg-card border-l border-border flex-col shrink-0 shadow-2xl z-20">
+          <div className="flex-1 overflow-y-auto p-6">
             {renderSettings()}
           </div>
-          {image && !isCropping && (
-            <div className="p-5 border-t bg-muted/50">
+          {stickers.length > 0 && !isCropping && (
+            <div className="p-6 border-t bg-muted/50">
               <Button 
-                className="w-full h-12 bg-yellow-600 hover:bg-yellow-700 text-white font-black rounded-xl shadow-xl shadow-yellow-600/20 text-xs gap-3 transition-all active:scale-95"
+                className="w-full h-14 bg-yellow-600 hover:bg-yellow-700 text-white font-black rounded-2xl shadow-xl shadow-yellow-600/20 uppercase tracking-widest text-xs gap-3 transition-all active:scale-95"
                 onClick={exportPdf}
-                disabled={isExporting || stats.total === 0}
+                disabled={isExporting}
               >
-                {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
-                {isExporting ? "Generando..." : t.export}
+                {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-5 w-5" />}
+                {isExporting ? "Generando..." : "Descargar Plancha PDF"}
               </Button>
             </div>
           )}
         </aside>
 
-        {image && !isCropping && (
+        {stickers.length > 0 && !isCropping && (
           <div className="lg:hidden fixed bottom-6 left-6 right-6 z-[100] flex gap-3 pointer-events-auto">
             <div className="flex-1">
               <Button 
-                className="w-full h-12 bg-yellow-600 hover:bg-yellow-700 text-white font-black rounded-2xl shadow-xl shadow-yellow-600/20 uppercase tracking-widest text-xs gap-3 border-4 border-white/10"
+                className="w-full h-14 bg-yellow-600 hover:bg-yellow-700 text-white font-black rounded-2xl shadow-xl shadow-yellow-600/20 uppercase tracking-widest text-sm gap-3 border-4 border-white/10"
                 onClick={exportPdf}
-                disabled={isExporting || stats.total === 0}
+                disabled={isExporting}
               >
-                {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
-                {isExporting ? "..." : t.export}
+                {isExporting ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileDown className="h-5 w-5" />}
+                {isExporting ? "..." : "Exportar"}
               </Button>
             </div>
             <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
               <Button 
                 size="icon" 
-                className="h-12 w-12 shrink-0 rounded-full shadow-2xl bg-slate-800 text-white hover:bg-slate-900 transition-all active:scale-95 border-4 border-white"
+                className="h-14 w-14 shrink-0 rounded-full shadow-2xl bg-slate-800 text-white hover:bg-slate-900 transition-all active:scale-95 border-4 border-white"
                 onPointerDown={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   setIsMenuOpen(!isMenuOpen);
                 }}
               >
-                <Settings2 className="h-5 w-5" />
+                <Settings2 className="h-6 w-6" />
               </Button>
               <SheetContent 
                 side="right" 
-                className="w-[85%] sm:w-[350px] p-5 bg-card backdrop-blur-xl shadow-2xl overflow-y-auto"
+                className="w-[85%] sm:w-[400px] p-6 bg-card backdrop-blur-xl shadow-2xl overflow-y-auto"
                 onOpenAutoFocus={(e) => e.preventDefault()}
               >
                 <SheetHeader className="sr-only">
-                  <SheetTitle>Configuración de Stickers</SheetTitle>
-                  <SheetDescription>Ajustes de dimensiones y papel</SheetDescription>
+                  <SheetTitle>Ajustes de Plancha</SheetTitle>
+                  <SheetDescription>Configura tamaños, papel y espaciado</SheetDescription>
                 </SheetHeader>
                 {renderSettings()}
               </SheetContent>
@@ -814,3 +746,4 @@ export default function StickerSheetEditor() {
     </div>
   );
 }
+
