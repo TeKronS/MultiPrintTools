@@ -482,7 +482,7 @@ export default function PosterGridEditor() {
         }
       }
       
-      const fileName = `Poster_${Math.round(activeTargetW)}x${Math.round(activeTargetH)}cm_${activeRows * activeCols}hojas_${activePaperSize}_MultiPrint.pdf`;
+      const fileName = `Poster_${activeTargetW}x${activeTargetH}cm_${activeRows * activeCols}hojas_${activePaperSize}_MultiPrint.pdf`;
       pdf.save(fileName);
       toast({ title: t.export, description: "PDF generado en alta resolución con éxito." });
     } catch (e) { 
