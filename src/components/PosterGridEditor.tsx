@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useDeferredValue, useMemo } from "react";
@@ -206,9 +205,9 @@ export default function PosterGridEditor() {
     const newH_mm = (newRows * effectiveH) + overlapMm;
     
     const setR = isDraft ? setDraftRows : setRows;
-    const setC = isDraft ? setDraftCols : setCols;
-    const setW = isDraft ? setDraftTargetWidth : setTargetWidth;
     const setH = isDraft ? setDraftTargetHeight : setTargetHeight;
+    const setW = isDraft ? setDraftTargetWidth : setTargetWidth;
+    const setC = isDraft ? setDraftCols : setCols;
 
     if (isLocked) {
       const aspect = image.width / image.height;
@@ -247,9 +246,9 @@ export default function PosterGridEditor() {
     const effectiveW = printableW - overlapMm;
     const newW_mm = (newCols * effectiveW) + overlapMm;
     
-    const setR = isDraft ? setDraftRows : setRows;
     const setC = isDraft ? setDraftCols : setCols;
     const setW = isDraft ? setDraftTargetWidth : setTargetWidth;
+    const setR = isDraft ? setDraftRows : setRows;
     const setH = isDraft ? setDraftTargetHeight : setTargetHeight;
 
     if (isLocked) {
@@ -273,17 +272,17 @@ export default function PosterGridEditor() {
     if (!image) return;
     const num = Math.max(0, parseFloat(val));
     const isLocked = isDraft ? draftLockAspect : lockAspect;
-    if (isNaN(num)) {
-      if (isDraft) setDraftTargetWidth(val);
-      else setTargetWidth(val);
-      return;
-    }
-
+    
     const setW = isDraft ? setDraftTargetWidth : setTargetWidth;
     const setH = isDraft ? setDraftTargetHeight : setTargetHeight;
     const setR = isDraft ? setDraftRows : setRows;
     const setC = isDraft ? setDraftCols : setCols;
     const setO = isDraft ? setDraftOrientation : setOrientation;
+
+    if (isNaN(num)) {
+      setW(val);
+      return;
+    }
 
     if (isLocked) {
       const aspect = image.width / image.height;
@@ -309,17 +308,17 @@ export default function PosterGridEditor() {
     if (!image) return;
     const num = Math.max(0, parseFloat(val));
     const isLocked = isDraft ? draftLockAspect : lockAspect;
-    if (isNaN(num)) {
-      if (isDraft) setDraftTargetHeight(val);
-      else setTargetHeight(val);
-      return;
-    }
-
+    
     const setW = isDraft ? setDraftTargetWidth : setTargetWidth;
     const setH = isDraft ? setDraftTargetHeight : setTargetHeight;
     const setR = isDraft ? setDraftRows : setRows;
     const setC = isDraft ? setDraftCols : setCols;
     const setO = isDraft ? setDraftOrientation : setOrientation;
+
+    if (isNaN(num)) {
+      setH(val);
+      return;
+    }
 
     if (isLocked) {
       const aspect = image.width / image.height;
@@ -429,7 +428,6 @@ export default function PosterGridEditor() {
       const targetDPI = 300;
       const outputPxPerMm = targetDPI / 25.4;
       
-      // Separate source ratios if stretched
       const sourcePxPerMmX = img.width / finalW_mm;
       const sourcePxPerMmY = img.height / finalH_mm;
 
@@ -484,7 +482,6 @@ export default function PosterGridEditor() {
         }
       }
       
-      // Dynamic Filename: Poster_120x80cm_6hojas_A4_MultiPrint.pdf
       const fileName = `Poster_${Math.round(activeTargetW)}x${Math.round(activeTargetH)}cm_${activeRows * activeCols}hojas_${activePaperSize}_MultiPrint.pdf`;
       pdf.save(fileName);
       toast({ title: t.export, description: "PDF generado en alta resolución con éxito." });
@@ -517,74 +514,52 @@ export default function PosterGridEditor() {
   const draftInfo = useMemo(() => getMeasures(draftRows, draftCols, draftOverlap, draftMarginV, draftMarginH, draftPaperSize, draftOrientation, draftTargetWidth, draftTargetHeight), [image, draftRows, draftCols, draftOverlap, draftMarginV, draftMarginH, draftPaperSize, draftOrientation, draftTargetWidth, draftTargetHeight]);
 
   const renderSettings = (currentRows: number, currentCols: number, currentOverlap: number, currentMarginV: number, currentMarginH: number, currentPaperSize: string, currentOrientation: 'portrait' | 'landscape', currentShowGuides: boolean, currentShowOutline: boolean, curWidth: string, curHeight: string, info: any, isLocked: boolean, isMobile?: boolean) => (
-    <div className={cn("space-y-4", isMobile ? "p-4 pt-1" : "p-4")}>
-      {!isMobile && (
+    <div className={cn("space-y-6", isMobile ? "p-4 pt-1" : "p-4")}>
+      <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2 bg-card px-2 py-1 rounded-md shadow-sm border border-border/20">
-            <Settings2 className="h-3 v-3" /> {t.gridSettings}
+            <Maximize2 className="h-3.5 w-3.5 text-primary" /> {lang === 'es' ? 'Dimensiones del Póster' : 'Poster Dimensions'}
           </h2>
-        </div>
-      )}
-      <div className="space-y-4">
-        <div className="bg-card p-4 rounded-xl border border-primary/10 shadow-sm space-y-3">
-          <div className="flex items-center justify-between mb-1">
-            <div className="flex items-center gap-2">
-              <Maximize2 className="h-3.5 w-3.5 text-primary" />
-              <Label className="text-[10px] font-black uppercase tracking-tighter text-muted-foreground">{t.finalMeasures}</Label>
-            </div>
-            <div className="flex items-center gap-2">
-               <Label htmlFor={isMobile ? "draft-lock" : "lock"} className="text-[8px] font-black text-muted-foreground uppercase cursor-pointer">{t.keepAspectRatio}</Label>
-               <Switch id={isMobile ? "draft-lock" : "lock"} checked={isLocked} onCheckedChange={(v) => isMobile ? setDraftLockAspect(v) : setLockAspect(v)} className="scale-75 origin-right" />
-            </div>
+          <div className="flex items-center gap-2">
+            <Label htmlFor={isMobile ? "draft-lock" : "lock"} className="text-[8px] font-black text-muted-foreground uppercase cursor-pointer">{t.keepAspectRatio}</Label>
+            <Switch id={isMobile ? "draft-lock" : "lock"} checked={isLocked} onCheckedChange={(v) => isMobile ? setDraftLockAspect(v) : setLockAspect(v)} className="scale-75 origin-right" />
           </div>
+        </div>
+        
+        <div className="bg-card p-4 rounded-xl border border-primary/10 shadow-sm space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label className="text-[8px] font-bold text-muted-foreground uppercase">{t.width}</Label>
+              <Label className="text-[8px] font-bold text-muted-foreground uppercase">{t.width} (cm)</Label>
               <Input type="number" value={curWidth} onChange={(e) => handleWidthChange(e.target.value, !!isMobile)} min="0.1" step="0.1" className="h-9 font-black text-sm text-primary bg-primary/5 border-primary/20" />
             </div>
             <div className="space-y-1">
-              <Label className="text-[8px] font-bold text-muted-foreground uppercase">{t.height}</Label>
+              <Label className="text-[8px] font-bold text-muted-foreground uppercase">{t.height} (cm)</Label>
               <Input type="number" value={curHeight} onChange={(e) => handleHeightChange(e.target.value, !!isMobile)} min="0.1" step="0.1" className="h-9 font-black text-sm text-primary bg-primary/5 border-primary/20" />
             </div>
           </div>
-          <p className="text-[9px] text-muted-foreground font-medium leading-tight">{t.optimizationNote}</p>
+          <p className="text-[9px] text-muted-foreground font-medium leading-tight">{lang === 'es' ? 'Puedes anchear o alargar la imagen desactivando el candado.' : 'You can stretch or squash the image by disabling the lock.'}</p>
         </div>
+      </div>
 
-        <div className="space-y-2">
-          <div className="flex justify-between items-center">
-            <Label className="text-[10px] font-black uppercase text-muted-foreground bg-card px-2 py-0.5 rounded-md shadow-sm border border-border/10">{t.rows}</Label>
-            <span className="text-xs font-black text-primary bg-card px-2 py-0.5 rounded-md shadow-sm border border-border/10">{currentRows}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 hover:bg-primary/10 hover:text-primary" onClick={() => handleRowsGridChange(Math.max(1, currentRows - 1), !!isMobile)}><Minus className="h-3 w-3" /></Button>
-            <Slider value={[currentRows]} onValueChange={(v) => handleRowsGridChange(v[0], !!isMobile)} min={1} max={MAX_GRID_DIM} step={1} className="flex-1" />
-            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 hover:bg-primary/10 hover:text-primary" onClick={() => handleRowsGridChange(Math.min(MAX_GRID_DIM, currentRows + 1), !!isMobile)}><Plus className="h-3 w-3" /></Button>
-          </div>
-        </div>
-        <div className="space-y-2">
-          <div className="flex justify-between items-center">
-            <Label className="text-[10px] font-black uppercase text-muted-foreground bg-card px-2 py-0.5 rounded-md shadow-sm border border-border/10">{t.columns}</Label>
-            <span className="text-xs font-black text-primary bg-card px-2 py-0.5 rounded-md shadow-sm border border-border/10">{currentCols}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 hover:bg-primary/10 hover:text-primary" onClick={() => handleColsGridChange(Math.max(1, currentCols - 1), !!isMobile)}><Minus className="h-3 w-3" /></Button>
-            <Slider value={[currentCols]} onValueChange={(v) => handleColsGridChange(v[0], !!isMobile)} min={1} max={MAX_GRID_DIM} step={1} className="flex-1" />
-            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 hover:bg-primary/10 hover:text-primary" onClick={() => handleColsGridChange(Math.min(MAX_GRID_DIM, currentCols + 1), !!isMobile)}><Plus className="h-3 w-3" /></Button>
-          </div>
-        </div>
-        <Separator className="bg-border/40" />
+      <Separator className="bg-border/40" />
+
+      <div className="space-y-4">
+        <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2 bg-card px-2 py-1 rounded-md shadow-sm border border-border/20">
+          <Settings2 className="h-3.5 w-3.5 text-amber-600" /> {lang === 'es' ? 'Configuración de Cuadrícula' : 'Grid Configuration'}
+        </h2>
+
         <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase text-muted-foreground bg-card px-2 py-0.5 rounded-md shadow-sm border border-border/10 mb-0.5 inline-block">{t.paperSize}</Label>
+          <div className="space-y-1">
+            <Label className="text-[10px] font-black uppercase text-muted-foreground">{t.paperSize}</Label>
             <Select value={currentPaperSize} onValueChange={(v) => { if (isMobile) setDraftPaperSize(v); else setPaperSize(v); setTimeout(() => syncGridFromTechnicalSettings(!!isMobile), 0); }}>
-              <SelectTriggerUI className="h-8 rounded-lg text-xs font-bold bg-card shadow-sm border border-border/10"><SelectValue /></SelectTriggerUI>
+              <SelectTriggerUI className="h-8 rounded-lg text-xs font-bold bg-card border-border/10"><SelectValue /></SelectTriggerUI>
               <SelectContent>{Object.keys(PAPER_DIMENSIONS).map(key => <SelectItem key={key} value={key} className="text-xs font-bold">{key}</SelectItem>)}</SelectContent>
             </Select>
           </div>
-          <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase text-muted-foreground bg-card px-2 py-0.5 rounded-md shadow-sm border border-border/10 mb-0.5 inline-block">{t.orientation}</Label>
+          <div className="space-y-1">
+            <Label className="text-[10px] font-black uppercase text-muted-foreground">{t.orientation}</Label>
             <Select value={currentOrientation} onValueChange={(v: any) => { if (isMobile) setDraftOrientation(v); else setOrientation(v); setTimeout(() => syncGridFromTechnicalSettings(!!isMobile), 0); }}>
-              <SelectTriggerUI className="h-8 rounded-lg text-xs font-bold bg-card shadow-sm border border-border/10"><SelectValue /></SelectTriggerUI>
+              <SelectTriggerUI className="h-8 rounded-lg text-xs font-bold bg-card border-border/10"><SelectValue /></SelectTriggerUI>
               <SelectContent>
                 <SelectItem value="portrait" className="text-xs font-bold">{t.portrait}</SelectItem>
                 <SelectItem value="landscape" className="text-xs font-bold">{t.landscape}</SelectItem>
@@ -592,55 +567,56 @@ export default function PosterGridEditor() {
             </Select>
           </div>
         </div>
+
         <div className="space-y-2">
           <div className="flex justify-between items-center">
-            <Label className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-2 bg-card px-2 py-0.5 rounded-md shadow-sm border border-border/10"><Scissors className="h-3 w-3" /> {t.overlap}</Label>
-            <span className="text-xs font-black text-amber-600 bg-card px-2 py-0.5 rounded-md shadow-sm border border-border/10">{currentOverlap} cm</span>
+            <Label className="text-[10px] font-black uppercase text-muted-foreground">{t.rows}</Label>
+            <span className="text-xs font-black text-primary">{currentRows}</span>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 hover:bg-amber-500/10 hover:text-amber-600" onClick={() => { const newVal = Math.max(0, parseFloat((currentOverlap - 0.1).toFixed(1))); if (isMobile) setDraftOverlap(newVal); else setOverlap(newVal); syncGridFromTechnicalSettings(!!isMobile); }}><Minus className="h-3 w-3" /></Button>
-            <Slider value={[currentOverlap]} onValueChange={(v) => { if (isMobile) setDraftOverlap(v[0]); else setOverlap(v[0]); syncGridFromTechnicalSettings(!!isMobile); }} min={0} max={10} step={0.1} className="flex-1" />
-            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 hover:bg-amber-500/10 hover:text-amber-600" onClick={() => { const newVal = Math.min(10, parseFloat((currentOverlap + 0.1).toFixed(1))); if (isMobile) setDraftOverlap(newVal); else setOverlap(newVal); syncGridFromTechnicalSettings(!!isMobile); }}><Plus className="h-3 w-3" /></Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10" onClick={() => handleRowsGridChange(Math.max(1, currentRows - 1), !!isMobile)}><Minus className="h-3 w-3" /></Button>
+            <Slider value={[currentRows]} onValueChange={(v) => handleRowsGridChange(v[0], !!isMobile)} min={1} max={MAX_GRID_DIM} step={1} className="flex-1" />
+            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10" onClick={() => handleRowsGridChange(Math.min(MAX_GRID_DIM, currentRows + 1), !!isMobile)}><Plus className="h-3 w-3" /></Button>
           </div>
         </div>
+
         <div className="space-y-2">
           <div className="flex justify-between items-center">
-            <Label className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-2 bg-card px-2 py-0.5 rounded-md shadow-sm border border-border/10"><Maximize2 className="h-3.5 w-3.5 text-primary" /> {t.marginsVertical}</Label>
-            <span className="text-xs font-black text-primary bg-card px-2 py-0.5 rounded-md shadow-sm border border-border/10">{currentMarginV} cm</span>
+            <Label className="text-[10px] font-black uppercase text-muted-foreground">{t.columns}</Label>
+            <span className="text-xs font-black text-primary">{currentCols}</span>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 hover:bg-primary/10 hover:text-primary" onClick={() => { const newVal = Math.max(0, parseFloat((currentMarginV - 0.1).toFixed(1))); if (isMobile) setDraftMarginV(newVal); else setMarginV(newVal); syncGridFromTechnicalSettings(!!isMobile); }}><Minus className="h-3 w-3" /></Button>
-            <Slider value={[currentMarginV]} onValueChange={(v) => { if (isMobile) setDraftMarginV(v[0]); else setMarginV(v[0]); syncGridFromTechnicalSettings(!!isMobile); }} min={0} max={5} step={0.1} className="flex-1" />
-            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 hover:bg-primary/10 hover:text-primary" onClick={() => { const newVal = Math.min(5, parseFloat((currentMarginV + 0.1).toFixed(1))); if (isMobile) setDraftMarginV(newVal); else setMarginV(newVal); syncGridFromTechnicalSettings(!!isMobile); }}><Plus className="h-3 w-3" /></Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10" onClick={() => handleColsGridChange(Math.max(1, currentCols - 1), !!isMobile)}><Minus className="h-3 w-3" /></Button>
+            <Slider value={[currentCols]} onValueChange={(v) => handleColsGridChange(v[0], !!isMobile)} min={1} max={MAX_GRID_DIM} step={1} className="flex-1" />
+            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10" onClick={() => handleColsGridChange(Math.min(MAX_GRID_DIM, currentCols + 1), !!isMobile)}><Plus className="h-3 w-3" /></Button>
           </div>
         </div>
+
         <div className="space-y-2">
           <div className="flex justify-between items-center">
-            <Label className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-2 bg-card px-2 py-0.5 rounded-md shadow-sm border border-border/10"><Maximize2 className="h-3.5 w-3.5 text-primary" /> {t.marginsHorizontal}</Label>
-            <span className="text-xs font-black text-primary bg-card px-2 py-0.5 rounded-md shadow-sm border border-border/10">{currentMarginH} cm</span>
+            <Label className="text-[10px] font-black uppercase text-muted-foreground"><Scissors className="h-3 w-3 inline mr-1" /> {t.overlap}</Label>
+            <span className="text-xs font-black text-amber-600">{currentOverlap} cm</span>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 hover:bg-primary/10 hover:text-primary" onClick={() => { const newVal = Math.max(0, parseFloat((currentMarginH - 0.1).toFixed(1))); if (isMobile) setDraftMarginH(newVal); else setMarginH(newVal); syncGridFromTechnicalSettings(!!isMobile); }}><Minus className="h-3 w-3" /></Button>
-            <Slider value={[currentMarginH]} onValueChange={(v) => { if (isMobile) setDraftMarginH(v[0]); else setMarginH(v[0]); syncGridFromTechnicalSettings(!!isMobile); }} min={0} max={5} step={0.1} className="flex-1" />
-            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 hover:bg-primary/10 hover:text-primary" onClick={() => { const newVal = Math.min(5, parseFloat((currentMarginH + 0.1).toFixed(1))); if (isMobile) setDraftMarginH(newVal); else setMarginH(newVal); syncGridFromTechnicalSettings(!!isMobile); }}><Plus className="h-3 w-3" /></Button>
-          </div>
+          <Slider value={[currentOverlap]} onValueChange={(v) => { if (isMobile) setDraftOverlap(v[0]); else setOverlap(v[0]); syncGridFromTechnicalSettings(!!isMobile); }} min={0} max={10} step={0.1} />
         </div>
-        <div className="space-y-3 pt-2">
+
+        <div className="grid grid-cols-2 gap-4 pt-2">
           <div className="flex items-center justify-between">
-            <Label className="text-[10px] font-black uppercase text-muted-foreground cursor-pointer flex items-center gap-2 bg-card px-2 py-0.5 rounded-md shadow-sm border border-border/10" htmlFor={isMobile ? "draft-guides" : "guides"}><Layers className="h-3 w-3" /> {t.guides}</Label>
-            <Switch id={isMobile ? "draft-guides" : "guides"} checked={currentShowGuides} onCheckedChange={isMobile ? setDraftShowGuides : setShowGuides} className="bg-muted" />
+            <Label className="text-[10px] font-black uppercase text-muted-foreground cursor-pointer" htmlFor={isMobile ? "draft-guides" : "guides"}>{t.guides}</Label>
+            <Switch id={isMobile ? "draft-guides" : "guides"} checked={currentShowGuides} onCheckedChange={isMobile ? setDraftShowGuides : setShowGuides} className="bg-muted scale-75" />
           </div>
           <div className="flex items-center justify-between">
-            <Label className="text-[10px] font-black uppercase text-muted-foreground cursor-pointer flex items-center gap-2 bg-card px-2 py-0.5 rounded-md shadow-sm border border-border/10" htmlFor={isMobile ? "draft-outline" : "outline"}><Square className="h-3 w-3" /> {t.outline}</Label>
-            <Switch id={isMobile ? "draft-outline" : "outline"} checked={currentShowOutline} onCheckedChange={isMobile ? setDraftShowOutline : setShowOutline} className="bg-muted" />
+            <Label className="text-[10px] font-black uppercase text-muted-foreground cursor-pointer" htmlFor={isMobile ? "draft-outline" : "outline"}>{t.outline}</Label>
+            <Switch id={isMobile ? "draft-outline" : "outline"} checked={currentShowOutline} onCheckedChange={isMobile ? setDraftShowOutline : setShowOutline} className="bg-muted scale-75" />
           </div>
         </div>
       </div>
+
       {info && (
-        <div className="p-3 bg-card/90 rounded-xl border border-border shadow-xl space-y-2">
-          <div className="flex items-center gap-2 mb-0.5"><Ruler className="h-3 w-3 text-muted-foreground" /><span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{lang === 'es' ? 'Resumen Técnico' : 'Technical Summary'}</span></div>
+        <div className="p-4 bg-card/90 rounded-xl border border-border shadow-md space-y-3">
+          <div className="flex items-center gap-2"><Ruler className="h-3 w-3 text-muted-foreground" /><span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{lang === 'es' ? 'Resumen de Impresión' : 'Print Summary'}</span></div>
           <div className="grid grid-cols-2 gap-3">
-            <div><span className="text-[8px] font-bold text-muted-foreground uppercase block">{lang === 'es' ? 'Imagen' : 'Image'}</span><span className="text-xs font-black text-primary">{info.imgW} x {info.imgH} cm</span></div>
+            <div><span className="text-[8px] font-bold text-muted-foreground uppercase block">{lang === 'es' ? 'Imagen Final' : 'Final Image'}</span><span className="text-xs font-black text-primary">{info.imgW} x {info.imgH} cm</span></div>
             <div><span className="text-[8px] font-bold text-muted-foreground uppercase block">{t.panelArea}</span><span className="text-xs font-black text-foreground">{info.printableW} x {info.printableH} cm</span></div>
           </div>
           <Separator className="opacity-20" />

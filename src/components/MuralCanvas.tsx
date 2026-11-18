@@ -169,7 +169,7 @@ export const MuralCanvas = memo(function MuralCanvas({
             <img 
               src={imageUrl} 
               alt="Poster Grid" 
-              className="w-full h-full object-cover block" 
+              className="w-full h-full object-fill block" 
               draggable={false}
             />
           </div>
