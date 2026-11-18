@@ -35,6 +35,7 @@ export const translations = {
     totalArea: 'Total Area',
     panelArea: 'Print Area/Panel',
     optimizationNote: 'Smart Optimization: System is using the most efficient layout.',
+    keepAspectRatio: 'Keep Aspect Ratio',
     // Home translations
     heroBadge: 'Flagship Tool: Poster Grid',
     heroTitlePrefix: 'Automate your ',
@@ -80,7 +81,6 @@ export const translations = {
     originalSize: 'Original Size',
     newSize: 'New Size',
     downloadImage: 'Download Image',
-    keepAspectRatio: 'Keep Aspect Ratio',
     unitsCm: 'Centimeters (cm)',
     unitsIn: 'Inches (in)',
     resizing: 'Resizing...',
@@ -184,6 +184,7 @@ export const translations = {
     totalArea: 'Área Total',
     panelArea: 'Área Impresión/Panel',
     optimizationNote: 'Optimización Inteligente: El sistema calculó la orientación más eficiente.',
+    keepAspectRatio: 'Mantener Proporción',
     // Home translations
     heroBadge: 'Herramienta Estrella: Cuadrícula Poster',
     heroTitlePrefix: 'Automatiza tu ',

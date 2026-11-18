@@ -75,6 +75,7 @@ export default function PosterGridEditor() {
   const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait');
   const [showGuides, setShowGuides] = useState(true);
   const [showOutline, setShowOutline] = useState(false);
+  const [lockAspect, setLockAspect] = useState(true);
 
   const [targetWidth, setTargetWidth] = useState<string>('0');
   const [targetHeight, setTargetHeight] = useState<string>('0');
@@ -90,6 +91,7 @@ export default function PosterGridEditor() {
   const [draftShowOutline, setDraftShowOutline] = useState(false);
   const [draftTargetWidth, setDraftTargetWidth] = useState<string>('0');
   const [draftTargetHeight, setDraftTargetHeight] = useState<string>('0');
+  const [draftLockAspect, setDraftLockAspect] = useState(true);
 
   const deferredRows = useDeferredValue(rows);
   const deferredCols = useDeferredValue(cols);
@@ -185,6 +187,7 @@ export default function PosterGridEditor() {
 
   const handleRowsGridChange = (newRows: number, isDraft: boolean) => {
     if (!image) return;
+    const isLocked = isDraft ? draftLockAspect : lockAspect;
     const pS = isDraft ? draftPaperSize : paperSize;
     const orient = isDraft ? draftOrientation : orientation;
     const ov = isDraft ? draftOverlap : overlap;
@@ -201,26 +204,32 @@ export default function PosterGridEditor() {
     const overlapMm = ov * 10;
     const effectiveH = printableH - overlapMm;
     const newH_mm = (newRows * effectiveH) + overlapMm;
-    const aspect = image.width / image.height;
-    const newW_mm = newH_mm * aspect;
-
-    const printableW = paper.width - (appliedMH * 20);
-    const effectiveW = printableW - overlapMm;
-    const neededCols = Math.ceil((newW_mm - overlapMm) / effectiveW);
-
+    
     const setR = isDraft ? setDraftRows : setRows;
     const setC = isDraft ? setDraftCols : setCols;
     const setW = isDraft ? setDraftTargetWidth : setTargetWidth;
     const setH = isDraft ? setDraftTargetHeight : setTargetHeight;
 
-    setR(newRows);
-    setC(Math.max(1, neededCols));
-    setW((newW_mm / 10).toFixed(1));
-    setH((newH_mm / 10).toFixed(1));
+    if (isLocked) {
+      const aspect = image.width / image.height;
+      const newW_mm = newH_mm * aspect;
+      const printableW = paper.width - (appliedMH * 20);
+      const effectiveW = printableW - overlapMm;
+      const neededCols = Math.ceil((newW_mm - overlapMm) / effectiveW);
+      
+      setR(newRows);
+      setC(Math.max(1, neededCols));
+      setW((newW_mm / 10).toFixed(1));
+      setH((newH_mm / 10).toFixed(1));
+    } else {
+      setR(newRows);
+      setH((newH_mm / 10).toFixed(1));
+    }
   };
 
   const handleColsGridChange = (newCols: number, isDraft: boolean) => {
     if (!image) return;
+    const isLocked = isDraft ? draftLockAspect : lockAspect;
     const pS = isDraft ? draftPaperSize : paperSize;
     const orient = isDraft ? draftOrientation : orientation;
     const ov = isDraft ? draftOverlap : overlap;
@@ -237,69 +246,98 @@ export default function PosterGridEditor() {
     const overlapMm = ov * 10;
     const effectiveW = printableW - overlapMm;
     const newW_mm = (newCols * effectiveW) + overlapMm;
-    const aspect = image.width / image.height;
-    const newH_mm = newW_mm / aspect;
-
-    const printableH = paper.height - (appliedMV * 20);
-    const effectiveH = printableH - overlapMm;
-    const neededRows = Math.ceil((newH_mm - overlapMm) / effectiveH);
-
+    
     const setR = isDraft ? setDraftRows : setRows;
     const setC = isDraft ? setDraftCols : setCols;
     const setW = isDraft ? setDraftTargetWidth : setTargetWidth;
     const setH = isDraft ? setDraftTargetHeight : setTargetHeight;
 
-    setC(newCols);
-    setR(Math.max(1, neededRows));
-    setW((newW_mm / 10).toFixed(1));
-    setH((newH_mm / 10).toFixed(1));
+    if (isLocked) {
+      const aspect = image.width / image.height;
+      const newH_mm = newW_mm / aspect;
+      const printableH = paper.height - (appliedMV * 20);
+      const effectiveH = printableH - overlapMm;
+      const neededRows = Math.ceil((newH_mm - overlapMm) / effectiveH);
+      
+      setC(newCols);
+      setR(Math.max(1, neededRows));
+      setW((newW_mm / 10).toFixed(1));
+      setH((newH_mm / 10).toFixed(1));
+    } else {
+      setC(newCols);
+      setW((newW_mm / 10).toFixed(1));
+    }
   };
 
   const handleWidthChange = (val: string, isDraft: boolean) => {
     if (!image) return;
     const num = Math.max(0, parseFloat(val));
+    const isLocked = isDraft ? draftLockAspect : lockAspect;
     if (isNaN(num)) {
       if (isDraft) setDraftTargetWidth(val);
       else setTargetWidth(val);
       return;
     }
-    const aspect = image.width / image.height;
-    const newHeight = num / aspect;
+
     const setW = isDraft ? setDraftTargetWidth : setTargetWidth;
     const setH = isDraft ? setDraftTargetHeight : setTargetHeight;
     const setR = isDraft ? setDraftRows : setRows;
     const setC = isDraft ? setDraftCols : setCols;
     const setO = isDraft ? setDraftOrientation : setOrientation;
-    setW(num.toString());
-    setH(newHeight.toFixed(1));
 
-    if (num > 0) {
-      const opt = calculateOptimizedGrid(num, newHeight, isDraft ? draftPaperSize : paperSize, isDraft ? draftOverlap : overlap, isDraft ? draftMarginV : marginV, isDraft ? draftMarginH : marginH);
-      setR(opt.rows); setC(opt.cols); setO(opt.orientation);
+    if (isLocked) {
+      const aspect = image.width / image.height;
+      const newHeight = num / aspect;
+      setW(num.toString());
+      setH(newHeight.toFixed(1));
+
+      if (num > 0) {
+        const opt = calculateOptimizedGrid(num, newHeight, isDraft ? draftPaperSize : paperSize, isDraft ? draftOverlap : overlap, isDraft ? draftMarginV : marginV, isDraft ? draftMarginH : marginH);
+        setR(opt.rows); setC(opt.cols); setO(opt.orientation);
+      }
+    } else {
+      setW(num.toString());
+      if (num > 0) {
+        const curH = parseFloat(isDraft ? draftTargetHeight : targetHeight);
+        const opt = calculateOptimizedGrid(num, curH, isDraft ? draftPaperSize : paperSize, isDraft ? draftOverlap : overlap, isDraft ? draftMarginV : marginV, isDraft ? draftMarginH : marginH);
+        setR(opt.rows); setC(opt.cols); setO(opt.orientation);
+      }
     }
   };
 
   const handleHeightChange = (val: string, isDraft: boolean) => {
     if (!image) return;
     const num = Math.max(0, parseFloat(val));
+    const isLocked = isDraft ? draftLockAspect : lockAspect;
     if (isNaN(num)) {
       if (isDraft) setDraftTargetHeight(val);
-      else setTargetWidth(val);
+      else setTargetHeight(val);
       return;
     }
-    const aspect = image.width / image.height;
-    const newWidth = num * aspect;
+
     const setW = isDraft ? setDraftTargetWidth : setTargetWidth;
     const setH = isDraft ? setDraftTargetHeight : setTargetHeight;
     const setR = isDraft ? setDraftRows : setRows;
     const setC = isDraft ? setDraftCols : setCols;
     const setO = isDraft ? setDraftOrientation : setOrientation;
-    setH(num.toString());
-    setW(newWidth.toFixed(1));
 
-    if (num > 0) {
-      const opt = calculateOptimizedGrid(newWidth, num, isDraft ? draftPaperSize : paperSize, isDraft ? draftOverlap : overlap, isDraft ? draftMarginV : marginV, isDraft ? draftMarginH : marginH);
-      setW(newWidth.toFixed(1)); setR(opt.rows); setC(opt.cols); setO(opt.orientation);
+    if (isLocked) {
+      const aspect = image.width / image.height;
+      const newWidth = num * aspect;
+      setH(num.toString());
+      setW(newWidth.toFixed(1));
+
+      if (num > 0) {
+        const opt = calculateOptimizedGrid(newWidth, num, isDraft ? draftPaperSize : paperSize, isDraft ? draftOverlap : overlap, isDraft ? draftMarginV : marginV, isDraft ? draftMarginH : marginH);
+        setR(opt.rows); setC(opt.cols); setO(opt.orientation);
+      }
+    } else {
+      setH(num.toString());
+      if (num > 0) {
+        const curW = parseFloat(isDraft ? draftTargetWidth : targetWidth);
+        const opt = calculateOptimizedGrid(curW, num, isDraft ? draftPaperSize : paperSize, isDraft ? draftOverlap : overlap, isDraft ? draftMarginV : marginV, isDraft ? draftMarginH : marginH);
+        setR(opt.rows); setC(opt.cols); setO(opt.orientation);
+      }
     }
   };
 
@@ -327,15 +365,15 @@ export default function PosterGridEditor() {
       const port = calcSize('portrait');
       const land = calcSize('landscape');
       const best = port.area >= land.area ? port : land;
-      setRows(2); setCols(2); setOrientation(best.orient); setTargetWidth((best.w / 10).toFixed(1)); setTargetHeight((best.h / 10).toFixed(1));
+      setRows(2); setCols(2); setOrientation(best.orient); setTargetWidth((best.w / 10).toFixed(1)); setTargetHeight((best.h / 10).toFixed(1)); setLockAspect(true);
     };
   };
 
   const handleMenuOpenChange = (open: boolean) => {
     if (open) {
-      setDraftRows(rows); setDraftCols(cols); setDraftOverlap(overlap); setDraftMarginV(marginV); setDraftMarginH(marginH); setDraftPaperSize(paperSize); setDraftOrientation(orientation); setDraftShowGuides(showGuides); setDraftShowOutline(showOutline); setDraftTargetWidth(targetWidth); setDraftTargetHeight(targetHeight);
+      setDraftRows(rows); setDraftCols(cols); setDraftOverlap(overlap); setDraftMarginV(marginV); setDraftMarginH(marginH); setDraftPaperSize(paperSize); setDraftOrientation(orientation); setDraftShowGuides(showGuides); setDraftShowOutline(showOutline); setDraftTargetWidth(targetWidth); setDraftTargetHeight(targetHeight); setDraftLockAspect(lockAspect);
     } else {
-      setRows(draftRows); setCols(draftCols); setOverlap(draftOverlap); setMarginV(draftMarginV); setMarginH(draftMarginH); setPaperSize(draftPaperSize); setOrientation(draftOrientation); setShowGuides(draftShowGuides); setShowOutline(draftShowOutline); setTargetWidth(draftTargetWidth); setTargetHeight(draftTargetHeight);
+      setRows(draftRows); setCols(draftCols); setOverlap(draftOverlap); setMarginV(draftMarginV); setMarginH(draftMarginH); setPaperSize(draftPaperSize); setOrientation(draftOrientation); setShowGuides(draftShowGuides); setShowOutline(draftShowOutline); setTargetWidth(draftTargetWidth); setTargetHeight(draftTargetHeight); setLockAspect(draftLockAspect);
     }
     setIsMenuOpen(open);
   };
@@ -390,7 +428,11 @@ export default function PosterGridEditor() {
 
       const targetDPI = 300;
       const outputPxPerMm = targetDPI / 25.4;
-      const sourcePxPerMm = img.width / finalW_mm;
+      
+      // Separate source ratios if stretched
+      const sourcePxPerMmX = img.width / finalW_mm;
+      const sourcePxPerMmY = img.height / finalH_mm;
+
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       if (!ctx) throw new Error("Canvas fail");
@@ -410,10 +452,10 @@ export default function PosterGridEditor() {
           const visibleW_mm = Math.min(effectiveSheetW + overlapMm - drawInSheetX_mm, finalW_mm - Math.max(0, sheetLeft_mm - offsetX_mm));
           const visibleH_mm = Math.min(effectiveSheetH + overlapMm - drawInSheetY_mm, finalH_mm - Math.max(0, sheetTop_mm - offsetY_mm));
           
-          const sx = Math.max(0, (sheetLeft_mm - offsetX_mm) * sourcePxPerMm);
-          const sy = Math.max(0, (sheetTop_mm - offsetY_mm) * sourcePxPerMm);
-          const sw = visibleW_mm * sourcePxPerMm;
-          const sh = visibleH_mm * sourcePxPerMm;
+          const sx = Math.max(0, (sheetLeft_mm - offsetX_mm) * sourcePxPerMmX);
+          const sy = Math.max(0, (sheetTop_mm - offsetY_mm) * sourcePxPerMmY);
+          const sw = visibleW_mm * sourcePxPerMmX;
+          const sh = visibleH_mm * sourcePxPerMmY;
           const dw = visibleW_mm * outputPxPerMm;
           const dh = visibleH_mm * outputPxPerMm;
 
@@ -441,7 +483,10 @@ export default function PosterGridEditor() {
           }
         }
       }
-      pdf.save(`poster-grid-${Date.now()}.pdf`);
+      
+      // Dynamic Filename: Poster_120x80cm_6hojas_A4_MultiPrint.pdf
+      const fileName = `Poster_${Math.round(activeTargetW)}x${Math.round(activeTargetH)}cm_${activeRows * activeCols}hojas_${activePaperSize}_MultiPrint.pdf`;
+      pdf.save(fileName);
       toast({ title: t.export, description: "PDF generado en alta resolución con éxito." });
     } catch (e) { 
       console.error(e);
@@ -471,7 +516,7 @@ export default function PosterGridEditor() {
   const physicalInfo = useMemo(() => getMeasures(rows, cols, overlap, marginV, marginH, paperSize, orientation, targetWidth, targetHeight), [image, rows, cols, overlap, marginV, marginH, paperSize, orientation, targetWidth, targetHeight]);
   const draftInfo = useMemo(() => getMeasures(draftRows, draftCols, draftOverlap, draftMarginV, draftMarginH, draftPaperSize, draftOrientation, draftTargetWidth, draftTargetHeight), [image, draftRows, draftCols, draftOverlap, draftMarginV, draftMarginH, draftPaperSize, draftOrientation, draftTargetWidth, draftTargetHeight]);
 
-  const renderSettings = (currentRows: number, currentCols: number, currentOverlap: number, currentMarginV: number, currentMarginH: number, currentPaperSize: string, currentOrientation: 'portrait' | 'landscape', currentShowGuides: boolean, currentShowOutline: boolean, curWidth: string, curHeight: string, info: any, isMobile?: boolean) => (
+  const renderSettings = (currentRows: number, currentCols: number, currentOverlap: number, currentMarginV: number, currentMarginH: number, currentPaperSize: string, currentOrientation: 'portrait' | 'landscape', currentShowGuides: boolean, currentShowOutline: boolean, curWidth: string, curHeight: string, info: any, isLocked: boolean, isMobile?: boolean) => (
     <div className={cn("space-y-4", isMobile ? "p-4 pt-1" : "p-4")}>
       {!isMobile && (
         <div className="flex items-center justify-between">
@@ -482,12 +527,14 @@ export default function PosterGridEditor() {
       )}
       <div className="space-y-4">
         <div className="bg-card p-4 rounded-xl border border-primary/10 shadow-sm space-y-3">
-          <div className="flex items-center gap-2 mb-1">
-            <Maximize2 className="h-3.5 w-3.5 text-primary" />
-            <Label className="text-[10px] font-black uppercase tracking-tighter text-muted-foreground">{t.finalMeasures}</Label>
-            <div className="ml-auto flex items-center gap-1 bg-amber-500/10 px-1.5 py-0.5 rounded">
-              <Zap className="h-2.5 w-2.5 text-amber-600" />
-              <span className="text-[8px] font-black text-amber-600 uppercase">{lang === 'es' ? 'Auto-Optimización' : 'Auto-Optimization'}</span>
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-2">
+              <Maximize2 className="h-3.5 w-3.5 text-primary" />
+              <Label className="text-[10px] font-black uppercase tracking-tighter text-muted-foreground">{t.finalMeasures}</Label>
+            </div>
+            <div className="flex items-center gap-2">
+               <Label htmlFor={isMobile ? "draft-lock" : "lock"} className="text-[8px] font-black text-muted-foreground uppercase cursor-pointer">{t.keepAspectRatio}</Label>
+               <Switch id={isMobile ? "draft-lock" : "lock"} checked={isLocked} onCheckedChange={(v) => isMobile ? setDraftLockAspect(v) : setLockAspect(v)} className="scale-75 origin-right" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -630,11 +677,11 @@ export default function PosterGridEditor() {
           )}
         </section>
         <aside className="hidden lg:block w-80 border-l border-border bg-background overflow-y-auto shadow-xl z-10 shrink-0 h-full">
-          {renderSettings(rows, cols, overlap, marginV, marginH, paperSize, orientation, showGuides, showOutline, targetWidth, targetHeight, physicalInfo)}
+          {renderSettings(rows, cols, overlap, marginV, marginH, paperSize, orientation, showGuides, showOutline, targetWidth, targetHeight, physicalInfo, lockAspect)}
         </aside>
       </main>
       {image && (
-        <div className="lg:hidden fixed bottom-6 right-6 z-[100] pointer-events-auto"><Sheet open={isMenuOpen} onOpenChange={handleMenuOpenChange}><Button size="icon" className="h-14 w-14 rounded-full shadow-2xl bg-primary text-white hover:bg-primary/90 transition-all active:scale-95 border-4 border-white" onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); handleMenuOpenChange(!isMenuOpen); }}><Settings2 className="h-6 w-6" /></Button><SheetContent side="right" className="w-[85%] sm:w-[400px] p-0 bg-background/80 backdrop-blur-xl shadow-2xl overflow-hidden flex flex-col"><SheetHeader className="sr-only"><SheetTitle>{t.gridSettings}</SheetTitle><SheetDescription>Panel de ajustes para la cuadrícula del poster</SheetDescription></SheetHeader><div className="p-3 bg-primary/5 flex flex-col gap-3"><Button className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-black gap-3 rounded-xl shadow-lg transition-all active:scale-95 text-xs uppercase tracking-widest" onClick={handleExport} disabled={!image || isExporting}>{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}{isExporting ? "..." : t.export}</Button></div><div className="flex-1 overflow-y-auto">{renderSettings(draftRows, draftCols, draftOverlap, draftMarginV, draftMarginH, draftPaperSize, draftOrientation, draftShowGuides, draftShowOutline, draftTargetWidth, draftTargetHeight, draftInfo, true)}</div></SheetContent></Sheet></div>
+        <div className="lg:hidden fixed bottom-6 right-6 z-[100] pointer-events-auto"><Sheet open={isMenuOpen} onOpenChange={handleMenuOpenChange}><Button size="icon" className="h-14 w-14 rounded-full shadow-2xl bg-primary text-white hover:bg-primary/90 transition-all active:scale-95 border-4 border-white" onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); handleMenuOpenChange(!isMenuOpen); }}><Settings2 className="h-6 w-6" /></Button><SheetContent side="right" className="w-[85%] sm:w-[400px] p-0 bg-background/80 backdrop-blur-xl shadow-2xl overflow-hidden flex flex-col"><SheetHeader className="sr-only"><SheetTitle>{t.gridSettings}</SheetTitle><SheetDescription>Panel de ajustes para la cuadrícula del poster</SheetDescription></SheetHeader><div className="p-3 bg-primary/5 flex flex-col gap-3"><Button className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-black gap-3 rounded-xl shadow-lg transition-all active:scale-95 text-xs uppercase tracking-widest" onClick={handleExport} disabled={!image || isExporting}>{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}{isExporting ? "..." : t.export}</Button></div><div className="flex-1 overflow-y-auto">{renderSettings(draftRows, draftCols, draftOverlap, draftMarginV, draftMarginH, draftPaperSize, draftOrientation, draftShowGuides, draftShowOutline, draftTargetWidth, draftTargetHeight, draftInfo, draftLockAspect, true)}</div></SheetContent></Sheet></div>
       )}
     </div>
   );
