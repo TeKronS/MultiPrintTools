@@ -123,7 +123,7 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-screen bg-background font-body transition-colors duration-300">
+    <div className="min-h-screen bg-background font-body transition-colors duration-300 overflow-x-hidden">
       <header className="h-16 border-b border-border flex items-center justify-between px-4 md:px-8 bg-background/80 backdrop-blur-md sticky top-0 z-50">
         <div className="flex items-center gap-2 md:gap-3">
           <div className="w-8 h-8 md:w-10 md:h-10 relative overflow-hidden rounded-lg md:rounded-xl shadow-lg shadow-primary/20 bg-white dark:bg-slate-200 border border-border/10">
@@ -221,18 +221,18 @@ export default function Home() {
             <h3 className="text-2xl md:text-4xl font-headline font-black tracking-tighter">
               {lang === 'es' ? '¿Tienes un proyecto en mente?' : 'Let\'s build something together'}
             </h3>
-            <p className="text-muted-foreground font-medium max-w-xl mx-auto">
+            <p className="text-muted-foreground font-medium max-w-xl mx-auto px-4">
               {t.contactDesc}
             </p>
           </div>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 px-4">
             <Button 
               size="lg" 
-              className="bg-primary hover:bg-primary/90 text-white font-black rounded-2xl px-8 gap-3 h-14 uppercase tracking-widest shadow-xl shadow-primary/20 transition-all active:scale-95"
+              className="bg-primary hover:bg-primary/90 text-white font-black rounded-2xl px-4 sm:px-8 gap-3 h-14 uppercase tracking-wider sm:tracking-widest shadow-xl shadow-primary/20 transition-all active:scale-95 w-full sm:w-auto max-w-md text-[10px] sm:text-xs"
               asChild
             >
               <a href="https://tekron-web-studio.vercel.app/" target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="h-5 w-5" />
+                <ExternalLink className="h-4 w-4" />
                 {t.contactButton}
               </a>
             </Button>
