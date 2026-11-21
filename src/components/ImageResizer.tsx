@@ -328,7 +328,7 @@ export default function ImageResizer() {
       </header>
 
       <main className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
-        <div className="flex-1 overflow-y-auto p-4 sm:p-12 bg-muted/30 flex flex-col items-center justify-center relative">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-muted/30 flex flex-col items-center justify-center">
           {!image ? (
             <div 
               onClick={() => fileInputRef.current?.click()}
@@ -352,54 +352,54 @@ export default function ImageResizer() {
               <input type="file" ref={fileInputRef} accept="image/*" onChange={handleFileSelect} className="hidden" />
             </div>
           ) : (
-            <div className="w-full max-w-4xl space-y-8 animate-fade-in pb-32 md:pb-0">
-              <div className="relative group rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-card bg-card">
+            <div className="w-full max-w-4xl space-y-4 animate-fade-in pb-24 md:pb-0">
+              <div className="relative group rounded-[2.5rem] overflow-hidden shadow-xl border-4 border-card bg-card">
                 <img 
                   src={image.url} 
                   alt="Preview" 
-                  className="w-full h-auto max-h-[60vh] object-contain" 
+                  className="w-full h-auto max-h-[40vh] object-contain" 
                 />
-                <div className="absolute top-6 left-6 flex gap-2">
-                  <Badge className="bg-emerald-500 text-white border-none font-black shadow-lg px-4 py-1.5 text-xs">
+                <div className="absolute top-4 left-4 flex gap-2">
+                  <Badge className="bg-emerald-500/90 backdrop-blur-sm text-white border-none font-black shadow-lg px-3 py-1 text-[10px]">
                     {image.width} x {image.height} PX
                   </Badge>
                 </div>
                 <Button 
                   size="icon" 
                   variant="secondary" 
-                  className="absolute top-6 right-6 rounded-2xl shadow-xl"
+                  className="absolute top-4 right-4 rounded-xl shadow-xl h-8 w-8"
                   onClick={() => setImage(null)}
                 >
-                  <RefreshCcw className="h-5 w-5" />
+                  <RefreshCcw className="h-4 w-4" />
                 </Button>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                <div className="bg-card p-6 rounded-[2rem] border border-border shadow-lg shadow-emerald-500/5 space-y-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="bg-card p-4 rounded-[1.5rem] border border-border shadow-lg space-y-1">
                   <div className="flex items-center gap-2">
-                    <Ruler className="h-4 w-4 text-emerald-500" />
-                    <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{t.originalSize}</span>
+                    <Ruler className="h-3 w-3 text-emerald-500" />
+                    <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">{t.originalSize}</span>
                   </div>
-                  <p className="text-xl font-black text-foreground">
+                  <p className="text-lg font-black text-foreground">
                     {Math.round(image.width / (dpi/2.54) * 10) / 10} x {Math.round(image.height / (dpi/2.54) * 10) / 10} CM
                   </p>
                 </div>
-                <div className="bg-emerald-500 p-6 rounded-[2rem] border border-emerald-400 shadow-lg shadow-emerald-500/20 space-y-2">
+                <div className="bg-emerald-500 p-4 rounded-[1.5rem] border border-emerald-400 shadow-lg shadow-emerald-500/20 space-y-1">
                   <div className="flex items-center gap-2">
-                    <Scale className="h-4 w-4 text-emerald-100" />
-                    <span className="text-[10px] font-black text-emerald-100 uppercase tracking-widest">{t.newSize}</span>
+                    <Scale className="h-3 w-3 text-emerald-100" />
+                    <span className="text-[9px] font-black text-emerald-100 uppercase tracking-widest">{t.newSize}</span>
                   </div>
-                  <p className="text-xl font-black text-white">
+                  <p className="text-lg font-black text-white">
                     {finalPixelsW} x {finalPixelsH} PX
                   </p>
                 </div>
-                <div className="bg-card p-6 rounded-[2rem] border border-border shadow-lg shadow-emerald-500/5 space-y-2">
+                <div className="bg-card p-4 rounded-[1.5rem] border border-border shadow-lg space-y-1">
                   <div className="flex items-center gap-2">
-                    <Zap className="h-4 w-4 text-amber-500" />
-                    <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Densidad</span>
+                    <Zap className="h-3 w-3 text-amber-500" />
+                    <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Densidad</span>
                   </div>
-                  <p className="text-xl font-black text-foreground">
-                    {megapixels} MP <span className="text-[10px] text-muted-foreground">EST.</span>
+                  <p className="text-lg font-black text-foreground">
+                    {megapixels} MP <span className="text-[9px] text-muted-foreground uppercase font-bold">est.</span>
                   </p>
                 </div>
               </div>
