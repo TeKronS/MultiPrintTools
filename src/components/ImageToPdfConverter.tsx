@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useRef, useMemo, useEffect, useDeferredValue } from "react";
@@ -294,7 +293,11 @@ export default function ImageToPdfConverter() {
         }
       }
 
-      pdf.save(`MultiPrintTools-ImageToPdf-${Date.now()}.pdf`);
+      // Nombre descriptivo: ImagenAPDF_[Hojas]hojas_[Papel]_[Orientación]_MultiPrint.pdf
+      const orientChar = initialOrient === 'portrait' ? 'Vertical' : 'Horizontal';
+      const fileName = `ImagenAPDF_${pages.length}hojas_${paperSize.replace(/\s/g, '')}_${orientChar}_MultiPrint.pdf`;
+      pdf.save(fileName);
+      
       toast({ title: "PDF Generado", description: "El documento se ha descargado con éxito." });
     } catch (error) {
       console.error(error);

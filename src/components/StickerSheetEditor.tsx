@@ -70,9 +70,6 @@ interface StickerData {
   crop: { x: number; y: number; width: number; height: number };
 }
 
-/**
- * Guillotine Packer Algorithm to maximize sheet usage with correct area splitting and rotation support
- */
 class GuillotinePacker {
   width: number;
   height: number;
@@ -97,25 +94,17 @@ class GuillotinePacker {
 
     for (let i = 0; i < this.freeRects.length; i++) {
       const fr = this.freeRects[i];
-      
-      // Try normal orientation
       if (fr.w >= w - 0.001 && fr.h >= h - 0.001) {
         const area = fr.w * fr.h;
         if (area < minArea) {
-          minArea = area;
-          bestRectIdx = i;
-          isRotated = false;
+          minArea = area; bestRectIdx = i; isRotated = false;
         }
       }
-      
-      // Try rotated orientation if beneficial
       if (allowRotation && w !== h) {
         if (fr.w >= h - 0.001 && fr.h >= w - 0.001) {
           const area = fr.w * fr.h;
           if (area < minArea) {
-            minArea = area;
-            bestRectIdx = i;
-            isRotated = true;
+            minArea = area; bestRectIdx = i; isRotated = true;
           }
         }
       }
@@ -132,7 +121,6 @@ class GuillotinePacker {
     const w_diff = rect.w - actualW - s;
     const h_diff = rect.h - actualH - s;
 
-    // Split using the Shorter Axis Split Rule to preserve larger usable spaces
     if (w_diff > h_diff) {
       if (w_diff > 0) this.freeRects.push({ x: rect.x + actualW + s, y: rect.y, w: w_diff, h: rect.h });
       if (h_diff > 0) this.freeRects.push({ x: rect.x, y: rect.y + actualH + s, w: actualW, h: h_diff });
@@ -250,34 +238,24 @@ export default function StickerSheetEditor() {
 
   const itemsToDraw = useMemo(() => {
     if (stickers.length === 0) return [];
-    
     const printableW = paper.width - (marginH * 20);
     const printableH = paper.height - (marginV * 20);
     const packer = new GuillotinePacker(printableW, printableH, spacing);
-
     const manualStickers = stickers.filter(s => s.quantityMode === 'manual');
     const autoStickers = stickers.filter(s => s.quantityMode === 'auto');
-
     const results: any[] = [];
-
-    // Prioritize manual quantity stickers
     manualStickers.forEach(s => {
       for(let i = 0; i < s.quantity; i++) {
         const pos = packer.pack(s.width, s.height, autoRotate);
         if (pos) results.push({ ...s, x: pos.x, y: pos.y, rotated: pos.rotated });
       }
     });
-
-    // Distribute automatic quantity stickers evenly
     if (autoStickers.length > 0) {
       const counts = new Map(autoStickers.map(s => [s.id, 0]));
       let addedInRound = true;
-
       while (addedInRound) {
         addedInRound = false;
-        // Sort auto-stickers by current count to maintain equality
         const sortedAuto = [...autoStickers].sort((a, b) => (counts.get(a.id) || 0) - (counts.get(b.id) || 0));
-
         for (const s of sortedAuto) {
           const pos = packer.pack(s.width, s.height, autoRotate);
           if (pos) {
@@ -286,10 +264,9 @@ export default function StickerSheetEditor() {
             addedInRound = true;
           }
         }
-        if (results.length > 1000) break; // Safety limit
+        if (results.length > 1000) break;
       }
     }
-
     return results;
   }, [stickers, paper, spacing, marginV, marginH, autoRotate]);
 
@@ -297,7 +274,6 @@ export default function StickerSheetEditor() {
     if (!isDragging || !dragType) return;
     const dx = ((clientX - startPos.x) / container.width) * 100;
     const dy = ((clientY - startPos.y) / container.height) * 100;
-
     setCrop(prev => {
       let next = { ...prev };
       if (dragType === 'move') {
@@ -343,11 +319,9 @@ export default function StickerSheetEditor() {
         : [paper.width, paper.height];
 
       const pdf = new jsPDF({ orientation: orientation === 'portrait' ? 'p' : 'l', unit: 'mm', format: pdfFormat as any });
-
       const marginXMm = marginH * 10;
       const marginYMm = marginV * 10;
 
-      // Pre-process assets with correct cropping and scaling
       const assets = new Map();
       for (const s of stickers) {
         const img = new window.Image();
@@ -368,19 +342,16 @@ export default function StickerSheetEditor() {
         assets.set(s.id, canvas.toDataURL('image/png', 1.0));
       }
 
-      // Draw packed items to PDF
       for (const item of itemsToDraw) {
         const x = marginXMm + item.x;
         const y = marginYMm + item.y;
         const imgData = assets.get(item.id);
         
         if (item.rotated) {
-          // If rotated, use jsPDF rotation parameter
-          // We swap width and height in the addImage call to match the packer's orientation
           pdf.addImage({
             imageData: imgData,
             format: 'PNG',
-            x: x + (item.height * 10), // Adjust origin for rotation
+            x: x + (item.height * 10),
             y: y,
             width: item.height * 10,
             height: item.width * 10,
@@ -391,7 +362,11 @@ export default function StickerSheetEditor() {
         }
       }
 
-      pdf.save(`MultiPrint-Stickers-${Date.now()}.pdf`);
+      // Nombre descriptivo: Stickers_[Cantidad]unidades_[Papel]_[Orientación]_MultiPrint.pdf
+      const orientChar = orientation === 'portrait' ? 'Vertical' : 'Horizontal';
+      const fileName = `Stickers_${itemsToDraw.length}unidades_${paperSize.replace(/\s/g, '')}_${orientChar}_MultiPrint.pdf`;
+      pdf.save(fileName);
+      
       toast({ title: "PDF Generado", description: "La plancha de stickers se ha descargado correctamente." });
     } catch (e) {
       console.error(e);
@@ -575,27 +550,10 @@ export default function StickerSheetEditor() {
                   {itemsToDraw.map((s, i) => {
                     const actualW = s.rotated ? s.height : s.width;
                     const actualH = s.rotated ? s.width : s.height;
-                    
                     return (
-                      <div key={i} className="absolute bg-white shadow-[0_1px_3px_rgba(0,0,0,0.1)] border-[0.1px] border-black/10 overflow-hidden" style={{ 
-                        width: `${actualW * 10 * previewScale}px`, 
-                        height: `${actualH * 10 * previewScale}px`, 
-                        left: `${(marginH * 10 + s.x) * previewScale}px`, 
-                        top: `${(marginV * 10 + s.y) * previewScale}px` 
-                      }}>
-                        <div style={{
-                          width: `${s.width * 10 * previewScale}px`,
-                          height: `${s.height * 10 * previewScale}px`,
-                          transform: s.rotated ? `rotate(90deg) translate(0, -100%)` : 'none',
-                          transformOrigin: 'top left',
-                          position: 'relative'
-                        }}>
-                          <img src={s.url} alt="" className="absolute max-w-none" style={{ 
-                            width: `${(100 / s.crop.width) * 100}%`, 
-                            height: `${(100 / s.crop.height) * 100}%`, 
-                            left: `-${(s.crop.x / s.crop.width) * 100}%`, 
-                            top: `-${(s.crop.y / s.crop.height) * 100}%` 
-                          }} />
+                      <div key={i} className="absolute bg-white shadow-[0_1px_3px_rgba(0,0,0,0.1)] border-[0.1px] border-black/10 overflow-hidden" style={{ width: `${actualW * 10 * previewScale}px`, height: `${actualH * 10 * previewScale}px`, left: `${(marginH * 10 + s.x) * previewScale}px`, top: `${(marginV * 10 + s.y) * previewScale}px` }}>
+                        <div style={{ width: `${s.width * 10 * previewScale}px`, height: `${s.height * 10 * previewScale}px`, transform: s.rotated ? `rotate(90deg) translate(0, -100%)` : 'none', transformOrigin: 'top left', position: 'relative' }}>
+                          <img src={s.url} alt="" className="absolute max-w-none" style={{ width: `${(100 / s.crop.width) * 100}%`, height: `${(100 / s.crop.height) * 100}%`, left: `-${(s.crop.x / s.crop.width) * 100}%`, top: `-${(s.crop.y / s.crop.height) * 100}%` }} />
                         </div>
                       </div>
                     );
@@ -621,39 +579,13 @@ export default function StickerSheetEditor() {
           <div className="lg:hidden fixed bottom-6 left-6 right-6 z-[40] flex gap-3 pointer-events-auto">
             <div className="flex-1"><Button className="w-full h-14 bg-yellow-600 hover:bg-yellow-700 text-white font-black rounded-2xl shadow-xl shadow-yellow-600/20 uppercase tracking-widest text-sm gap-3 border-4 border-white/10" onClick={exportPdf} disabled={isExporting}>{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}{isExporting ? "..." : "Exportar"}</Button></div>
             <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-              <Button 
-                size="icon" 
-                className="h-14 w-14 shrink-0 rounded-full shadow-2xl bg-slate-800 text-white hover:bg-slate-900 transition-all active:scale-95 border-4 border-white"
-                onPointerDown={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setIsMenuOpen(!isMenuOpen);
-                }}
-              >
-                <Settings2 className="h-6 w-6" />
-              </Button>
-              <SheetContent 
-                side="right" 
-                className="w-[85%] sm:w-[400px] p-0 bg-background/95 backdrop-blur-xl shadow-2xl overflow-hidden flex flex-col z-[200]"
-                onOpenAutoFocus={(e) => e.preventDefault()}
-              >
-                <SheetHeader className="sr-only">
-                  <SheetTitle>Ajustes de Plancha</SheetTitle>
-                  <SheetDescription>Configura tamaños, papel y espaciado</SheetDescription>
-                </SheetHeader>
+              <Button size="icon" className="h-14 w-14 shrink-0 rounded-full shadow-2xl bg-slate-800 text-white hover:bg-slate-900 transition-all active:scale-95 border-4 border-white" onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); setIsMenuOpen(!isMenuOpen); }}><Settings2 className="h-6 w-6" /></Button>
+              <SheetContent side="right" className="w-[85%] sm:w-[400px] p-0 bg-background/95 backdrop-blur-xl shadow-2xl overflow-hidden flex flex-col z-[200]" onOpenAutoFocus={(e) => e.preventDefault()}>
+                <SheetHeader className="sr-only"><SheetTitle>Ajustes de Plancha</SheetTitle><SheetDescription>Configura tamaños, papel y espaciado</SheetDescription></SheetHeader>
                 <div className="p-4 bg-yellow-500/5 border-b shrink-0">
-                  <Button 
-                    className="w-full h-12 bg-yellow-600 hover:bg-yellow-700 text-white font-black rounded-xl shadow-lg transition-all active:scale-95 text-xs uppercase tracking-widest gap-2"
-                    onClick={exportPdf}
-                    disabled={isExporting}
-                  >
-                    {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
-                    {isExporting ? "..." : "Exportar PDF"}
-                  </Button>
+                  <Button className="w-full h-12 bg-yellow-600 hover:bg-yellow-700 text-white font-black rounded-xl shadow-lg transition-all active:scale-95 text-xs uppercase tracking-widest gap-2" onClick={exportPdf} disabled={isExporting}>{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}{isExporting ? "..." : "Exportar PDF"}</Button>
                 </div>
-                <div className="flex-1 overflow-y-auto">
-                  {renderSettings(true)}
-                </div>
+                <div className="flex-1 overflow-y-auto">{renderSettings(true)}</div>
               </SheetContent>
             </Sheet>
           </div>

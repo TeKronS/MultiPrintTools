@@ -162,7 +162,7 @@ export default function PdfSplitTool() {
     const file = e.target.files?.[0];
     if (file && (file.type === "application/pdf" || file.name.toLowerCase().endsWith('.pdf'))) {
       setPdfFile(file);
-      setOutputName(file.name.replace('.pdf', '') + '-Split');
+      setOutputName(file.name.replace('.pdf', '') + '-Extracción');
       generateThumbnails(file);
     } else if (file) {
       toast({ variant: "destructive", title: "Error", description: t.pdfFormatOnly });
@@ -185,7 +185,7 @@ export default function PdfSplitTool() {
     const file = e.dataTransfer.files?.[0];
     if (file && (file.type === "application/pdf" || file.name.toLowerCase().endsWith('.pdf'))) {
       setPdfFile(file);
-      setOutputName(file.name.replace('.pdf', '') + '-Split');
+      setOutputName(file.name.replace('.pdf', '') + '-Extracción');
       generateThumbnails(file);
     }
   };
@@ -262,9 +262,11 @@ export default function PdfSplitTool() {
       const link = document.createElement('a');
       link.href = url;
       
+      // Nombre descriptivo: Extracción_[Hojas]pags_[NombreOriginal]_MultiPrint.pdf
+      const cleanOriginal = pdfFile.name.replace('.pdf', '').replace(/\s/g, '_').substring(0, 20);
       const fileName = outputName.trim() 
-        ? (outputName.toLowerCase().endsWith('.pdf') ? outputName : `${outputName}.pdf`)
-        : `Split-${pdfFile.name}`;
+        ? `${outputName.replace(/\s/g, '_')}_MultiPrint.pdf`
+        : `Extracción_${selectedPages.size}pags_${cleanOriginal}_MultiPrint.pdf`;
         
       link.download = fileName;
       link.click();

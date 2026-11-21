@@ -205,9 +205,11 @@ export default function PdfToImageConverter() {
           const mimeType = format === 'jpeg' ? 'image/jpeg' : 'image/png';
           const imageUrl = canvas.toDataURL(mimeType, quality);
           
+          // Nombre descriptivo: Pág_[Número]_[Calidad]_%_[NombreOriginal].[Ext]
           const link = document.createElement('a');
           link.href = imageUrl;
-          link.download = `${pdfFile.name.replace('.pdf', '')}-page-${index + 1}.${format}`;
+          const cleanName = pdfFile.name.replace('.pdf', '').substring(0, 15);
+          link.download = `Pág_${index + 1}_${Math.round(quality * 100)}%_${cleanName}_MultiPrint.${format}`;
           link.click();
         }
       }

@@ -149,22 +149,23 @@ export default function ImageResizer() {
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
       
-      // Limpiar canvas para asegurar transparencia
       ctx.clearRect(0, 0, finalPixelW, finalPixelH);
       ctx.drawImage(img, 0, 0, finalPixelW, finalPixelH);
 
-      // Usar PNG para preservar transparencia si el original la tiene o para máxima calidad
-      // Si el usuario subió un PNG o WebP, mantenemos el formato que soporta transparencia
       const outputFormat = (image.type === 'image/png' || image.type === 'image/webp') ? image.type : 'image/png';
       const extension = outputFormat.split('/')[1];
       
       const dataUrl = canvas.toDataURL(outputFormat, 1.0);
       const link = document.createElement('a');
       link.href = dataUrl;
-      link.download = `Resized-${targetWidth}${unit}-${dpi}dpi-${image.name.split('.')[0]}.${extension}`;
+      
+      // Nombre descriptivo: Resized_[Ancho]x[Alto][Unidad]_[DPI]dpi_[NombreOriginal].[Ext]
+      const cleanName = image.name.split('.')[0].substring(0, 20);
+      link.download = `Resized_${targetWidth}x${targetHeight}${unit}_${dpi}dpi_${cleanName}.${extension}`;
+      
       link.click();
 
-      toast({ title: "Imagen lista", description: "Tu imagen redimensionada se ha descargado preservando la transparencia." });
+      toast({ title: "Imagen lista", description: "Tu imagen redimensionada se ha descargado con éxito." });
     } catch (e) {
       toast({ variant: "destructive", title: "Error", description: "Ocurrió un error al redimensionar." });
     } finally {

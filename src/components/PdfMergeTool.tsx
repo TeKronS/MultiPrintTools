@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -207,9 +206,11 @@ export default function PdfMergeTool() {
     const link = document.createElement('a');
     link.href = url;
     
-    const fileName = outputName.trim() 
-      ? (outputName.toLowerCase().endsWith('.pdf') ? outputName : `${outputName}.pdf`)
-      : `MultiPrintTools-Merged-${Date.now()}.pdf`;
+    // Nombre descriptivo: Unión_[Cantidad]archivos_[NombrePersonalizado]_MultiPrint.pdf
+    const cleanOutput = outputName.trim().replace(/\s/g, '_');
+    const fileName = cleanOutput
+      ? `Unión_${files.length}archivos_${cleanOutput}_MultiPrint.pdf`
+      : `Unión_${files.length}archivos_${Date.now()}_MultiPrint.pdf`;
       
     link.download = fileName;
     link.click();
