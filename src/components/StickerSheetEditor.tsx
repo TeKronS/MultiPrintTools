@@ -166,18 +166,13 @@ export default function StickerSheetEditor() {
     if (savedLang === 'en' || savedLang === 'es') setLang(savedLang);
   }, []);
 
-  // Handle mobile back button to close menu
   useEffect(() => {
     if (isMenuOpen) {
       window.history.pushState({ menuOpen: true }, '');
     }
-
     const handlePopState = () => {
-      if (isMenuOpen) {
-        setIsMenuOpen(false);
-      }
+      if (isMenuOpen) setIsMenuOpen(false);
     };
-
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, [isMenuOpen]);
@@ -222,9 +217,11 @@ export default function StickerSheetEditor() {
     setCurrentImage(null);
   };
 
-  const updateStickerSize = (id: string, val: number, source: 'w' | 'h') => {
+  const updateStickerSize = (id: string, valStr: string, source: 'w' | 'h') => {
+    const val = parseFloat(valStr);
     setStickers(prev => prev.map(s => {
       if (s.id !== id) return s;
+      if (isNaN(val)) return { ...s, [source === 'w' ? 'width' : 'height']: NaN };
       const num = Math.max(0.01, Math.round(val * 100) / 100);
       const cropW = (s.crop.width / 100) * s.originalWidth;
       const cropH = (s.crop.height / 100) * s.originalHeight;
@@ -253,19 +250,23 @@ export default function StickerSheetEditor() {
   };
 
   const itemsToDraw = useMemo(() => {
-    if (stickers.length === 0) return [];
+    const validStickers = stickers.filter(s => !isNaN(s.width) && !isNaN(s.height) && s.width > 0 && s.height > 0);
+    if (validStickers.length === 0) return [];
+    
     const printableW = paper.width - (marginH * 20);
     const printableH = paper.height - (marginV * 20);
     const packer = new GuillotinePacker(printableW, printableH, spacing);
-    const manualStickers = stickers.filter(s => s.quantityMode === 'manual');
-    const autoStickers = stickers.filter(s => s.quantityMode === 'auto');
+    const manualStickers = validStickers.filter(s => s.quantityMode === 'manual');
+    const autoStickers = validStickers.filter(s => s.quantityMode === 'auto');
     const results: any[] = [];
+    
     manualStickers.forEach(s => {
       for(let i = 0; i < s.quantity; i++) {
         const pos = packer.pack(s.width, s.height, autoRotate);
         if (pos) results.push({ ...s, x: pos.x, y: pos.y, rotated: pos.rotated });
       }
     });
+    
     if (autoStickers.length > 0) {
       const counts = new Map(autoStickers.map(s => [s.id, 0]));
       let addedInRound = true;
@@ -340,6 +341,7 @@ export default function StickerSheetEditor() {
 
       const assets = new Map();
       for (const s of stickers) {
+        if (isNaN(s.width) || isNaN(s.height)) continue;
         const img = new window.Image();
         img.src = s.url;
         await new Promise(resolve => img.onload = resolve);
@@ -392,7 +394,7 @@ export default function StickerSheetEditor() {
   };
 
   const renderSettings = (isMobile?: boolean) => (
-    <div className={cn("space-y-6", isMobile ? "p-4 pt-1 pb-40" : "")}>
+    <div className={cn("space-y-6", isMobile ? "p-4 pt-1 pb-40" : "p-4")}>
       <div className="space-y-4">
         <div className="flex items-center gap-2">
           <Settings2 className="h-4 w-4 text-yellow-500" />
@@ -488,8 +490,26 @@ export default function StickerSheetEditor() {
               </div>
 
               <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1"><Label className="text-[8px] font-bold text-muted-foreground uppercase">Ancho (cm)</Label><Input type="number" step="0.01" value={s.width} onChange={(e) => updateStickerSize(s.id, parseFloat(e.target.value), 'w')} className="h-7 text-[10px] font-black bg-muted/30" /></div>
-                <div className="space-y-1"><Label className="text-[8px] font-bold text-muted-foreground uppercase">Alto (cm)</Label><Input type="number" step="0.01" value={s.height} onChange={(e) => updateStickerSize(s.id, parseFloat(e.target.value), 'h')} className="h-7 text-[10px] font-black bg-muted/30" /></div>
+                <div className="space-y-1">
+                  <Label className="text-[8px] font-bold text-muted-foreground uppercase">Ancho (cm)</Label>
+                  <Input 
+                    type="number" 
+                    step="0.01" 
+                    value={isNaN(s.width) ? "" : s.width} 
+                    onChange={(e) => updateStickerSize(s.id, e.target.value, 'w')} 
+                    className="h-7 text-[10px] font-black bg-muted/30" 
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[8px] font-bold text-muted-foreground uppercase">Alto (cm)</Label>
+                  <Input 
+                    type="number" 
+                    step="0.01" 
+                    value={isNaN(s.height) ? "" : s.height} 
+                    onChange={(e) => updateStickerSize(s.id, e.target.value, 'h')} 
+                    className="h-7 text-[10px] font-black bg-muted/30" 
+                  />
+                </div>
               </div>
             </div>
           ))}
@@ -586,7 +606,7 @@ export default function StickerSheetEditor() {
         </div>
 
         <aside className="hidden lg:flex w-80 bg-card border-l border-border flex-col shrink-0 shadow-2xl z-20">
-          <div className="flex-1 overflow-y-auto p-6">{renderSettings()}</div>
+          <div className="flex-1 overflow-y-auto">{renderSettings()}</div>
           {stickers.length > 0 && !isCropping && (<div className="p-6 border-t bg-muted/50"><Button className="w-full h-14 bg-yellow-600 hover:bg-yellow-700 text-white font-black rounded-2xl shadow-xl shadow-yellow-600/20 uppercase tracking-widest text-xs gap-3 transition-all active:scale-95" onClick={exportPdf} disabled={isExporting}>{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}{isExporting ? "Generando..." : "Descargar Plancha PDF"}</Button></div>)}
         </aside>
 
