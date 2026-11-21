@@ -64,6 +64,22 @@ export default function ImageResizer() {
     setMounted(true);
   }, []);
 
+  // Handle mobile back button to close menu
+  useEffect(() => {
+    if (isMenuOpen) {
+      window.history.pushState({ menuOpen: true }, '');
+    }
+
+    const handlePopState = () => {
+      if (isMenuOpen) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [isMenuOpen]);
+
   const processFile = (file: File) => {
     if (!file.type.startsWith('image/')) {
       toast({ variant: "destructive", title: "Error", description: "El archivo debe ser una imagen." });
@@ -159,7 +175,6 @@ export default function ImageResizer() {
       const link = document.createElement('a');
       link.href = dataUrl;
       
-      // Nombre descriptivo: Resized_[Ancho]x[Alto][Unidad]_[DPI]dpi_[NombreOriginal].[Ext]
       const cleanName = image.name.split('.')[0].substring(0, 20);
       link.download = `Resized_${targetWidth}x${targetHeight}${unit}_${dpi}dpi_${cleanName}.${extension}`;
       

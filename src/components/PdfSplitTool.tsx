@@ -73,6 +73,22 @@ export default function PdfSplitTool() {
     }
   }, [mounted]);
 
+  // Handle mobile back button to close menu
+  useEffect(() => {
+    if (isMenuOpen) {
+      window.history.pushState({ menuOpen: true }, '');
+    }
+
+    const handlePopState = () => {
+      if (isMenuOpen) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [isMenuOpen]);
+
   useEffect(() => {
     if (totalPages > 0) {
       const indices = Array.from(selectedPages).sort((a, b) => a - b);
@@ -262,7 +278,6 @@ export default function PdfSplitTool() {
       const link = document.createElement('a');
       link.href = url;
       
-      // Nombre descriptivo: Extracción_[Hojas]pags_[NombreOriginal]_MultiPrint.pdf
       const cleanOriginal = pdfFile.name.replace('.pdf', '').replace(/\s/g, '_').substring(0, 20);
       const fileName = outputName.trim() 
         ? `${outputName.replace(/\s/g, '_')}_MultiPrint.pdf`

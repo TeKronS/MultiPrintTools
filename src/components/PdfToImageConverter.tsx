@@ -78,6 +78,22 @@ export default function PdfToImageConverter() {
     }
   }, [mounted]);
 
+  // Handle mobile back button to close menu
+  useEffect(() => {
+    if (isMenuOpen) {
+      window.history.pushState({ menuOpen: true }, '');
+    }
+
+    const handlePopState = () => {
+      if (isMenuOpen) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [isMenuOpen]);
+
   const generateThumbnails = async (file: File) => {
     if (!file || file.size === 0) return;
     
@@ -193,7 +209,7 @@ export default function PdfToImageConverter() {
 
       for (const index of indices) {
         const page = await pdf.getPage(index + 1);
-        const viewport = page.getViewport({ scale: 2.0 }); // High quality scale
+        const viewport = page.getViewport({ scale: 2.0 }); 
         const canvas = document.createElement("canvas");
         const context = canvas.getContext("2d");
         
@@ -205,7 +221,6 @@ export default function PdfToImageConverter() {
           const mimeType = format === 'jpeg' ? 'image/jpeg' : 'image/png';
           const imageUrl = canvas.toDataURL(mimeType, quality);
           
-          // Nombre descriptivo: Pág_[Número]_[Calidad]_%_[NombreOriginal].[Ext]
           const link = document.createElement('a');
           link.href = imageUrl;
           const cleanName = pdfFile.name.replace('.pdf', '').substring(0, 15);
@@ -437,7 +452,7 @@ export default function PdfToImageConverter() {
               onClick={exportAsImages}
               disabled={!pdfFile || selectedPages.size === 0 || isProcessing}
             >
-              {isProcessing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Download className="h-5 w-5" />}
+              {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-5 w-5" />}
               {isProcessing ? t.convertingToImg : t.exportImages}
             </Button>
           </div>

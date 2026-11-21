@@ -96,6 +96,22 @@ export default function ImageToPdfConverter() {
     }
   }, []);
 
+  // Handle mobile back button to close menu
+  useEffect(() => {
+    if (isMenuOpen) {
+      window.history.pushState({ menuOpen: true }, '');
+    }
+
+    const handlePopState = () => {
+      if (isMenuOpen) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [isMenuOpen]);
+
   const paper = useMemo(() => PAPER_DIMENSIONS[paperSize], [paperSize]);
 
   const expandedImagesList = useMemo(() => {
@@ -293,7 +309,6 @@ export default function ImageToPdfConverter() {
         }
       }
 
-      // Nombre descriptivo: ImagenAPDF_[Hojas]hojas_[Papel]_[Orientación]_MultiPrint.pdf
       const orientChar = initialOrient === 'portrait' ? 'Vertical' : 'Horizontal';
       const fileName = `ImagenAPDF_${pages.length}hojas_${paperSize.replace(/\s/g, '')}_${orientChar}_MultiPrint.pdf`;
       pdf.save(fileName);
@@ -386,6 +401,7 @@ export default function ImageToPdfConverter() {
               <Minus className="h-3 w-3" />
             </Button>
             <Slider 
+              // key={`margin-slider-${margin}`}
               value={[margin]} 
               onValueChange={(v) => setMargin(v[0])} 
               min={0.5} 

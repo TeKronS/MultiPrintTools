@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useDeferredValue, useMemo } from "react";
@@ -103,6 +102,22 @@ export default function MuralisEditor() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Handle mobile back button to close menu
+  useEffect(() => {
+    if (isMenuOpen) {
+      window.history.pushState({ menuOpen: true }, '');
+    }
+
+    const handlePopState = () => {
+      if (isMenuOpen) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [isMenuOpen]);
 
   const t = translations[lang];
 

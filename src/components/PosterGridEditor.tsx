@@ -113,6 +113,22 @@ export default function PosterGridEditor() {
     }
   }, []);
 
+  // Handle mobile back button to close menu
+  useEffect(() => {
+    if (isMenuOpen) {
+      window.history.pushState({ menuOpen: true }, '');
+    }
+
+    const handlePopState = () => {
+      if (isMenuOpen) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [isMenuOpen]);
+
   const t = translations[lang];
 
   const getAppliedMargins = (orient: 'portrait' | 'landscape', mV: number, mH: number) => {

@@ -166,6 +166,22 @@ export default function StickerSheetEditor() {
     if (savedLang === 'en' || savedLang === 'es') setLang(savedLang);
   }, []);
 
+  // Handle mobile back button to close menu
+  useEffect(() => {
+    if (isMenuOpen) {
+      window.history.pushState({ menuOpen: true }, '');
+    }
+
+    const handlePopState = () => {
+      if (isMenuOpen) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [isMenuOpen]);
+
   const paper = useMemo(() => {
     const p = PAPER_DIMENSIONS[paperSize] || PAPER_DIMENSIONS['A4'];
     return orientation === 'portrait' 
@@ -362,7 +378,6 @@ export default function StickerSheetEditor() {
         }
       }
 
-      // Nombre descriptivo: Stickers_[Cantidad]unidades_[Papel]_[Orientación]_MultiPrint.pdf
       const orientChar = orientation === 'portrait' ? 'Vertical' : 'Horizontal';
       const fileName = `Stickers_${itemsToDraw.length}unidades_${paperSize.replace(/\s/g, '')}_${orientChar}_MultiPrint.pdf`;
       pdf.save(fileName);
