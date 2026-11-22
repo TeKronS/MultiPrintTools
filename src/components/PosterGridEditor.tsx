@@ -707,7 +707,7 @@ export default function PosterGridEditor() {
       </header>
 
       <main className="flex-1 flex overflow-hidden relative">
-        <section className={cn("flex-1 relative bg-muted/30 flex flex-col items-center overflow-y-auto", !image ? "justify-start py-8" : "justify-start")}>
+        <section className={cn("flex-1 relative bg-muted/30 flex flex-col items-center overflow-y-auto lg:overflow-hidden", !image ? "justify-start py-8" : "justify-start")}>
           {!image ? (
             <div className="max-w-lg w-full px-6 lg:p-8 animate-fade-in text-center flex flex-col gap-6 lg:gap-8 my-auto"><div className="order-1"><ImageUploader onImageUpload={handleImageUpload} language={lang} t={t} /></div><div className="order-2 space-y-2"><h2 className="text-2xl lg:text-3xl font-headline font-black tracking-tighter">{lang === 'es' ? 'Preparar nuevo poster' : 'Prepare new poster'}</h2><p className="text-muted-foreground font-medium text-sm lg:text-base">{lang === 'es' ? 'Sube una imagen de alta resolución para generar tu cuadrícula.' : 'Upload a high-resolution image to generate your grid.'}</p></div></div>
           ) : (
@@ -733,9 +733,33 @@ export default function PosterGridEditor() {
           {renderSettings(rows, cols, overlap, marginV, marginH, paperSize, orientation, showGuides, showOutline, targetWidth, targetHeight, physicalInfo, lockAspect)}
         </aside>
       </main>
-      {image && (
-        <div className="lg:hidden fixed bottom-6 right-6 z-[100] pointer-events-auto"><Sheet open={isMenuOpen} onOpenChange={handleMenuOpenChange}><Button size="icon" className="h-14 w-14 rounded-full shadow-2xl bg-primary text-white hover:bg-primary/90 transition-all active:scale-95 border-4 border-white" onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); handleMenuOpenChange(!isMenuOpen); }}><Settings2 className="h-6 w-6" /></Button><SheetContent side="right" className="w-[85%] sm:w-[400px] p-0 bg-background/80 backdrop-blur-xl shadow-2xl overflow-hidden flex flex-col"><SheetHeader className="sr-only"><SheetTitle>{t.gridSettings}</SheetTitle><SheetDescription>Panel de ajustes para la cuadrícula del poster</SheetDescription></SheetHeader><div className="p-3 bg-primary/5 flex flex-col gap-3"><Button className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-black gap-3 rounded-xl shadow-lg transition-all active:scale-95 text-xs uppercase tracking-widest" onClick={handleExport} disabled={!image || isExporting}>{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}{isExporting ? "..." : t.export}</Button></div><div className="flex-1 overflow-y-auto">{renderSettings(draftRows, draftCols, draftOverlap, draftMarginV, draftMarginH, draftPaperSize, draftOrientation, draftShowGuides, draftShowOutline, draftTargetWidth, draftTargetHeight, draftInfo, draftLockAspect, true)}</div></SheetContent></Sheet></div>
-      )}
+
+      <Sheet open={isMenuOpen} onOpenChange={handleMenuOpenChange}>
+        <div className="lg:hidden fixed bottom-6 right-6 z-[100] pointer-events-auto">
+          <Button 
+            size="icon" 
+            className="h-14 w-14 rounded-full shadow-2xl bg-primary text-white hover:bg-primary/90 transition-all active:scale-95 border-4 border-white"
+            onClick={() => handleMenuOpenChange(true)}
+          >
+            <Settings2 className="h-6 w-6" />
+          </Button>
+        </div>
+        <SheetContent side="right" className="w-[85%] sm:w-[400px] p-0 bg-background/80 backdrop-blur-xl shadow-2xl overflow-hidden flex flex-col z-[110]">
+          <SheetHeader className="sr-only">
+            <SheetTitle>{t.gridSettings}</SheetTitle>
+            <SheetDescription>Panel de ajustes para la cuadrícula del poster</SheetDescription>
+          </SheetHeader>
+          <div className="p-3 bg-primary/5 flex flex-col gap-3">
+            <Button className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-black gap-3 rounded-xl shadow-lg transition-all active:scale-95 text-xs uppercase tracking-widest" onClick={handleExport} disabled={!image || isExporting}>
+              {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+              {isExporting ? "..." : t.export}
+            </Button>
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            {renderSettings(draftRows, draftCols, draftOverlap, draftMarginV, draftMarginH, draftPaperSize, draftOrientation, draftShowGuides, draftShowOutline, draftTargetWidth, draftTargetHeight, draftInfo, draftLockAspect, true)}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

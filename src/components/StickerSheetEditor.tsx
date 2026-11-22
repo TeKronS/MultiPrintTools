@@ -402,8 +402,8 @@ export default function StickerSheetEditor() {
     }
   };
 
-  const renderSettings = (isMobile?: boolean) => (
-    <div className={cn("space-y-6", isMobile ? "p-4 pt-1 pb-40" : "p-4")}>
+  const renderSettings = (isMobileView?: boolean) => (
+    <div className={cn("space-y-6", isMobileView ? "p-4 pt-1 pb-40" : "p-4")}>
       <div className="space-y-4">
         <div className="flex items-center gap-2">
           <Settings2 className="h-4 w-4 text-yellow-500" />
@@ -473,7 +473,7 @@ export default function StickerSheetEditor() {
           <Badge variant="secondary" className="font-black text-[9px]">{stickers.length}</Badge>
         </div>
 
-        <div className={cn("space-y-4 overflow-y-auto pr-2 custom-scrollbar", isMobile ? "max-h-none" : "max-h-[35vh]")}>
+        <div className={cn("space-y-4 overflow-y-auto pr-2 custom-scrollbar", isMobileView ? "max-h-none" : "max-h-[35vh]")}>
           {stickers.map((s, idx) => (
             <div key={s.id} className="bg-card p-3 rounded-2xl border-2 border-border space-y-3 relative group shadow-sm">
               <button onClick={() => removeSticker(s.id)} className="absolute -top-2 -right-2 w-6 h-6 bg-destructive text-white rounded-full flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-10"><Trash2 className="h-3 w-3" /></button>
@@ -663,7 +663,9 @@ export default function StickerSheetEditor() {
           <div className="lg:hidden fixed bottom-6 left-6 right-6 z-[40] flex gap-3 pointer-events-auto">
             <div className="flex-1"><Button className="w-full h-14 bg-yellow-600 hover:bg-yellow-700 text-white font-black rounded-2xl shadow-xl shadow-yellow-600/20 uppercase tracking-widest text-sm gap-3 border-4 border-white/10" onClick={exportPdf} disabled={isExporting}>{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}{isExporting ? "..." : "Exportar"}</Button></div>
             <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-              <Button size="icon" className="h-14 w-14 shrink-0 rounded-full shadow-2xl bg-slate-800 text-white hover:bg-slate-900 transition-all active:scale-95 border-4 border-white" onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); setIsMenuOpen(!isMenuOpen); }}><Settings2 className="h-6 w-6" /></Button>
+              <Button size="icon" className="h-14 w-14 shrink-0 rounded-full shadow-2xl bg-slate-800 text-white hover:bg-slate-900 transition-all active:scale-95 border-4 border-white" onClick={() => setIsMenuOpen(true)}>
+                <Settings2 className="h-6 w-6" />
+              </Button>
               <SheetContent side="right" className="w-[85%] sm:w-[400px] p-0 bg-background/95 backdrop-blur-xl shadow-2xl overflow-hidden flex flex-col z-[200]" onOpenAutoFocus={(e) => e.preventDefault()}>
                 <SheetHeader className="sr-only"><SheetTitle>Ajustes de Plancha</SheetTitle><SheetDescription>Configura tamaños, papel y espaciado</SheetDescription></SheetHeader>
                 <div className="p-4 bg-yellow-500/5 border-b shrink-0">
