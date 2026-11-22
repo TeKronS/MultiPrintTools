@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, useEffect, useMemo } from "react";
@@ -17,7 +18,9 @@ import {
   ImageIcon,
   Layers,
   Check,
-  RotateCcw
+  RotateCcw,
+  Info,
+  ChevronDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -34,6 +37,11 @@ import {
   SheetTitle,
   SheetDescription
 } from "@/components/ui/sheet";
+import { 
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -159,6 +167,7 @@ export default function StickerSheetEditor() {
   
   const [isExporting, setIsExporting] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isInfoOpen, setIsInfoOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -525,6 +534,46 @@ export default function StickerSheetEditor() {
           ><PlusCircle className="h-4 w-4" />Añadir Sticker</Button>
         </div>
       </div>
+
+      <Separator />
+
+      {/* SEO Section */}
+      <Collapsible open={isInfoOpen} onOpenChange={setIsInfoOpen}>
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" className="w-full flex items-center justify-between p-4 bg-yellow-500/5 hover:bg-yellow-500/10 rounded-xl transition-all">
+            <div className="flex items-center gap-2">
+              <Info className="h-4 w-4 text-yellow-600" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-yellow-700">{isInfoOpen ? t.closeInfo : t.learnMore}</span>
+            </div>
+            <ChevronDown className={cn("h-4 w-4 text-yellow-600 transition-transform", isInfoOpen ? "rotate-180" : "rotate-0")} />
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-6 pt-4 text-left">
+          <div className="space-y-2">
+            <h3 className="text-sm font-black text-foreground uppercase tracking-tight">{t.stickerSeoTitle}</h3>
+            <p className="text-xs text-muted-foreground leading-relaxed font-medium">{t.stickerSeoIntro}</p>
+          </div>
+          
+          <div className="grid gap-4">
+            <div className="p-3 bg-card border rounded-xl space-y-1">
+              <h4 className="text-[10px] font-black text-yellow-600 uppercase">{t.stickerSeoStep1Title}</h4>
+              <p className="text-[10px] text-muted-foreground font-medium">{t.stickerSeoStep1Desc}</p>
+            </div>
+            <div className="p-3 bg-card border rounded-xl space-y-1">
+              <h4 className="text-[10px] font-black text-yellow-600 uppercase">{t.stickerSeoStep2Title}</h4>
+              <p className="text-[10px] text-muted-foreground font-medium">{t.stickerSeoStep2Desc}</p>
+            </div>
+            <div className="p-3 bg-card border rounded-xl space-y-1">
+              <h4 className="text-[10px] font-black text-yellow-600 uppercase">{t.stickerSeoStep3Title}</h4>
+              <p className="text-[10px] text-muted-foreground font-medium">{t.stickerSeoStep3Desc}</p>
+            </div>
+            <div className="p-3 bg-card border rounded-xl space-y-1">
+              <h4 className="text-[10px] font-black text-yellow-600 uppercase">{t.stickerSeoStep4Title}</h4>
+              <p className="text-[10px] text-muted-foreground font-medium">{t.stickerSeoStep4Desc}</p>
+            </div>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   );
 

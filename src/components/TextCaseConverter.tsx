@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -12,12 +13,19 @@ import {
   ShieldCheck, 
   Zap,
   AlignLeft,
-  WholeWord
+  WholeWord,
+  Info,
+  ChevronDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { 
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { Language, translations } from "@/lib/translations";
 import { LanguageSelector } from "./LanguageSelector";
@@ -37,6 +45,7 @@ export default function TextCaseConverter() {
   const [text, setText] = useState("");
   const [isCopied, setIsCopied] = useState(false);
   const [activeMode, setActiveMode] = useState<CaseMode>('none');
+  const [isInfoOpen, setIsInfoOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -84,7 +93,6 @@ export default function TextCaseConverter() {
 
   const handleClear = () => {
     setText("");
-    // Enfocar el textarea automáticamente después de borrar
     setTimeout(() => {
       textareaRef.current?.focus();
     }, 0);
@@ -189,6 +197,38 @@ export default function TextCaseConverter() {
                   : t.textToolsDesc
                 }
               </h2>
+            </div>
+
+            {/* SEO Collapsible Section */}
+            <div className="max-w-2xl mx-auto w-full pt-8">
+              <Collapsible open={isInfoOpen} onOpenChange={setIsInfoOpen}>
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" className="w-full flex items-center justify-between p-4 bg-amber-500/5 hover:bg-amber-500/10 rounded-xl transition-all">
+                    <div className="flex items-center gap-2">
+                      <Info className="h-4 w-4 text-amber-600" />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-amber-700">{isInfoOpen ? t.closeInfo : t.learnMore}</span>
+                    </div>
+                    <ChevronDown className={cn("h-4 w-4 text-amber-600 transition-transform", isInfoOpen ? "rotate-180" : "rotate-0")} />
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-4 pt-6 text-left">
+                  <div className="space-y-1">
+                    <h3 className="text-sm font-black text-foreground uppercase">{t.textSeoTitle}</h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed font-medium">{t.textSeoIntro}</p>
+                  </div>
+                  <div className="grid gap-3">
+                    <div className="p-3 bg-card border rounded-xl">
+                      <p className="text-[10px] text-muted-foreground font-medium">{t.textSeoFeature1}</p>
+                    </div>
+                    <div className="p-3 bg-card border rounded-xl">
+                      <p className="text-[10px] text-muted-foreground font-medium">{t.textSeoFeature2}</p>
+                    </div>
+                    <div className="p-3 bg-card border rounded-xl">
+                      <p className="text-[10px] text-muted-foreground font-medium">{t.textSeoFeature3}</p>
+                    </div>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
             </div>
           </div>
         </div>

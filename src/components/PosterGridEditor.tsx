@@ -122,7 +122,6 @@ export default function PosterGridEditor() {
     }
   }, []);
 
-  // Handle mobile back button to close menu
   useEffect(() => {
     if (isMenuOpen) {
       window.history.pushState({ menuOpen: true }, '');
@@ -662,32 +661,32 @@ export default function PosterGridEditor() {
         </CollapsibleTrigger>
         <CollapsibleContent className="space-y-6 pt-4 text-left">
           <div className="space-y-2">
-            <h3 className="text-sm font-black text-foreground uppercase tracking-tight">{t.seoTitle}</h3>
-            <p className="text-xs text-muted-foreground leading-relaxed font-medium">{t.seoIntro}</p>
+            <h3 className="text-sm font-black text-foreground uppercase tracking-tight">{t.posterSeoTitle}</h3>
+            <p className="text-xs text-muted-foreground leading-relaxed font-medium">{t.posterSeoIntro}</p>
           </div>
           
           <div className="grid gap-4">
             <div className="p-3 bg-card border rounded-xl space-y-1">
-              <h4 className="text-[10px] font-black text-primary uppercase">{t.seoStep1Title}</h4>
-              <p className="text-[10px] text-muted-foreground font-medium">{t.seoStep1Desc}</p>
+              <h4 className="text-[10px] font-black text-primary uppercase">{t.posterSeoStep1Title}</h4>
+              <p className="text-[10px] text-muted-foreground font-medium">{t.posterSeoStep1Desc}</p>
             </div>
             <div className="p-3 bg-card border rounded-xl space-y-1">
-              <h4 className="text-[10px] font-black text-primary uppercase">{t.seoStep2Title}</h4>
-              <p className="text-[10px] text-muted-foreground font-medium">{t.seoStep2Desc}</p>
+              <h4 className="text-[10px] font-black text-primary uppercase">{t.posterSeoStep2Title}</h4>
+              <p className="text-[10px] text-muted-foreground font-medium">{t.posterSeoStep2Desc}</p>
             </div>
             <div className="p-3 bg-card border rounded-xl space-y-1">
-              <h4 className="text-[10px] font-black text-primary uppercase">{t.seoStep3Title}</h4>
-              <p className="text-[10px] text-muted-foreground font-medium">{t.seoStep3Desc}</p>
+              <h4 className="text-[10px] font-black text-primary uppercase">{t.posterSeoStep3Title}</h4>
+              <p className="text-[10px] text-muted-foreground font-medium">{t.posterSeoStep3Desc}</p>
             </div>
             <div className="p-3 bg-card border rounded-xl space-y-1">
-              <h4 className="text-[10px] font-black text-primary uppercase">{t.seoStep4Title}</h4>
-              <p className="text-[10px] text-muted-foreground font-medium">{t.seoStep4Desc}</p>
+              <h4 className="text-[10px] font-black text-primary uppercase">{t.posterSeoStep4Title}</h4>
+              <p className="text-[10px] text-muted-foreground font-medium">{t.posterSeoStep4Desc}</p>
             </div>
           </div>
 
           <div className="space-y-2 pt-2">
-            <h3 className="text-xs font-black text-foreground uppercase tracking-tight">{t.seoWhyTitle}</h3>
-            <p className="text-[10px] text-muted-foreground leading-relaxed font-medium">{t.seoWhyDesc}</p>
+            <h3 className="text-xs font-black text-foreground uppercase tracking-tight">{t.posterSeoWhyTitle}</h3>
+            <p className="text-[10px] text-muted-foreground leading-relaxed font-medium">{t.posterSeoWhyDesc}</p>
           </div>
         </CollapsibleContent>
       </Collapsible>

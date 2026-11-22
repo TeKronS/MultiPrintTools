@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
@@ -15,7 +16,9 @@ import {
   Zap,
   ImageIcon,
   ShieldCheck,
-  Cpu
+  Cpu,
+  Info,
+  ChevronDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -31,6 +34,11 @@ import {
   SheetTitle,
   SheetDescription
 } from "@/components/ui/sheet";
+import { 
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -59,6 +67,7 @@ export default function ImageResizer() {
   const [isResizing, setIsResizing] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [isInfoOpen, setIsInfoOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -194,8 +203,8 @@ export default function ImageResizer() {
   const finalPixelsH = image ? Math.round(((unit === 'cm' ? targetHeight / 2.54 : targetHeight)) * dpi) : 0;
   const megapixels = Math.round((finalPixelsW * finalPixelsH) / 1000000 * 10) / 10;
 
-  const renderSettingsContent = () => (
-    <div className="space-y-4">
+  const renderSettingsContent = (isMobileView?: boolean) => (
+    <div className={cn("space-y-4", isMobileView && "pb-24")}>
       <div className="flex items-center gap-2">
         <Settings2 className="h-4 w-4 text-emerald-500" />
         <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">{t.gridSettings}</h2>
@@ -274,6 +283,41 @@ export default function ImageResizer() {
             </SelectContent>
           </Select>
         </div>
+
+        <Separator className="my-2 opacity-50" />
+
+        {/* SEO Collapsible Section */}
+        <Collapsible open={isInfoOpen} onOpenChange={setIsInfoOpen}>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" className="w-full flex items-center justify-between p-4 bg-emerald-500/5 hover:bg-emerald-500/10 rounded-xl transition-all">
+              <div className="flex items-center gap-2">
+                <Info className="h-4 w-4 text-emerald-600" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700">{isInfoOpen ? t.closeInfo : t.learnMore}</span>
+              </div>
+              <ChevronDown className={cn("h-4 w-4 text-emerald-600 transition-transform", isInfoOpen ? "rotate-180" : "rotate-0")} />
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-4 pt-4 text-left">
+            <div className="space-y-1">
+              <h3 className="text-[10px] font-black text-foreground uppercase">{t.resizerSeoTitle}</h3>
+              <p className="text-[10px] text-muted-foreground font-medium leading-tight">{t.resizerSeoIntro}</p>
+            </div>
+            <div className="grid gap-3">
+              <div className="p-2 bg-card border rounded-lg">
+                <h4 className="text-[9px] font-black text-emerald-600 uppercase">{t.resizerSeoStep1Title}</h4>
+                <p className="text-[9px] text-muted-foreground leading-tight">{t.resizerSeoStep1Desc}</p>
+              </div>
+              <div className="p-2 bg-card border rounded-lg">
+                <h4 className="text-[9px] font-black text-emerald-600 uppercase">{t.resizerSeoStep2Title}</h4>
+                <p className="text-[9px] text-muted-foreground leading-tight">{t.resizerSeoStep2Desc}</p>
+              </div>
+              <div className="p-2 bg-card border rounded-lg">
+                <h4 className="text-[9px] font-black text-emerald-600 uppercase">{t.resizerSeoStep3Title}</h4>
+                <p className="text-[9px] text-muted-foreground leading-tight">{t.resizerSeoStep3Desc}</p>
+              </div>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
 
         <div className="p-3 mt-4 rounded-2xl bg-emerald-500/5 border border-dashed border-emerald-500/20">
           <div className="flex items-center gap-2 mb-1.5">
@@ -444,7 +488,7 @@ export default function ImageResizer() {
                   <SheetTitle>Configuración</SheetTitle>
                   <SheetDescription>Ajustes de redimensionado de imagen</SheetDescription>
                 </SheetHeader>
-                {renderSettingsContent()}
+                {renderSettingsContent(true)}
               </SheetContent>
             </Sheet>
           </div>

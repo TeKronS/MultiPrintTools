@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -19,7 +20,9 @@ import {
   Copy,
   FileType,
   Eye,
-  ExternalLink
+  ExternalLink,
+  Info,
+  ChevronDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -34,6 +37,11 @@ import {
   DialogTitle,
   DialogDescription
 } from "@/components/ui/dialog";
+import { 
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { Language, translations } from "@/lib/translations";
 import { LanguageSelector } from "./LanguageSelector";
@@ -63,6 +71,7 @@ export default function PdfMergeTool() {
   const [isMerging, setIsMerging] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [outputName, setOutputName] = useState("");
+  const [isInfoOpen, setIsInfoOpen] = useState(false);
   
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -206,7 +215,6 @@ export default function PdfMergeTool() {
     const link = document.createElement('a');
     link.href = url;
     
-    // Nombre descriptivo: Unión_[Cantidad]archivos_[NombrePersonalizado]_MultiPrint.pdf
     const cleanOutput = outputName.trim().replace(/\s/g, '_');
     const fileName = cleanOutput
       ? `Unión_${files.length}archivos_${cleanOutput}_MultiPrint.pdf`
@@ -434,6 +442,31 @@ export default function PdfMergeTool() {
                 </div>
               </div>
             )}
+
+            <Separator />
+
+            {/* SEO Section */}
+            <Collapsible open={isInfoOpen} onOpenChange={setIsInfoOpen}>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" className="w-full flex items-center justify-between p-4 bg-indigo-500/5 hover:bg-indigo-500/10 rounded-xl transition-all">
+                  <div className="flex items-center gap-2">
+                    <Info className="h-4 w-4 text-indigo-600" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-indigo-700">{isInfoOpen ? t.closeInfo : t.learnMore}</span>
+                  </div>
+                  <ChevronDown className={cn("h-4 w-4 text-indigo-600 transition-transform", isInfoOpen ? "rotate-180" : "rotate-0")} />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-4 pt-4 text-left">
+                <div className="space-y-1">
+                  <h3 className="text-[10px] font-black text-foreground uppercase">{t.pdfSeoTitle}</h3>
+                  <p className="text-[10px] text-muted-foreground font-medium leading-tight">{t.pdfSeoIntro}</p>
+                </div>
+                <p className="text-[9px] text-muted-foreground leading-tight italic">{t.pdfSeoPrivacyDesc}</p>
+                <div className="p-2 bg-card border rounded-lg">
+                  <p className="text-[9px] text-muted-foreground leading-tight">{t.pdfSeoMergeDesc}</p>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
           </div>
 
           <div className="pt-6 space-y-3">

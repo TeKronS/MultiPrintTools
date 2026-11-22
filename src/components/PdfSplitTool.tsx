@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -15,7 +16,9 @@ import {
   Trash2,
   CheckCircle2,
   Undo2,
-  Settings2
+  Settings2,
+  Info,
+  ChevronDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -30,6 +33,11 @@ import {
   SheetTitle,
   SheetDescription
 } from "@/components/ui/sheet";
+import { 
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { Language, translations } from "@/lib/translations";
 import { LanguageSelector } from "./LanguageSelector";
@@ -57,6 +65,7 @@ export default function PdfSplitTool() {
   const [isDragging, setIsDragging] = useState(false);
   const [outputName, setOutputName] = useState("");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isInfoOpen, setIsInfoOpen] = useState(false);
   
   const [thumbnails, setThumbnails] = useState<PageThumbnail[]>([]);
   const [selectedPages, setSelectedPages] = useState<Set<number>>(new Set());
@@ -356,6 +365,30 @@ export default function PdfSplitTool() {
           </div>
         </div>
       </div>
+
+      <Separator />
+
+      {/* SEO Section */}
+      <Collapsible open={isInfoOpen} onOpenChange={setIsInfoOpen}>
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" className="w-full flex items-center justify-between p-4 bg-rose-500/5 hover:bg-rose-500/10 rounded-xl transition-all">
+            <div className="flex items-center gap-2">
+              <Info className="h-4 w-4 text-rose-600" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-rose-700">{isInfoOpen ? t.closeInfo : t.learnMore}</span>
+            </div>
+            <ChevronDown className={cn("h-4 w-4 text-rose-600 transition-transform", isInfoOpen ? "rotate-180" : "rotate-0")} />
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-4 pt-4 text-left">
+          <div className="space-y-1">
+            <h3 className="text-[10px] font-black text-foreground uppercase">{t.pdfSeoTitle}</h3>
+            <p className="text-[10px] text-muted-foreground font-medium leading-tight">{t.pdfSeoIntro}</p>
+          </div>
+          <div className="p-2 bg-card border rounded-lg">
+            <p className="text-[9px] text-muted-foreground leading-tight">{t.pdfSeoSplitDesc}</p>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   );
 

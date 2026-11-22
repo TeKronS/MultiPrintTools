@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, useMemo, useEffect, useDeferredValue } from "react";
@@ -18,7 +19,9 @@ import {
   Smartphone,
   Monitor,
   ImageIcon,
-  Layers
+  Layers,
+  Info,
+  ChevronDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -34,6 +37,11 @@ import {
   SheetTitle,
   SheetDescription
 } from "@/components/ui/sheet";
+import { 
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -82,18 +90,12 @@ export default function ImageToPdfConverter() {
   const [isExporting, setIsExporting] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [isInfoOpen, setIsInfoOpen] = useState(false);
 
   const deferredMargin = useDeferredValue(margin);
 
   useEffect(() => {
     setMounted(true);
-    const savedLang = localStorage.getItem('pref-lang') as Language;
-    if (savedLang === 'en' || savedLang === 'es') {
-      setLang(savedLang);
-    } else {
-      const browserLang = navigator.language.split('-')[0];
-      if (browserLang === 'en') setLang('en');
-    }
   }, []);
 
   // Handle mobile back button to close menu
@@ -401,7 +403,6 @@ export default function ImageToPdfConverter() {
               <Minus className="h-3 w-3" />
             </Button>
             <Slider 
-              // key={`margin-slider-${margin}`}
               value={[margin]} 
               onValueChange={(v) => setMargin(v[0])} 
               min={0.5} 
@@ -422,6 +423,30 @@ export default function ImageToPdfConverter() {
       </div>
 
       <Separator className="my-1 opacity-50" />
+
+      {/* SEO Section */}
+      <Collapsible open={isInfoOpen} onOpenChange={setIsInfoOpen}>
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" className="w-full flex items-center justify-between p-4 bg-primary/5 hover:bg-primary/10 rounded-xl transition-all">
+            <div className="flex items-center gap-2">
+              <Info className="h-4 w-4 text-primary" />
+              <span className="text-[10px] font-black uppercase tracking-widest">{isInfoOpen ? t.closeInfo : t.learnMore}</span>
+            </div>
+            <ChevronDown className={cn("h-4 w-4 text-primary transition-transform", isInfoOpen ? "rotate-180" : "rotate-0")} />
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-4 pt-4 text-left">
+          <div className="space-y-1">
+            <h3 className="text-[10px] font-black text-foreground uppercase">{t.imgToPdfTitle}</h3>
+            <p className="text-[10px] text-muted-foreground font-medium leading-tight">Convierte tus fotos y diseños en documentos PDF profesionales listos para imprimir o compartir.</p>
+          </div>
+          <div className="grid gap-2">
+            <div className="p-2 bg-card border rounded-lg">
+              <p className="text-[9px] text-muted-foreground leading-tight">Ajusta márgenes, orientación y tamaño de papel (A4, Carta) de forma precisa.</p>
+            </div>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
 
       <div className="bg-muted p-2 rounded-xl border border-border space-y-0.5">
         <div className="flex justify-between items-center">
