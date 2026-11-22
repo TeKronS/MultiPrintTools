@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -86,18 +87,13 @@ export default function PdfToImageConverter() {
     }
   }, [mounted]);
 
-  // Handle mobile back button to close menu
   useEffect(() => {
     if (isMenuOpen) {
       window.history.pushState({ menuOpen: true }, '');
     }
-
     const handlePopState = () => {
-      if (isMenuOpen) {
-        setIsMenuOpen(false);
-      }
+      if (isMenuOpen) setIsMenuOpen(false);
     };
-
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, [isMenuOpen]);
@@ -489,7 +485,7 @@ export default function PdfToImageConverter() {
           </div>
         </aside>
 
-        <div className="lg:hidden fixed bottom-6 left-6 right-6 z-[40] animate-in slide-in-from-bottom-10 flex gap-3 pointer-events-auto justify-end">
+        <div className="lg:hidden fixed bottom-6 left-6 right-6 z-40 animate-in slide-in-from-bottom-10 flex gap-3 pointer-events-auto justify-end">
           {pdfFile && (
              <div className="flex-1 bg-card/90 backdrop-blur-md p-2 rounded-2xl border border-border shadow-2xl flex items-center justify-between">
               <div className="px-3">
@@ -514,14 +510,14 @@ export default function PdfToImageConverter() {
               onPointerDown={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                setIsMenuOpen(!isMenuOpen);
+                setIsMenuOpen(true);
               }}
             >
               <Settings2 className="h-6 w-6" />
             </Button>
             <SheetContent 
               side="right" 
-              className="w-[85%] sm:w-[350px] p-0 bg-card backdrop-blur-xl shadow-2xl overflow-hidden flex flex-col z-[150]"
+              className="w-[85%] sm:w-[350px] p-0 bg-background/95 backdrop-blur-xl shadow-2xl overflow-hidden flex flex-col"
               onOpenAutoFocus={(e) => e.preventDefault()}
             >
               <SheetHeader className="sr-only">
@@ -529,6 +525,17 @@ export default function PdfToImageConverter() {
                 <SheetDescription>Configura el formato y calidad de salida</SheetDescription>
               </SheetHeader>
               
+              <div className="p-4 bg-blue-500/5 border-b shrink-0">
+                <Button 
+                  className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl shadow-lg transition-all active:scale-95 text-xs uppercase tracking-widest gap-2"
+                  onClick={exportAsImages}
+                  disabled={!pdfFile || selectedPages.size === 0 || isProcessing}
+                >
+                  {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                  {isProcessing ? "..." : "Exportar Imágenes"}
+                </Button>
+              </div>
+
               <div className="flex-1 overflow-y-auto p-6 relative">
                 {renderSettingsContent()}
               </div>

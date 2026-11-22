@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -98,12 +99,10 @@ export default function PdfMergeTool() {
     if (isPreviewOpen || isMenuOpen) {
       window.history.pushState({ menuOpen: true }, '');
     }
-
     const handlePopState = () => {
       if (isPreviewOpen) setIsPreviewOpen(false);
       if (isMenuOpen) setIsMenuOpen(false);
     };
-
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, [isPreviewOpen, isMenuOpen]);
@@ -332,7 +331,6 @@ export default function PdfMergeTool() {
 
       <Separator />
 
-      {/* SEO Section */}
       <Collapsible open={isInfoOpen} onOpenChange={setIsInfoOpen}>
         <CollapsibleTrigger asChild>
           <Button variant="ghost" className="w-full flex items-center justify-between p-4 bg-indigo-500/5 hover:bg-indigo-500/10 rounded-xl transition-all">
@@ -518,68 +516,77 @@ export default function PdfMergeTool() {
           </div>
         </aside>
 
-        {!isPreviewOpen && (
-          <div className="md:hidden fixed bottom-6 left-6 right-6 z-[40] animate-in slide-in-from-bottom-10 flex gap-3 pointer-events-auto justify-end">
-            {files.length > 0 && (
-               <div className="flex-1 bg-card/90 backdrop-blur-md p-2 rounded-2xl border border-border shadow-2xl flex items-center justify-between">
-                <div className="flex gap-2">
-                  <Button 
-                    variant="secondary"
-                    className="h-10 w-10 p-0 rounded-xl bg-white border border-indigo-100 text-indigo-600 active:scale-95"
-                    onClick={handlePreviewMerged}
-                    disabled={files.length < 2 || isMerging}
-                  >
-                    <Eye className="h-5 w-5" />
-                  </Button>
-                </div>
+        <div className="md:hidden fixed bottom-6 left-6 right-6 z-40 animate-in slide-in-from-bottom-10 flex gap-3 pointer-events-auto justify-end">
+          {!isPreviewOpen && files.length > 0 && (
+             <div className="flex-1 bg-card/90 backdrop-blur-md p-2 rounded-2xl border border-border shadow-2xl flex items-center justify-between">
+              <div className="flex gap-2">
                 <Button 
-                  className="flex-1 ml-2 h-10 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl shadow-md uppercase tracking-widest text-[10px] gap-2"
+                  variant="secondary"
+                  className="h-10 w-10 p-0 rounded-xl bg-white border border-indigo-100 text-indigo-600 active:scale-95"
+                  onClick={handlePreviewMerged}
+                  disabled={files.length < 2 || isMerging}
+                >
+                  <Eye className="h-5 w-5" />
+                </Button>
+              </div>
+              <Button 
+                className="flex-1 ml-2 h-10 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl shadow-md uppercase tracking-widest text-[10px] gap-2"
+                onClick={mergeAndDownload}
+                disabled={files.length < 2 || isMerging}
+              >
+                {isMerging ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
+                {isMerging ? "..." : t.mergeAction}
+              </Button>
+            </div>
+          )}
+          
+          <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+            <Button 
+              size="icon" 
+              className="h-14 w-14 shrink-0 rounded-full shadow-2xl bg-slate-800 text-white hover:bg-slate-900 transition-all active:scale-95 border-4 border-white"
+              onPointerDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsMenuOpen(true);
+              }}
+            >
+              <Settings2 className="h-6 w-6" />
+            </Button>
+            <SheetContent 
+              side="right" 
+              className="w-[85%] sm:w-[350px] p-0 bg-background/95 backdrop-blur-xl shadow-2xl overflow-hidden flex flex-col"
+              onOpenAutoFocus={(e) => e.preventDefault()}
+            >
+              <SheetHeader className="sr-only">
+                <SheetTitle>Ajustes de Combinación</SheetTitle>
+                <SheetDescription>Configura el PDF resultante</SheetDescription>
+              </SheetHeader>
+
+              <div className="p-4 bg-indigo-500/5 border-b shrink-0 flex flex-col gap-2">
+                <Button 
+                  className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl shadow-lg transition-all active:scale-95 text-xs uppercase tracking-widest gap-2"
                   onClick={mergeAndDownload}
                   disabled={files.length < 2 || isMerging}
                 >
                   {isMerging ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
-                  {isMerging ? "..." : t.mergeAction}
+                  {isMerging ? "..." : "Combinar PDF"}
                 </Button>
               </div>
-            )}
-            
-            <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+              
+              <div className="flex-1 overflow-y-auto p-6 relative">
+                {renderSettingsContent()}
+              </div>
+              
               <Button 
                 size="icon" 
-                className="h-14 w-14 shrink-0 rounded-full shadow-2xl bg-slate-800 text-white hover:bg-slate-900 transition-all active:scale-95 border-4 border-white"
-                onPointerDown={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setIsMenuOpen(true);
-                }}
+                className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-2xl bg-slate-800 text-white z-[210] border-4 border-white animate-in fade-in zoom-in-95 duration-200"
+                onClick={() => setIsMenuOpen(false)}
               >
                 <Settings2 className="h-6 w-6" />
               </Button>
-              <SheetContent 
-                side="right" 
-                className="w-[85%] sm:w-[350px] p-0 bg-card backdrop-blur-xl shadow-2xl overflow-hidden flex flex-col z-[150]"
-                onOpenAutoFocus={(e) => e.preventDefault()}
-              >
-                <SheetHeader className="sr-only">
-                  <SheetTitle>Ajustes de Combinación</SheetTitle>
-                  <SheetDescription>Configura el PDF resultante</SheetDescription>
-                </SheetHeader>
-                
-                <div className="flex-1 overflow-y-auto p-6 relative">
-                  {renderSettingsContent()}
-                </div>
-                
-                <Button 
-                  size="icon" 
-                  className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-2xl bg-slate-800 text-white z-[210] border-4 border-white animate-in fade-in zoom-in-95 duration-200"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  <Settings2 className="h-6 w-6" />
-                </Button>
-              </SheetContent>
-            </Sheet>
-          </div>
-        )}
+            </SheetContent>
+          </Sheet>
+        </div>
       </main>
 
       <input 
