@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useDeferredValue, useMemo } from "react";
@@ -158,43 +159,69 @@ export default function PosterGridEditor() {
       
       if (pSize.includes('Personalizado')) {
         const rollWidth = cW_mm || 215.9;
-        if (targetW_mm > targetH_mm) {
+        // Determine natural orientation based on image dimensions for roll
+        const isLandscapeImage = targetW_mm > targetH_mm;
+        
+        // If the user hasn't explicitly chosen, we force orientation to fit best
+        const finalOrient = isLandscapeImage ? 'landscape' : 'portrait';
+        
+        if (finalOrient === 'landscape') {
           paper = { width: MAX_ROLL_LENGTH_MM, height: rollWidth };
         } else {
           paper = { width: rollWidth, height: MAX_ROLL_LENGTH_MM };
         }
-        const { appliedMH, appliedMV } = getAppliedMargins(orient, mV_cm, mH_cm);
-        const printableW = (targetW_mm > targetH_mm ? paper.height : paper.width) - (appliedMH * 20);
-        const printableH = (targetW_mm > targetH_mm ? paper.width : paper.height) - (appliedMV * 20);
+
+        const { appliedMH, appliedMV } = getAppliedMargins(finalOrient, mV_cm, mH_cm);
+        const printableW = (finalOrient === 'landscape' ? paper.width : paper.width) - (appliedMH * 20);
+        const printableH = (finalOrient === 'landscape' ? paper.height : paper.height) - (appliedMV * 20);
+        
         const effectiveW = printableW - overlap_mm;
         const effectiveH = printableH - overlap_mm;
-        const c = Math.ceil((targetW_mm - overlap_mm) / effectiveW);
-        const r = Math.ceil((targetH_mm - overlap_mm) / effectiveH);
-        calculatedLength = Math.min(MAX_ROLL_LENGTH_MM, (targetW_mm > targetH_mm ? targetW_mm : targetH_mm) + (appliedMV * 20) + overlap_mm);
-        return { rows: Math.max(1, r), cols: Math.max(1, c), total: r * c, orientation: orient, dynamicLength: calculatedLength };
+
+        // How many panels in the 'fixed width' dimension?
+        const crossPanels = Math.ceil(( (finalOrient === 'landscape' ? targetH_mm : targetW_mm) - overlap_mm) / ( (finalOrient === 'landscape' ? printableH : printableW) - overlap_mm));
+        // How many panels in the 'variable length' dimension?
+        const longPanels = Math.ceil(( (finalOrient === 'landscape' ? targetW_mm : targetH_mm) - overlap_mm) / ( (finalOrient === 'landscape' ? printableW : printableH) - overlap_mm));
+
+        calculatedLength = Math.min(MAX_ROLL_LENGTH_MM, (isLandscapeImage ? targetW_mm : targetH_mm) + (appliedMV * 20) + overlap_mm);
+        
+        return { 
+          rows: finalOrient === 'landscape' ? crossPanels : longPanels, 
+          cols: finalOrient === 'landscape' ? longPanels : crossPanels, 
+          total: crossPanels * longPanels, 
+          orientation: finalOrient, 
+          dynamicLength: calculatedLength 
+        };
       } else {
         const paperBase = PAPER_DIMENSIONS[pSize];
         paper = orient === 'portrait' 
           ? { width: Math.min(paperBase.width, paperBase.height), height: Math.max(paperBase.width, paperBase.height) }
           : { width: Math.max(paperBase.width, paperBase.height), height: Math.min(paperBase.width, paperBase.height) };
+        
         const { appliedMH, appliedMV } = getAppliedMargins(orient, mV_cm, mH_cm);
         const printableW = paper.width - (appliedMH * 20);
         const printableH = paper.height - (appliedMV * 20);
         const effectiveW = printableW - overlap_mm;
         const effectiveH = printableH - overlap_mm;
+        
         const c = Math.ceil((targetW_mm - overlap_mm) / effectiveW);
         const r = Math.ceil((targetH_mm - overlap_mm) / effectiveH);
+        
         return { rows: Math.max(1, r), cols: Math.max(1, c), total: r * c, orientation: orient };
       }
     };
 
-    const pResults = calcForOrientation('portrait');
-    const lResults = calcForOrientation('landscape');
-    const best = pResults.total <= lResults.total ? pResults : lResults;
-    if (pSize.includes('Personalizado') && best.dynamicLength) {
-      if (isMenuOpen) setDraftCustomRollLength(best.dynamicLength); else setCustomRollLength(best.dynamicLength);
+    if (pSize.includes('Personalizado')) {
+       const res = calcForOrientation('portrait'); // Internal logic handles best fit
+       if (res.dynamicLength) {
+         if (isMenuOpen) setDraftCustomRollLength(res.dynamicLength); else setCustomRollLength(res.dynamicLength);
+       }
+       return res;
+    } else {
+      const pResults = calcForOrientation('portrait');
+      const lResults = calcForOrientation('landscape');
+      return pResults.total <= lResults.total ? pResults : lResults;
     }
-    return best;
   };
 
   const syncGridFromTechnicalSettings = (isDraft: boolean) => {
@@ -206,9 +233,18 @@ export default function PosterGridEditor() {
     const mV = isDraft ? draftMarginV : marginV;
     const mH = isDraft ? draftMarginH : marginH;
     const cW = isDraft ? draftCustomRollWidth : customRollWidth;
+    
     const opt = calculateOptimizedGrid(parseFloat(curWStr), parseFloat(curHStr), pSize, ov, mV, mH, cW);
-    if (isDraft) { setDraftRows(opt.rows); setDraftCols(opt.cols); setDraftOrientation(opt.orientation); }
-    else { setRows(opt.rows); setCols(opt.cols); setOrientation(opt.orientation); }
+    
+    if (isDraft) { 
+      setDraftRows(opt.rows); 
+      setDraftCols(opt.cols); 
+      setDraftOrientation(opt.orientation); 
+    } else { 
+      setRows(opt.rows); 
+      setCols(opt.cols); 
+      setOrientation(opt.orientation); 
+    }
   };
 
   const handleWidthChange = (val: string, isDraft: boolean) => {
@@ -222,11 +258,14 @@ export default function PosterGridEditor() {
     const setR = isDraft ? setDraftRows : setRows;
     const setC = isDraft ? setDraftCols : setCols;
     const setO = isDraft ? setDraftOrientation : setOrientation;
+
     if (isNaN(num)) { setW(val); return; }
+    
     if (isLocked) {
       const aspect = image.width / image.height;
       const newHeight = num / aspect;
-      setW(num.toString()); setH(newHeight.toFixed(1));
+      setW(num.toString()); 
+      setH(newHeight.toFixed(1));
       const opt = calculateOptimizedGrid(num, newHeight, pSize, isDraft ? draftOverlap : overlap, isDraft ? draftMarginV : marginV, isDraft ? draftMarginH : marginH, cW);
       setR(opt.rows); setC(opt.cols); setO(opt.orientation);
     } else {
@@ -248,11 +287,14 @@ export default function PosterGridEditor() {
     const setR = isDraft ? setDraftRows : setRows;
     const setC = isDraft ? setDraftCols : setCols;
     const setO = isDraft ? setDraftOrientation : setOrientation;
+
     if (isNaN(num)) { setH(val); return; }
+
     if (isLocked) {
       const aspect = image.width / image.height;
       const newWidth = num * aspect;
-      setH(num.toString()); setW(newWidth.toFixed(1));
+      setH(num.toString()); 
+      setW(newWidth.toFixed(1));
       const opt = calculateOptimizedGrid(newWidth, num, pSize, isDraft ? draftOverlap : overlap, isDraft ? draftMarginV : marginV, isDraft ? draftMarginH : marginH, cW);
       setR(opt.rows); setC(opt.cols); setO(opt.orientation);
     } else {
@@ -419,7 +461,13 @@ export default function PosterGridEditor() {
           </div>
           {currentPaperSize.includes('Personalizado') && (
             <div className={cn("p-4 rounded-xl border transition-all space-y-4 shadow-sm", isSnapped ? "bg-primary/10 border-primary/40 ring-4 ring-primary/5" : "bg-amber-500/5 border-amber-500/10")}>
-              <div className="flex items-center justify-between mb-1"><div className="flex items-center gap-2"><ScrollText className={cn("h-3.5 w-3.5", isSnapped ? "text-primary" : "text-amber-600")} /><span className={cn("text-[10px] font-black uppercase tracking-widest", isSnapped ? "text-primary" : "text-amber-700")}>{lang === 'es' ? 'Ajustes de Rollo' : 'Roll Settings'}</span></div>{isSnapped && (<Badge className="bg-primary text-white text-[7px] px-1.5 py-0.5 rounded-sm">{isLetterSnap ? 'Carta Snap' : 'A4 Snap'}</Badge>)}</div>
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-2">
+                  <ScrollText className={cn("h-3.5 w-3.5", isSnapped ? "text-primary" : "text-amber-600")} />
+                  <span className={cn("text-[10px] font-black uppercase tracking-widest", isSnapped ? "text-primary" : "text-amber-700")}>{lang === 'es' ? 'Ajustes de Rollo' : 'Roll Settings'}</span>
+                </div>
+                {isSnapped && (<Badge className="bg-primary text-white text-[7px] px-1.5 py-0.5 rounded-sm">{isLetterSnap ? 'Carta Snap' : 'A4 Snap'}</Badge>)}
+              </div>
               <div className="space-y-3">
                 <div className="space-y-1"><div className="flex justify-between"><Label className="text-[8px] font-bold text-muted-foreground uppercase">{t.rollWidth}</Label><span className={cn("text-[10px] font-black", isSnapped ? "text-primary" : "text-amber-600")}>{(cW/10).toFixed(1)} cm</span></div><Slider value={[cW]} onValueChange={(v) => { let val = v[0]; if (Math.abs(val-210)<3) val=210; if (Math.abs(val-215.9)<3) val=215.9; if (isMobile) setDraftCustomRollWidth(val); else setCustomRollWidth(val); syncGridFromTechnicalSettings(!!isMobile); }} min={100} max={1600} step={0.1} /></div>
                 <div className="space-y-1"><div className="flex justify-between"><Label className="text-[8px] font-bold text-muted-foreground uppercase">Largo Automático</Label><span className="text-[10px] font-black text-muted-foreground">{(cL/10).toFixed(1)} cm</span></div><div className="h-2 bg-muted rounded-full overflow-hidden border"><div className="h-full bg-primary/40" style={{ width: `${(cL/MAX_ROLL_LENGTH_MM)*100}%` }} /></div></div>
@@ -435,8 +483,21 @@ export default function PosterGridEditor() {
             <div className="flex items-center justify-between"><Label className="text-[10px] font-black uppercase text-muted-foreground cursor-pointer" htmlFor={isMobile ? "do" : "o"}>{t.outline}</Label><Switch id={isMobile ? "do" : "o"} checked={currentShowOutline} onCheckedChange={isMobile ? setDraftShowOutline : setShowOutline} className="bg-muted scale-75" /></div>
           </div>
         </div>
-        {info && (<div className="p-4 bg-card/90 rounded-xl border border-border shadow-md space-y-3"><div className="flex items-center gap-2"><Ruler className="h-3 w-3 text-muted-foreground" /><span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Resumen</span></div><div className="grid grid-cols-2 gap-3"><div><span className="text-[8px] font-bold text-muted-foreground uppercase block">Final</span><span className="text-xs font-black text-primary">{info.imgW}x{info.imgH} cm</span></div><div><span className="text-[8px] font-bold text-muted-foreground uppercase block">Hojas</span><span className="text-xs font-black text-foreground">{currentRows}x{currentCols}</span></div></div></div>)}
-        <Collapsible open={isInfoOpen} onOpenChange={setIsInfoOpen} className="mt-8"><CollapsibleTrigger asChild><Button variant="ghost" className="w-full flex items-center justify-between p-4 bg-primary/5 hover:bg-primary/10 rounded-xl transition-all"><div className="flex items-center gap-2"><Info className="h-4 w-4 text-primary" /><span className="text-[10px] font-black uppercase tracking-widest">{isInfoOpen ? t.closeInfo : t.learnMore}</span></div><ChevronDown className={cn("h-4 w-4 text-primary transition-transform", isInfoOpen ? "rotate-180" : "rotate-0")} /></Button></CollapsibleTrigger><CollapsibleContent className="space-y-4 pt-4 text-left"><p className="text-xs text-muted-foreground font-medium leading-relaxed">{t.posterSeoIntro}</p></CollapsibleContent></Collapsible>
+        
+        <Collapsible open={isInfoOpen} onOpenChange={setIsInfoOpen} className="mt-8">
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" className="w-full flex items-center justify-between p-4 bg-primary/5 hover:bg-primary/10 rounded-xl transition-all">
+              <div className="flex items-center gap-2">
+                <Info className="h-4 w-4 text-primary" />
+                <span className="text-[10px] font-black uppercase tracking-widest">{isInfoOpen ? t.closeInfo : t.learnMore}</span>
+              </div>
+              <ChevronDown className={cn("h-4 w-4 text-primary transition-transform", isInfoOpen ? "rotate-180" : "rotate-0")} />
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-4 pt-4 text-left">
+            <p className="text-xs text-muted-foreground font-medium leading-relaxed">{t.posterSeoIntro}</p>
+          </CollapsibleContent>
+        </Collapsible>
       </div>
     );
   };
@@ -446,28 +507,144 @@ export default function PosterGridEditor() {
   return (
     <div className="flex flex-col h-screen w-full font-body bg-background text-foreground overflow-hidden">
       <header className="h-16 border-b border-border bg-background/80 backdrop-blur-md flex items-center justify-between px-4 lg:px-6 z-50 shadow-sm shrink-0 sticky top-0">
-        <div className="flex items-center gap-2 lg:gap-6"><Link href="/"><Button variant="ghost" size="sm" className="gap-2 font-bold text-muted-foreground px-2"><ChevronLeft className="h-4 w-4" /><span className="hidden lg:inline">Inicio</span></Button></Link><div className="flex items-center gap-2 lg:gap-3"><div className="w-6 h-6 lg:w-8 lg:h-8 relative overflow-hidden rounded-lg shadow-sm bg-white border border-border/10"><Image src={logo} alt="Logo" fill className="object-contain" /></div><h1 className="text-lg lg:text-xl font-headline font-black tracking-tighter text-primary uppercase">CUADRÍCULA POSTER</h1></div></div>
-        <div className="flex items-center gap-2 lg:gap-4"><ThemeToggle /><LanguageSelector language={lang} setLanguage={setLang} /><Button className="hidden lg:flex bg-primary hover:bg-primary/90 text-white font-black gap-2 h-10 px-6 rounded-xl shadow-md transition-all active:scale-95 text-xs" onClick={handleExport} disabled={!image || isExporting}>{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}{isExporting ? "..." : t.export}</Button></div>
+        <div className="flex items-center gap-2 lg:gap-6">
+          <Link href="/">
+            <Button variant="ghost" size="sm" className="gap-2 font-bold text-muted-foreground px-2">
+              <ChevronLeft className="h-4 w-4" /> 
+              <span className="hidden lg:inline">Inicio</span>
+            </Button>
+          </Link>
+          <div className="flex items-center gap-2 lg:gap-3">
+            <div className="w-6 h-6 lg:w-8 lg:h-8 relative overflow-hidden rounded-lg shadow-sm bg-white border border-border/10">
+              <Image src={logo} alt="Logo" fill className="object-contain" />
+            </div>
+            <h1 className="text-lg lg:text-xl font-headline font-black tracking-tighter text-primary uppercase">CUADRÍCULA POSTER</h1>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 lg:gap-4">
+          <ThemeToggle />
+          <LanguageSelector language={lang} setLanguage={setLang} />
+          <Button className="hidden lg:flex bg-primary hover:bg-primary/90 text-white font-black gap-2 h-10 px-6 rounded-xl shadow-md transition-all active:scale-95 text-xs" onClick={handleExport} disabled={!image || isExporting}>
+            {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+            {isExporting ? "..." : t.export}
+          </Button>
+        </div>
       </header>
+
       <main className="flex-1 flex overflow-hidden relative">
-        <section className={cn("flex-1 relative bg-muted/30 flex flex-col items-center overflow-y-auto lg:overflow-hidden", !image ? "justify-center" : "justify-start")}>
-          {!image ? (<div className="max-w-lg w-full px-6 lg:p-8 animate-fade-in text-center flex flex-col gap-6 lg:gap-8"><ImageUploader onImageUpload={handleImageUpload} language={lang} t={t} /><div className="space-y-2"><h2 className="text-2xl lg:text-3xl font-headline font-black tracking-tighter">Preparar poster</h2><p className="text-muted-foreground font-medium text-sm lg:text-base">Sube una imagen de alta resolución.</p></div></div>) : (
-            <><div className="w-full h-[calc(100svh-4rem)] p-4 lg:p-8 flex flex-col pt-4 lg:pt-8 overflow-hidden"><div className="flex-1 min-h-0"><MuralCanvas imageUrl={image.url} rows={deferredRows} cols={deferredCols} overlap={deferredOverlap} marginV={deferredMarginV} marginH={deferredMarginH} paperSize={paperSize} orientation={orientation} showGuides={showGuides} showOutline={showOutline} imageWidth={parseFloat(targetWidth)} imageHeight={parseFloat(targetHeight)} customPaperWidth={customRollWidth} customPaperHeight={customRollLength} /></div></div></>
+        <section className={cn(
+          "flex-1 relative bg-muted/30 flex flex-col items-center overflow-y-auto lg:overflow-hidden",
+          !image ? "justify-center" : "justify-start"
+        )}>
+          {!image ? (
+            <div className="max-w-lg w-full px-6 lg:p-8 animate-fade-in text-center flex flex-col gap-6 lg:gap-8">
+              <ImageUploader onImageUpload={handleImageUpload} language={lang} t={t} />
+              <div className="space-y-2">
+                <h2 className="text-2xl lg:text-3xl font-headline font-black tracking-tighter">Preparar poster</h2>
+                <p className="text-muted-foreground font-medium text-sm lg:text-base">Sube una imagen de alta resolución.</p>
+              </div>
+            </div>
+          ) : (
+            <>
+              {physicalInfo && (
+                <div className="absolute top-4 lg:top-6 left-1/2 -translate-x-1/2 z-20 pointer-events-none w-full max-w-5xl px-4 lg:px-8">
+                  <div className="bg-background/80 backdrop-blur-xl border border-primary/20 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.1)] px-4 lg:px-6 py-2 lg:py-3 rounded-2xl flex items-center justify-between pointer-events-auto animate-fade-in">
+                    <div className="flex items-center gap-3 lg:gap-6">
+                      <div className="flex flex-col">
+                        <span className="text-[6px] lg:text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">{t.finalMeasures}</span>
+                        <div className="flex items-center gap-1.5 lg:gap-2">
+                          <Maximize2 className="h-2.5 w-2.5 lg:h-3.5 lg:w-3.5 text-primary" />
+                          <span className="text-xs lg:text-base font-black text-foreground">{physicalInfo.imgW} x {physicalInfo.imgH} cm</span>
+                        </div>
+                      </div>
+                      <Separator orientation="vertical" className="h-6 lg:h-8 opacity-50" />
+                      <div className="flex flex-col">
+                        <span className="text-[6px] lg:text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">Paneles</span>
+                        <div className="flex items-center gap-1.5 lg:gap-2">
+                          <Layers className="h-2.5 w-2.5 lg:h-3.5 lg:w-3.5 text-amber-500" />
+                          <span className="text-xs lg:text-base font-black text-foreground">{rows * cols} <span className="hidden sm:inline">{lang === 'es' ? 'HOJAS' : 'SHEETS'}</span></span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 lg:gap-4">
+                      <Button 
+                        variant="secondary" 
+                        size="sm" 
+                        onClick={() => setImage(null)}
+                        className="h-8 lg:h-10 text-[10px] lg:text-xs font-black uppercase gap-2 rounded-xl border border-border/50 shadow-sm"
+                      >
+                        <RefreshCcw className="h-3.5 w-3.5" />
+                        <span className="hidden xs:inline">{lang === 'es' ? 'Cambiar Imagen' : 'Change Image'}</span>
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              <div className="w-full h-[calc(100svh-4rem)] p-4 lg:p-8 flex flex-col pt-20 lg:pt-24 overflow-hidden">
+                <div className="flex-1 min-h-0">
+                  <MuralCanvas 
+                    imageUrl={image.url} 
+                    rows={deferredRows} 
+                    cols={deferredCols} 
+                    overlap={deferredOverlap} 
+                    marginV={deferredMarginV} 
+                    marginH={deferredMarginH}
+                    paperSize={paperSize} 
+                    orientation={orientation}
+                    showGuides={showGuides} 
+                    showOutline={showOutline}
+                    imageWidth={parseFloat(targetWidth)} 
+                    imageHeight={parseFloat(targetHeight)} 
+                    customPaperWidth={customRollWidth} 
+                    customPaperHeight={customRollLength} 
+                  />
+                </div>
+              </div>
+            </>
           )}
         </section>
-        <aside className="hidden lg:block w-80 border-l border-border bg-background overflow-y-auto shadow-xl z-10 shrink-0 h-full">{renderSettings(rows, cols, overlap, marginV, marginH, paperSize, orientation, showGuides, showOutline, targetWidth, targetHeight, physicalInfo, lockAspect, isGiantMode, customRollWidth, customRollLength)}</aside>
+        <aside className="hidden lg:block w-80 border-l border-border bg-background overflow-y-auto shadow-xl z-10 shrink-0 h-full">
+          {renderSettings(rows, cols, overlap, marginV, marginH, paperSize, orientation, showGuides, showOutline, targetWidth, targetHeight, physicalInfo, lockAspect, isGiantMode, customRollWidth, customRollLength)}
+        </aside>
       </main>
+
       <div className="lg:hidden fixed bottom-6 right-6 z-40 pointer-events-auto flex gap-3">
-        {image && (<Button className="h-14 bg-primary hover:bg-primary/90 text-white font-black rounded-2xl shadow-2xl px-8" onClick={handleExport} disabled={isExporting}>{isExporting ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileDown className="h-5 w-5" />}</Button>)}
+        {image && (
+          <Button 
+            className="h-14 bg-primary hover:bg-primary/90 text-white font-black rounded-2xl shadow-2xl px-8" 
+            onClick={handleExport} 
+            disabled={isExporting}
+          >
+            {isExporting ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileDown className="h-5 w-5" />}
+          </Button>
+        )}
         <Sheet open={isMenuOpen} onOpenChange={handleMenuOpenChange}>
-          <Button size="icon" className="h-14 w-14 rounded-full shadow-2xl bg-primary text-white border-4 border-white" onClick={() => handleMenuOpenChange(true)}><Settings2 className="h-6 w-6" /></Button>
+          <Button size="icon" className="h-14 w-14 rounded-full shadow-2xl bg-primary text-white border-4 border-white" onClick={() => handleMenuOpenChange(true)}>
+            <Settings2 className="h-6 w-6" />
+          </Button>
           <SheetContent side="right" className="w-[85%] sm:w-[400px] p-0 bg-background/95 backdrop-blur-xl shadow-2xl overflow-hidden flex flex-col z-[50]">
             <SheetHeader className="sr-only"><SheetTitle>Ajustes</SheetTitle></SheetHeader>
-            <div className="p-3 bg-primary/5 flex flex-col gap-3"><Button className="w-full h-12 bg-primary text-white font-black rounded-xl" onClick={handleExport} disabled={!image || isExporting}>{isExporting ? "Generando..." : t.export}</Button></div>
-            <div className="flex-1 overflow-y-auto relative">{renderSettings(draftRows, draftCols, draftOverlap, draftMarginV, draftMarginH, draftPaperSize, draftOrientation, draftShowGuides, draftShowOutline, draftTargetWidth, draftTargetHeight, draftInfo, draftLockAspect, draftGiantMode, draftCustomRollWidth, draftCustomRollLength, true)}<Button size="icon" className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-2xl bg-primary text-white z-[210] border-4 border-white" onClick={() => handleMenuOpenChange(false)}><Settings2 className="h-6 w-6" /></Button></div>
+            <div className="p-3 bg-primary/5 flex flex-col gap-3">
+              <Button className="w-full h-12 bg-primary text-white font-black rounded-xl" onClick={handleExport} disabled={!image || isExporting}>
+                {isExporting ? "Generando..." : t.export}
+              </Button>
+            </div>
+            <div className="flex-1 overflow-y-auto relative">
+              {renderSettings(draftRows, draftCols, draftOverlap, draftMarginV, draftMarginH, draftPaperSize, draftOrientation, draftShowGuides, draftShowOutline, draftTargetWidth, draftTargetHeight, draftInfo, draftLockAspect, draftGiantMode, draftCustomRollWidth, draftCustomRollLength, true)}
+              <Button 
+                size="icon" 
+                className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-2xl bg-primary text-white z-[210] border-4 border-white" 
+                onClick={() => handleMenuOpenChange(false)}
+              >
+                <Settings2 className="h-6 w-6" />
+              </Button>
+            </div>
           </SheetContent>
         </Sheet>
       </div>
     </div>
   );
 }
+
