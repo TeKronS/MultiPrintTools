@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -311,7 +310,6 @@ export default function PdfToImageConverter() {
 
       <Separator />
 
-      {/* SEO Section */}
       <Collapsible open={isInfoOpen} onOpenChange={setIsInfoOpen}>
         <CollapsibleTrigger asChild>
           <Button variant="ghost" className="w-full flex items-center justify-between p-4 bg-blue-500/5 hover:bg-blue-500/10 rounded-xl transition-all">
@@ -491,59 +489,57 @@ export default function PdfToImageConverter() {
           </div>
         </aside>
 
-        {!isPreviewOpen && (
-          <div className="lg:hidden fixed bottom-6 left-6 right-6 z-[100] animate-in slide-in-from-bottom-10 flex gap-3 pointer-events-auto justify-end">
-            {pdfFile && (
-               <div className="flex-1 bg-card/90 backdrop-blur-md p-2 rounded-2xl border border-border shadow-2xl flex items-center justify-between">
-                <div className="px-3">
-                  <span className="text-[10px] font-black text-muted-foreground uppercase block">Extraer</span>
-                  <span className="text-sm font-black text-blue-600">{selectedPages.size} imágenes</span>
-                </div>
-                <Button 
-                  className="h-11 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl px-6 uppercase tracking-widest text-xs gap-2"
-                  onClick={exportAsImages}
-                  disabled={selectedPages.size === 0 || isProcessing}
-                >
-                  {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                  {isProcessing ? "..." : "Exportar"}
-                </Button>
+        <div className="lg:hidden fixed bottom-6 left-6 right-6 z-[100] animate-in slide-in-from-bottom-10 flex gap-3 pointer-events-auto justify-end">
+          {pdfFile && (
+             <div className="flex-1 bg-card/90 backdrop-blur-md p-2 rounded-2xl border border-border shadow-2xl flex items-center justify-between">
+              <div className="px-3">
+                <span className="text-[10px] font-black text-muted-foreground uppercase block">Extraer</span>
+                <span className="text-sm font-black text-blue-600">{selectedPages.size} imágenes</span>
               </div>
-            )}
-            
-            <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+              <Button 
+                className="h-11 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl px-6 uppercase tracking-widest text-xs gap-2"
+                onClick={exportAsImages}
+                disabled={selectedPages.size === 0 || isProcessing}
+              >
+                {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                {isProcessing ? "..." : "Exportar"}
+              </Button>
+            </div>
+          )}
+          
+          <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+            <Button 
+              size="icon" 
+              className="h-14 w-14 shrink-0 rounded-full shadow-2xl bg-slate-800 text-white hover:bg-slate-900 transition-all active:scale-95 border-4 border-white"
+              onPointerDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsMenuOpen(!isMenuOpen);
+              }}
+            >
+              <Settings2 className="h-6 w-6" />
+            </Button>
+            <SheetContent 
+              side="right" 
+              className="w-[85%] sm:w-[350px] p-6 bg-card backdrop-blur-xl shadow-2xl overflow-y-auto"
+              onOpenAutoFocus={(e) => e.preventDefault()}
+            >
+              <SheetHeader className="sr-only">
+                <SheetTitle>Ajustes de Imagen</SheetTitle>
+                <SheetDescription>Configura el formato y calidad de salida</SheetDescription>
+              </SheetHeader>
+              {renderSettingsContent()}
+              
               <Button 
                 size="icon" 
-                className="h-14 w-14 shrink-0 rounded-full shadow-2xl bg-slate-800 text-white hover:bg-slate-900 transition-all active:scale-95 border-4 border-white"
-                onPointerDown={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setIsMenuOpen(!isMenuOpen);
-                }}
+                className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-2xl bg-slate-800 text-white z-[210] border-4 border-white animate-in fade-in zoom-in-95 duration-200"
+                onClick={() => setIsMenuOpen(false)}
               >
                 <Settings2 className="h-6 w-6" />
               </Button>
-              <SheetContent 
-                side="right" 
-                className="w-[85%] sm:w-[350px] p-6 bg-card backdrop-blur-xl shadow-2xl overflow-y-auto"
-                onOpenAutoFocus={(e) => e.preventDefault()}
-              >
-                <SheetHeader className="sr-only">
-                  <SheetTitle>Ajustes de Imagen</SheetTitle>
-                  <SheetDescription>Configura el formato y calidad de salida</SheetDescription>
-                </SheetHeader>
-                {renderSettingsContent()}
-                
-                <Button 
-                  size="icon" 
-                  className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-2xl bg-slate-800 text-white z-[210] border-4 border-white animate-in fade-in zoom-in-95 duration-200"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  <Settings2 className="h-6 w-6" />
-                </Button>
-              </SheetContent>
-            </Sheet>
-          </div>
-        )}
+            </SheetContent>
+          </Sheet>
+        </div>
       </main>
 
       <input 
