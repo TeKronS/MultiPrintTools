@@ -435,14 +435,28 @@ export default function ImageToPdfConverter() {
             <ChevronDown className={cn("h-4 w-4 text-primary transition-transform", isInfoOpen ? "rotate-180" : "rotate-0")} />
           </Button>
         </CollapsibleTrigger>
-        <CollapsibleContent className="space-y-4 pt-4 text-left">
-          <div className="space-y-1">
-            <h3 className="text-[10px] font-black text-foreground uppercase">{t.imgToPdfTitle}</h3>
-            <p className="text-[10px] text-muted-foreground font-medium leading-tight">Convierte tus fotos y diseños en documentos PDF profesionales listos para imprimir o compartir.</p>
+        <CollapsibleContent className="space-y-6 pt-4 text-left">
+          <div className="space-y-2">
+            <h3 className="text-sm font-black text-foreground uppercase tracking-tight">{t.imgToPdfSeoTitle}</h3>
+            <p className="text-xs text-muted-foreground font-medium leading-relaxed">{t.imgToPdfSeoIntro}</p>
           </div>
-          <div className="grid gap-2">
-            <div className="p-2 bg-card border rounded-lg">
-              <p className="text-[9px] text-muted-foreground leading-tight">Ajusta márgenes, orientación y tamaño de papel (A4, Carta) de forma precisa.</p>
+          
+          <div className="grid gap-4">
+            <div className="p-3 bg-card border rounded-xl space-y-1">
+              <h4 className="text-[10px] font-black text-primary uppercase">{lang === 'es' ? 'Gestión de Cuadrícula' : 'Grid Management'}</h4>
+              <p className="text-[10px] text-muted-foreground font-medium">{t.imgToPdfSeoGrid}</p>
+            </div>
+            <div className="p-3 bg-card border rounded-xl space-y-1">
+              <h4 className="text-[10px] font-black text-primary uppercase">{lang === 'es' ? 'Formatos de Papel' : 'Paper Formats'}</h4>
+              <p className="text-[10px] text-muted-foreground font-medium">{t.imgToPdfSeoPaper}</p>
+            </div>
+            <div className="p-3 bg-card border rounded-xl space-y-1">
+              <h4 className="text-[10px] font-black text-primary uppercase">{lang === 'es' ? 'Ajuste Inteligente' : 'Smart Fit'}</h4>
+              <p className="text-[10px] text-muted-foreground font-medium">{t.imgToPdfSeoFit}</p>
+            </div>
+            <div className="p-3 bg-card border rounded-xl space-y-1">
+              <h4 className="text-[10px] font-black text-primary uppercase">{lang === 'es' ? 'Automatización' : 'Automation'}</h4>
+              <p className="text-[10px] text-muted-foreground font-medium">{t.imgToPdfSeoAuto}</p>
             </div>
           </div>
         </CollapsibleContent>
@@ -710,17 +724,15 @@ export default function ImageToPdfConverter() {
           )}
 
           <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-            <Button 
-              size="icon" 
-              className="h-14 w-14 rounded-full shadow-2xl bg-primary text-white hover:bg-primary/90 transition-all active:scale-95 border-4 border-white"
-              onPointerDown={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setIsMenuOpen(!isMenuOpen);
-              }}
-            >
-              <Settings2 className="h-6 w-6" />
-            </Button>
+            <div className="flex-none">
+              <Button 
+                size="icon" 
+                className="h-14 w-14 rounded-full shadow-2xl bg-primary text-white hover:bg-primary/90 transition-all active:scale-95 border-4 border-white"
+                onClick={() => setIsMenuOpen(true)}
+              >
+                <Settings2 className="h-6 w-6" />
+              </Button>
+            </div>
             <SheetContent side="right" className="w-[85%] sm:w-[400px] p-0 bg-background/80 backdrop-blur-xl shadow-2xl overflow-hidden flex flex-col">
               <SheetHeader className="sr-only">
                 <SheetTitle>Configuración</SheetTitle>
