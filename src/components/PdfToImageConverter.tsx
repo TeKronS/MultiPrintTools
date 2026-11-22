@@ -257,7 +257,7 @@ export default function PdfToImageConverter() {
     <div className="space-y-6">
       <div className="space-y-4">
         <div className="flex items-center gap-2">
-          <ShieldCheck className="h-5 w-5 text-emerald-500" />
+          <ShieldCheck className="h-5 v-5 text-emerald-500" />
           <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t.localProcessing}</h3>
         </div>
         <p className="text-xs text-muted-foreground leading-relaxed font-medium">
@@ -441,7 +441,7 @@ export default function PdfToImageConverter() {
                               "relative aspect-[3/4] bg-white dark:bg-slate-200 rounded-xl overflow-hidden cursor-pointer transition-all duration-300 border-4 shadow-sm",
                               isSelected 
                                 ? "border-blue-500 ring-4 ring-blue-500/10 scale-[1.02]" 
-                                : "border-border hover:border-blue-200"
+                                : "border-border hover:border-rose-200"
                             )}
                           >
                             <img src={thumb.url} alt={`Página ${thumb.index + 1}`} className="w-full h-full object-cover" />
@@ -491,22 +491,24 @@ export default function PdfToImageConverter() {
           </div>
         </aside>
 
-        {pdfFile && (
+        {!isPreviewOpen && (
           <div className="lg:hidden fixed bottom-6 left-6 right-6 z-[100] animate-in slide-in-from-bottom-10 flex gap-3 pointer-events-auto">
-            <div className="flex-1 bg-card/90 backdrop-blur-md p-2 rounded-2xl border border-border shadow-2xl flex items-center justify-between">
-              <div className="px-3">
-                <span className="text-[10px] font-black text-muted-foreground uppercase block">Extraer</span>
-                <span className="text-sm font-black text-blue-600">{selectedPages.size} imágenes</span>
+            {pdfFile && (
+               <div className="flex-1 bg-card/90 backdrop-blur-md p-2 rounded-2xl border border-border shadow-2xl flex items-center justify-between">
+                <div className="px-3">
+                  <span className="text-[10px] font-black text-muted-foreground uppercase block">Extraer</span>
+                  <span className="text-sm font-black text-blue-600">{selectedPages.size} imágenes</span>
+                </div>
+                <Button 
+                  className="h-11 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl px-6 uppercase tracking-widest text-xs gap-2"
+                  onClick={exportAsImages}
+                  disabled={selectedPages.size === 0 || isProcessing}
+                >
+                  {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                  {isProcessing ? "..." : "Exportar"}
+                </Button>
               </div>
-              <Button 
-                className="h-11 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl px-6 uppercase tracking-widest text-xs gap-2"
-                onClick={exportAsImages}
-                disabled={selectedPages.size === 0 || isProcessing}
-              >
-                {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                {isProcessing ? "..." : "Exportar"}
-              </Button>
-            </div>
+            )}
             
             <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
               <Button 

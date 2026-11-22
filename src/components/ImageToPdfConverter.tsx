@@ -695,20 +695,20 @@ export default function ImageToPdfConverter() {
           {renderSettingsContent()}
         </aside>
 
-        {expandedImagesList.length > 0 && (
-          <div className="lg:hidden fixed bottom-6 left-6 md:left-[104px] right-24 z-[100] pointer-events-auto animate-in slide-in-from-bottom-10 duration-500">
-            <Button 
-              className="w-full h-14 bg-primary hover:bg-primary/90 text-white font-black gap-3 rounded-2xl shadow-2xl transition-all active:scale-95 text-sm uppercase tracking-widest border-4 border-white/10"
-              onClick={exportPdf}
-              disabled={isExporting}
-            >
-              {isExporting ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileDown className="h-4 w-4" />}
-              {isExporting ? t.generating : t.export}
-            </Button>
-          </div>
-        )}
+        <div className="lg:hidden fixed bottom-6 left-6 right-6 z-[100] flex gap-3 pointer-events-auto">
+          {expandedImagesList.length > 0 && (
+            <div className="flex-1">
+              <Button 
+                className="w-full h-14 bg-primary hover:bg-primary/90 text-white font-black gap-3 rounded-2xl shadow-2xl transition-all active:scale-95 text-sm uppercase tracking-widest border-4 border-white/10"
+                onClick={exportPdf}
+                disabled={isExporting}
+              >
+                {isExporting ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileDown className="h-4 w-4" />}
+                {isExporting ? t.generating : t.export}
+              </Button>
+            </div>
+          )}
 
-        <div className="lg:hidden fixed bottom-6 right-6 z-[100] pointer-events-auto">
           <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
             <Button 
               size="icon" 
@@ -721,12 +721,34 @@ export default function ImageToPdfConverter() {
             >
               <Settings2 className="h-6 w-6" />
             </Button>
-            <SheetContent side="right" className="w-[85%] sm:w-[350px] p-5 bg-card backdrop-blur-xl shadow-2xl overflow-y-auto">
+            <SheetContent side="right" className="w-[85%] sm:w-[400px] p-0 bg-background/80 backdrop-blur-xl shadow-2xl overflow-hidden flex flex-col">
               <SheetHeader className="sr-only">
                 <SheetTitle>Configuración</SheetTitle>
                 <SheetDescription>Ajustes de exportación a PDF</SheetDescription>
               </SheetHeader>
-              {renderSettingsContent()}
+              
+              <div className="p-4 bg-primary/5 border-b shrink-0 flex items-center justify-between">
+                <Button 
+                  className="flex-1 h-12 bg-primary hover:bg-primary/90 text-white font-black rounded-xl shadow-lg transition-all active:scale-95 text-xs uppercase tracking-widest gap-2"
+                  onClick={exportPdf}
+                  disabled={expandedImagesList.length === 0 || isExporting}
+                >
+                  {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+                  {isExporting ? "..." : t.export}
+                </Button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-5 relative">
+                {renderSettingsContent()}
+
+                <Button 
+                  size="icon" 
+                  className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-2xl bg-primary text-white z-[210] border-4 border-white animate-in fade-in zoom-in-95 duration-200"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <Settings2 className="h-6 w-6" />
+                </Button>
+              </div>
             </SheetContent>
           </Sheet>
         </div>

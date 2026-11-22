@@ -314,7 +314,7 @@ export default function PdfSplitTool() {
     <div className="space-y-6">
       <div className="space-y-4">
         <div className="flex items-center gap-2">
-          <ShieldCheck className="h-5 w-5 text-emerald-500" />
+          <ShieldCheck className="h-5 v-5 text-emerald-500" />
           <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t.localProcessing}</h3>
         </div>
         <p className="text-xs text-muted-foreground leading-relaxed font-medium">
@@ -548,22 +548,24 @@ export default function PdfSplitTool() {
           </div>
         </aside>
 
-        {pdfFile && (
+        {!isPreviewOpen && (
           <div className="lg:hidden fixed bottom-6 left-6 right-6 z-[100] animate-in slide-in-from-bottom-10 flex gap-3 pointer-events-auto">
-            <div className="flex-1 bg-card/90 backdrop-blur-md p-2 rounded-2xl border border-border shadow-2xl flex items-center justify-between">
-              <div className="px-3">
-                <span className="text-[10px] font-black text-muted-foreground uppercase block">Extraer</span>
-                <span className="text-sm font-black text-rose-600">{selectedPages.size} págs.</span>
+            {pdfFile && (
+               <div className="flex-1 bg-card/90 backdrop-blur-md p-2 rounded-2xl border border-border shadow-2xl flex items-center justify-between">
+                <div className="px-3">
+                  <span className="text-[10px] font-black text-muted-foreground uppercase block">Extraer</span>
+                  <span className="text-sm font-black text-rose-600">{selectedPages.size} págs.</span>
+                </div>
+                <Button 
+                  className="h-11 bg-rose-600 hover:bg-rose-700 text-white font-black rounded-xl px-6 uppercase tracking-widest text-xs gap-2"
+                  onClick={splitPdf}
+                  disabled={selectedPages.size === 0 || isSplitting}
+                >
+                  {isSplitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                  {isSplitting ? "..." : "Separar"}
+                </Button>
               </div>
-              <Button 
-                className="h-11 bg-rose-600 hover:bg-rose-700 text-white font-black rounded-xl px-6 uppercase tracking-widest text-xs gap-2"
-                onClick={splitPdf}
-                disabled={selectedPages.size === 0 || isSplitting}
-              >
-                {isSplitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                {isSplitting ? "..." : "Separar"}
-              </Button>
-            </div>
+            )}
             
             <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
               <Button 
@@ -587,6 +589,14 @@ export default function PdfSplitTool() {
                   <SheetDescription>Configura el rango y nombre de archivo</SheetDescription>
                 </SheetHeader>
                 {renderSettingsContent()}
+
+                <Button 
+                  size="icon" 
+                  className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-2xl bg-slate-800 text-white z-[210] border-4 border-white animate-in fade-in zoom-in-95 duration-200"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <Settings2 className="h-6 w-6" />
+                </Button>
               </SheetContent>
             </Sheet>
           </div>

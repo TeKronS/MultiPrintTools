@@ -22,7 +22,8 @@ import {
   Eye,
   ExternalLink,
   Info,
-  ChevronDown
+  ChevronDown,
+  Settings2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -37,6 +38,13 @@ import {
   DialogTitle,
   DialogDescription
 } from "@/components/ui/dialog";
+import { 
+  Sheet, 
+  SheetContent, 
+  SheetHeader,
+  SheetTitle,
+  SheetDescription
+} from "@/components/ui/sheet";
 import { 
   Collapsible,
   CollapsibleContent,
@@ -72,6 +80,7 @@ export default function PdfMergeTool() {
   const [isDragging, setIsDragging] = useState(false);
   const [outputName, setOutputName] = useState("");
   const [isInfoOpen, setIsInfoOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -86,21 +95,19 @@ export default function PdfMergeTool() {
     }
   }, []);
 
-  // Handle mobile back button to close menu/preview
   useEffect(() => {
-    if (isPreviewOpen) {
-      window.history.pushState({ previewOpen: true }, '');
+    if (isPreviewOpen || isMenuOpen) {
+      window.history.pushState({ menuOpen: true }, '');
     }
 
     const handlePopState = () => {
-      if (isPreviewOpen) {
-        setIsPreviewOpen(false);
-      }
+      if (isPreviewOpen) setIsPreviewOpen(false);
+      if (isMenuOpen) setIsMenuOpen(false);
     };
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [isPreviewOpen]);
+  }, [isPreviewOpen, isMenuOpen]);
 
   const generateThumbnail = async (blob: Blob) => {
     try {
@@ -280,6 +287,77 @@ export default function PdfMergeTool() {
     setIsLoadingPreview(false);
   };
 
+  const renderSettingsContent = () => (
+    <div className="space-y-6">
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <ShieldCheck className="h-4 w-4 text-emerald-500" />
+          <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t.localProcessing}</h3>
+        </div>
+        <p className="text-xs text-muted-foreground leading-relaxed font-medium">
+          {t.pdfSeoPrivacyDesc}
+        </p>
+      </div>
+
+      <Separator />
+
+      {files.length > 0 && (
+        <div className="space-y-5 animate-in slide-in-from-right-10 duration-500">
+          <div className="space-y-2">
+            <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-2">
+              <FileType className="h-3 w-3" />
+              {t.outputFileName}
+            </Label>
+            <Input 
+              placeholder={t.outputFileNamePlaceholder}
+              value={outputName}
+              onChange={(e) => setOutputName(e.target.value)}
+              className="h-10 border-2 focus:border-indigo-500 font-bold text-sm rounded-xl"
+            />
+          </div>
+
+          <div className="bg-muted p-4 rounded-2xl border border-border space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Archivos</span>
+              <span className="text-xs font-black text-indigo-600">{files.length}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Peso Total</span>
+              <span className="text-xs font-black text-foreground">
+                {(files.reduce((acc, f) => acc + f.size, 0) / 1024 / 1024).toFixed(2)} MB
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <Separator />
+
+      {/* SEO Section */}
+      <Collapsible open={isInfoOpen} onOpenChange={setIsInfoOpen}>
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" className="w-full flex items-center justify-between p-4 bg-indigo-500/5 hover:bg-indigo-500/10 rounded-xl transition-all">
+            <div className="flex items-center gap-2">
+              <Info className="h-4 w-4 text-indigo-600" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-indigo-700">{isInfoOpen ? t.closeInfo : t.learnMore}</span>
+            </div>
+            <ChevronDown className={cn("h-4 w-4 text-indigo-600 transition-transform", isInfoOpen ? "rotate-180" : "rotate-0")} />
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-4 pt-4 text-left">
+          <div className="space-y-1">
+            <h3 className="text-[10px] font-black text-foreground uppercase">{t.pdfSeoTitle}</h3>
+            <p className="text-[10px] text-muted-foreground font-medium leading-tight">{t.pdfSeoIntro}</p>
+          </div>
+          <p className="text-[9px] text-muted-foreground leading-tight italic">{t.pdfSeoPrivacyDesc}</p>
+          <div className="p-2 bg-card border rounded-lg">
+            <p className="text-[9px] text-muted-foreground leading-tight">{t.pdfSeoMergeDesc}</p>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+    </div>
+  );
+
   if (!mounted) return null;
 
   return (
@@ -416,73 +494,8 @@ export default function PdfMergeTool() {
         </div>
 
         <aside className="hidden md:flex w-80 bg-card border-l border-border flex-col shrink-0 shadow-2xl z-20">
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-emerald-500" />
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t.localProcessing}</h3>
-              </div>
-              <p className="text-xs text-muted-foreground leading-relaxed font-medium">
-                Esta herramienta combina tus archivos directamente en tu navegador. Tus PDFs nunca se suben a ningún servidor, garantizando privacidad total y velocidad instantánea.
-              </p>
-            </div>
-
-            <Separator />
-
-            {files.length > 0 && (
-              <div className="space-y-5 animate-in slide-in-from-right-10 duration-500">
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-2">
-                    <FileType className="h-3 w-3" />
-                    {t.outputFileName}
-                  </Label>
-                  <Input 
-                    placeholder={t.outputFileNamePlaceholder}
-                    value={outputName}
-                    onChange={(e) => setOutputName(e.target.value)}
-                    className="h-10 border-2 focus:border-indigo-500 font-bold text-sm rounded-xl"
-                  />
-                </div>
-
-                <div className="bg-muted p-4 rounded-2xl border border-border space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Archivos</span>
-                    <span className="text-xs font-black text-indigo-600">{files.length}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Peso Total</span>
-                    <span className="text-xs font-black text-foreground">
-                      {(files.reduce((acc, f) => acc + f.size, 0) / 1024 / 1024).toFixed(2)} MB
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <Separator />
-
-            {/* SEO Section */}
-            <Collapsible open={isInfoOpen} onOpenChange={setIsInfoOpen}>
-              <CollapsibleTrigger asChild>
-                <Button variant="ghost" className="w-full flex items-center justify-between p-4 bg-indigo-500/5 hover:bg-indigo-500/10 rounded-xl transition-all">
-                  <div className="flex items-center gap-2">
-                    <Info className="h-4 w-4 text-indigo-600" />
-                    <span className="text-[10px] font-black uppercase tracking-widest text-indigo-700">{isInfoOpen ? t.closeInfo : t.learnMore}</span>
-                  </div>
-                  <ChevronDown className={cn("h-4 w-4 text-indigo-600 transition-transform", isInfoOpen ? "rotate-180" : "rotate-0")} />
-                </Button>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="space-y-4 pt-4 text-left">
-                <div className="space-y-1">
-                  <h3 className="text-[10px] font-black text-foreground uppercase">{t.pdfSeoTitle}</h3>
-                  <p className="text-[10px] text-muted-foreground font-medium leading-tight">{t.pdfSeoIntro}</p>
-                </div>
-                <p className="text-[9px] text-muted-foreground leading-tight italic">{t.pdfSeoPrivacyDesc}</p>
-                <div className="p-2 bg-card border rounded-lg">
-                  <p className="text-[9px] text-muted-foreground leading-tight">{t.pdfSeoMergeDesc}</p>
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
+          <div className="flex-1 overflow-y-auto p-6">
+            {renderSettingsContent()}
           </div>
 
           <div className="p-6 pt-2 border-t bg-muted/50 space-y-3 shrink-0">
@@ -506,34 +519,63 @@ export default function PdfMergeTool() {
           </div>
         </aside>
 
-        {files.length > 0 && !isPreviewOpen && (
-          <div className="md:hidden fixed bottom-6 left-6 right-6 z-[100] animate-in slide-in-from-bottom-10 flex flex-col gap-3">
-            <div className="bg-card p-3 rounded-2xl shadow-2xl border-2 border-border">
-              <Input 
-                placeholder={t.outputFileNamePlaceholder}
-                value={outputName}
-                onChange={(e) => setOutputName(e.target.value)}
-                className="h-10 border-none bg-muted font-bold text-sm rounded-xl text-center"
-              />
-            </div>
-            <div className="flex gap-2">
+        {!isPreviewOpen && (
+          <div className="md:hidden fixed bottom-6 left-6 right-6 z-[100] animate-in slide-in-from-bottom-10 flex gap-3 pointer-events-auto">
+            {files.length > 0 && (
+               <div className="flex-1 bg-card/90 backdrop-blur-md p-2 rounded-2xl border border-border shadow-2xl flex items-center justify-between">
+                <div className="flex gap-2">
+                  <Button 
+                    variant="secondary"
+                    className="h-10 w-10 p-0 rounded-xl bg-white border border-indigo-100 text-indigo-600 active:scale-95"
+                    onClick={handlePreviewMerged}
+                    disabled={files.length < 2 || isMerging}
+                  >
+                    <Eye className="h-5 w-5" />
+                  </Button>
+                </div>
+                <Button 
+                  className="flex-1 ml-2 h-10 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl shadow-md uppercase tracking-widest text-[10px] gap-2"
+                  onClick={mergeAndDownload}
+                  disabled={files.length < 2 || isMerging}
+                >
+                  {isMerging ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
+                  {isMerging ? "..." : t.mergeAction}
+                </Button>
+              </div>
+            )}
+            
+            <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
               <Button 
-                variant="secondary"
-                className="h-14 aspect-square p-0 rounded-2xl shadow-xl bg-white border-2 border-indigo-100 text-indigo-600 active:scale-95"
-                onClick={handlePreviewMerged}
-                disabled={files.length < 2 || isMerging}
+                size="icon" 
+                className="h-14 w-14 shrink-0 rounded-full shadow-2xl bg-slate-800 text-white hover:bg-slate-900 transition-all active:scale-95 border-4 border-white"
+                onPointerDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsMenuOpen(true);
+                }}
               >
-                <Eye className="h-6 w-6" />
+                <Settings2 className="h-6 w-6" />
               </Button>
-              <Button 
-                className="flex-1 h-14 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-2xl shadow-xl shadow-indigo-500/20 uppercase tracking-widest text-sm gap-3 border-4 border-white/10"
-                onClick={mergeAndDownload}
-                disabled={files.length < 2 || isMerging}
+              <SheetContent 
+                side="right" 
+                className="w-[85%] sm:w-[350px] p-6 bg-card backdrop-blur-xl shadow-2xl overflow-y-auto"
+                onOpenAutoFocus={(e) => e.preventDefault()}
               >
-                {isMerging ? <Loader2 className="h-5 w-5 animate-spin" /> : <Download className="h-5 w-5" />}
-                {isMerging ? t.merging : t.mergeAction}
-              </Button>
-            </div>
+                <SheetHeader className="sr-only">
+                  <SheetTitle>Ajustes de Combinación</SheetTitle>
+                  <SheetDescription>Configura el PDF resultante</SheetDescription>
+                </SheetHeader>
+                {renderSettingsContent()}
+                
+                <Button 
+                  size="icon" 
+                  className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-2xl bg-slate-800 text-white z-[210] border-4 border-white animate-in fade-in zoom-in-95 duration-200"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <Settings2 className="h-6 w-6" />
+                </Button>
+              </SheetContent>
+            </Sheet>
           </div>
         )}
       </main>
