@@ -23,7 +23,8 @@ import {
   Zap,
   Square,
   Info,
-  ChevronDown
+  ChevronDown,
+  Expand
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -66,7 +67,8 @@ const PAPER_DIMENSIONS: Record<string, { width: number; height: number; format: 
   'Extra Oficio (38cm)': { width: 216, height: 380, format: 'extra-oficio' }
 };
 
-const MAX_DIMENSION_CM = 500; 
+const DEFAULT_MAX_CM = 200;
+const GIANT_MAX_CM = 500;
 
 export default function PosterGridEditor() {
   const [mounted, setMounted] = useState(false);
@@ -83,6 +85,7 @@ export default function PosterGridEditor() {
   const [showGuides, setShowGuides] = useState(true);
   const [showOutline, setShowOutline] = useState(false);
   const [lockAspect, setLockAspect] = useState(true);
+  const [isGiantMode, setIsGiantMode] = useState(false);
   const [isInfoOpen, setIsInfoOpen] = useState(false);
 
   const [targetWidth, setTargetWidth] = useState<string>('0');
@@ -100,6 +103,7 @@ export default function PosterGridEditor() {
   const [draftTargetWidth, setDraftTargetWidth] = useState<string>('0');
   const [draftTargetHeight, setDraftTargetHeight] = useState<string>('0');
   const [draftLockAspect, setDraftLockAspect] = useState(true);
+  const [draftGiantMode, setDraftGiantMode] = useState(false);
 
   const deferredRows = useDeferredValue(rows);
   const deferredCols = useDeferredValue(cols);
@@ -126,13 +130,11 @@ export default function PosterGridEditor() {
     if (isMenuOpen) {
       window.history.pushState({ menuOpen: true }, '');
     }
-
     const handlePopState = () => {
       if (isMenuOpen) {
         setIsMenuOpen(false);
       }
     };
-
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, [isMenuOpen]);
@@ -310,9 +312,9 @@ export default function PosterGridEditor() {
 
   const handleMenuOpenChange = (open: boolean) => {
     if (open) {
-      setDraftRows(rows); setDraftCols(cols); setDraftOverlap(overlap); setDraftMarginV(marginV); setDraftMarginH(marginH); setDraftPaperSize(paperSize); setDraftOrientation(orientation); setDraftShowGuides(showGuides); setDraftShowOutline(showOutline); setDraftTargetWidth(targetWidth); setDraftTargetHeight(targetHeight); setDraftLockAspect(lockAspect);
+      setDraftRows(rows); setDraftCols(cols); setDraftOverlap(overlap); setDraftMarginV(marginV); setDraftMarginH(marginH); setDraftPaperSize(paperSize); setDraftOrientation(orientation); setDraftShowGuides(showGuides); setDraftShowOutline(showOutline); setDraftTargetWidth(targetWidth); setDraftTargetHeight(targetHeight); setDraftLockAspect(lockAspect); setDraftGiantMode(isGiantMode);
     } else {
-      setRows(draftRows); setCols(draftCols); setOverlap(draftOverlap); setMarginV(draftMarginV); setMarginH(draftMarginH); setPaperSize(draftPaperSize); setOrientation(draftOrientation); setShowGuides(draftShowGuides); setShowOutline(draftShowOutline); setTargetWidth(draftTargetWidth); setTargetHeight(draftTargetHeight); setLockAspect(draftLockAspect);
+      setRows(draftRows); setCols(draftCols); setOverlap(draftOverlap); setMarginV(draftMarginV); setMarginH(draftMarginH); setPaperSize(draftPaperSize); setOrientation(draftOrientation); setShowGuides(draftShowGuides); setShowOutline(draftShowOutline); setTargetWidth(draftTargetWidth); setTargetHeight(draftTargetHeight); setLockAspect(draftLockAspect); setIsGiantMode(draftGiantMode);
     }
     setIsMenuOpen(open);
   };
@@ -336,60 +338,38 @@ export default function PosterGridEditor() {
       const activeShowOutline = isMenuOpen ? draftShowOutline : showOutline;
       
       const paperBase = PAPER_DIMENSIONS[activePaperSize];
-      
-      const standardFormats = ['letter', 'a4', 'a3', 'legal'];
-      const pdfFormat = standardFormats.includes(paperBase.format) 
-        ? paperBase.format 
-        : [paperBase.width, paperBase.height];
-
-      const pdf = new jsPDF({ 
-        orientation: activeOrientation === 'portrait' ? 'p' : 'l', 
-        unit: 'mm', 
-        format: pdfFormat as any 
-      });
-
+      const pdfFormat = ['letter', 'a4', 'a3', 'legal'].includes(paperBase.format) ? paperBase.format : [paperBase.width, paperBase.height];
+      const pdf = new jsPDF({ orientation: activeOrientation === 'portrait' ? 'p' : 'l', unit: 'mm', format: pdfFormat as any });
       const paper = activeOrientation === 'portrait' ? { width: Math.min(paperBase.width, paperBase.height), height: Math.max(paperBase.width, paperBase.height) } : { width: Math.max(paperBase.width, paperBase.height), height: Math.min(paperBase.width, paperBase.height) };
       const { appliedMH, appliedMV } = getAppliedMargins(activeOrientation, activeMarginV, activeMarginH);
-      
       const printableW = paper.width - (appliedMH * 20);
       const printableH = paper.height - (appliedMV * 20);
       const overlapMm = activeOverlap * 10;
       const effectiveSheetW = printableW - overlapMm;
       const effectiveSheetH = printableH - overlapMm;
-
       const totalGridW = (activeCols * effectiveSheetW) + overlapMm;
       const totalGridH = (activeRows * effectiveSheetH) + overlapMm;
-
       const finalW_mm = activeTargetW * 10;
       const finalH_mm = activeTargetH * 10;
       const offsetX_mm = (totalGridW - finalW_mm) / 2;
       const offsetY_mm = (totalGridH - finalH_mm) / 2;
-
       const targetDPI = 300;
       const outputPxPerMm = targetDPI / 25.4;
-      
       const sourcePxPerMmX = img.width / finalW_mm;
       const sourcePxPerMmY = img.height / finalH_mm;
-
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       if (!ctx) throw new Error("Canvas fail");
 
       for (let r = 0; r < activeRows; r++) {
         for (let c = 0; c < activeCols; c++) {
-          if (r > 0 || c > 0) {
-            pdf.addPage(pdfFormat as any, activeOrientation === 'portrait' ? 'p' : 'l');
-          }
-          
+          if (r > 0 || c > 0) pdf.addPage(pdfFormat as any, activeOrientation === 'portrait' ? 'p' : 'l');
           const sheetLeft_mm = c * effectiveSheetW;
           const sheetTop_mm = r * effectiveSheetH;
-          
           const drawInSheetX_mm = Math.max(0, offsetX_mm - sheetLeft_mm);
           const drawInSheetY_mm = Math.max(0, offsetY_mm - sheetTop_mm);
-          
           const visibleW_mm = Math.min(effectiveSheetW + overlapMm - drawInSheetX_mm, finalW_mm - Math.max(0, sheetLeft_mm - offsetX_mm));
           const visibleH_mm = Math.min(effectiveSheetH + overlapMm - drawInSheetY_mm, finalH_mm - Math.max(0, sheetTop_mm - offsetY_mm));
-          
           const sx = Math.max(0, (sheetLeft_mm - offsetX_mm) * sourcePxPerMmX);
           const sy = Math.max(0, (sheetTop_mm - offsetY_mm) * sourcePxPerMmY);
           const sw = visibleW_mm * sourcePxPerMmX;
@@ -413,27 +393,20 @@ export default function PosterGridEditor() {
           
           pdf.setFontSize(7); pdf.setTextColor(180);
           const footerText = `MULTIPRINTTOOLS | CUADRÍCULA POSTER | PANEL ${r+1}-${c+1} | ${activePaperSize} (${activeOrientation === 'portrait' ? 'P' : 'L'})`;
-          
-          if (activeOrientation === 'portrait') {
-            pdf.text(footerText, appliedMH * 10, paper.height - (appliedMV * 5));
-          } else {
-            pdf.text(footerText, paper.width - (appliedMH * 5), paper.height - (appliedMV * 10), { angle: 90 });
-          }
+          if (activeOrientation === 'portrait') { pdf.text(footerText, appliedMH * 10, paper.height - (appliedMV * 5)); } else { pdf.text(footerText, paper.width - (appliedMH * 5), paper.height - (appliedMV * 10), { angle: 90 }); }
         }
       }
       
       const fileName = `Poster_${activeTargetW}x${activeTargetH}cm_${activeRows * activeCols}hojas_${activePaperSize}_MultiPrint.pdf`;
       pdf.save(fileName);
-      toast({ title: t.export, description: "PDF generado en alta resolución con éxito." });
-    } catch (e) { 
-      console.error(e);
-      toast({ variant: "destructive", title: "Error", description: "No se pudo generar el PDF." }); 
-    } finally { 
-      setIsExporting(false); 
-    }
+      toast({ title: t.export, description: "PDF generado con éxito." });
+    } catch (e) { console.error(e); toast({ variant: "destructive", title: "Error", description: "No se pudo generar el PDF." }); } finally { setIsExporting(false); }
   };
 
-  const getMeasures = (r: number, c: number, ov: number, mV: number, mH: number, pS: string, orient: 'portrait' | 'landscape', tW: string, tH: string) => {
+  const physicalInfo = useMemo(() => getMeasures(rows, cols, overlap, marginV, marginH, paperSize, orientation, targetWidth, targetHeight), [image, rows, cols, overlap, marginV, marginH, paperSize, orientation, targetWidth, targetHeight]);
+  const draftInfo = useMemo(() => getMeasures(draftRows, draftCols, draftOverlap, draftMarginV, draftMarginH, draftPaperSize, draftOrientation, draftTargetWidth, draftTargetHeight), [image, draftRows, draftCols, draftOverlap, draftMarginV, draftMarginH, draftPaperSize, draftOrientation, draftTargetWidth, draftTargetHeight]);
+
+  function getMeasures(r: number, c: number, ov: number, mV: number, mH: number, pS: string, orient: 'portrait' | 'landscape', tW: string, tH: string) {
     if (!image) return null;
     const paperBase = PAPER_DIMENSIONS[pS];
     const paper = orient === 'portrait' ? { width: Math.min(paperBase.width, paperBase.height), height: Math.max(paperBase.width, paperBase.height) } : { width: Math.max(paperBase.width, paperBase.height), height: Math.min(paperBase.width, paperBase.height) };
@@ -448,12 +421,9 @@ export default function PosterGridEditor() {
     const finalW_mm = parseFloat(tW) * 10;
     const finalH_mm = parseFloat(tH) * 10;
     return { imgW: (finalW_mm / 10).toFixed(1), imgH: (finalH_mm / 10).toFixed(1), printableW: (printableW / 10).toFixed(1), printableH: (printableH / 10).toFixed(1), blankW: Math.max(0, (totalGridW - finalW_mm) / 10).toFixed(1), blankH: Math.max(0, (totalGridH - finalH_mm) / 10).toFixed(1) };
-  };
+  }
 
-  const physicalInfo = useMemo(() => getMeasures(rows, cols, overlap, marginV, marginH, paperSize, orientation, targetWidth, targetHeight), [image, rows, cols, overlap, marginV, marginH, paperSize, orientation, targetWidth, targetHeight]);
-  const draftInfo = useMemo(() => getMeasures(draftRows, draftCols, draftOverlap, draftMarginV, draftMarginH, draftPaperSize, draftOrientation, draftTargetWidth, draftTargetHeight), [image, draftRows, draftCols, draftOverlap, draftMarginV, draftMarginH, draftPaperSize, draftOrientation, draftTargetWidth, draftTargetHeight]);
-
-  const renderSettings = (currentRows: number, currentCols: number, currentOverlap: number, currentMarginV: number, currentMarginH: number, currentPaperSize: string, currentOrientation: 'portrait' | 'landscape', currentShowGuides: boolean, currentShowOutline: boolean, curWidth: string, curHeight: string, info: any, isLocked: boolean, isMobile?: boolean) => (
+  const renderSettings = (currentRows: number, currentCols: number, currentOverlap: number, currentMarginV: number, currentMarginH: number, currentPaperSize: string, currentOrientation: 'portrait' | 'landscape', currentShowGuides: boolean, currentShowOutline: boolean, curWidth: string, curHeight: string, info: any, isLocked: boolean, isGiant: boolean, isMobile?: boolean) => (
     <div className={cn("space-y-6", isMobile ? "p-4 pt-1 pb-40" : "p-4")}>
       <div className="space-y-4">
         <div className="flex items-center justify-between">
@@ -467,6 +437,14 @@ export default function PosterGridEditor() {
         </div>
         
         <div className="bg-card p-4 rounded-xl border border-primary/10 shadow-sm space-y-4">
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center gap-2">
+              <Expand className="h-3 w-3 text-primary" />
+              <Label htmlFor={isMobile ? "draft-giant" : "giant"} className="text-[9px] font-black uppercase text-primary tracking-widest cursor-pointer">Modo Gigantografía</Label>
+            </div>
+            <Switch id={isMobile ? "draft-giant" : "giant"} checked={isGiant} onCheckedChange={(v) => isMobile ? setDraftGiantMode(v) : setIsGiantMode(v)} className="scale-75 origin-right" />
+          </div>
+
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <Label className="text-[8px] font-bold text-muted-foreground uppercase">{t.width} (cm)</Label>
@@ -474,7 +452,7 @@ export default function PosterGridEditor() {
             </div>
             <div className="flex items-center gap-3">
               <Input type="number" value={curWidth} onChange={(e) => handleWidthChange(e.target.value, !!isMobile)} min="0.1" step="0.1" className="w-20 h-8 font-black text-xs text-primary bg-primary/5 border-primary/20" />
-              <Slider value={[parseFloat(curWidth) || 0]} onValueChange={(v) => handleWidthChange(v[0].toString(), !!isMobile)} min={1} max={MAX_DIMENSION_CM} step={0.1} className="flex-1" />
+              <Slider value={[parseFloat(curWidth) || 0]} onValueChange={(v) => handleWidthChange(v[0].toString(), !!isMobile)} min={1} max={isGiant ? GIANT_MAX_CM : DEFAULT_MAX_CM} step={0.1} className="flex-1" />
             </div>
           </div>
 
@@ -485,10 +463,15 @@ export default function PosterGridEditor() {
             </div>
             <div className="flex items-center gap-3">
               <Input type="number" value={curHeight} onChange={(e) => handleHeightChange(e.target.value, !!isMobile)} min="0.1" step="0.1" className="w-20 h-8 font-black text-xs text-primary bg-primary/5 border-primary/20" />
-              <Slider value={[parseFloat(curHeight) || 0]} onValueChange={(v) => handleHeightChange(v[0].toString(), !!isMobile)} min={1} max={MAX_DIMENSION_CM} step={0.1} className="flex-1" />
+              <Slider value={[parseFloat(curHeight) || 0]} onValueChange={(v) => handleHeightChange(v[0].toString(), !!isMobile)} min={1} max={isGiant ? GIANT_MAX_CM : DEFAULT_MAX_CM} step={0.1} className="flex-1" />
             </div>
           </div>
-          <p className="text-[9px] text-muted-foreground font-medium leading-tight">{lang === 'es' ? 'Desliza las barras para ajustar el tamaño real. La cuadrícula se adaptará automáticamente.' : 'Slide the bars to adjust the real size. The grid will adapt automatically.'}</p>
+          <p className="text-[9px] text-muted-foreground font-medium leading-tight">
+            {isGiant 
+              ? (lang === 'es' ? 'Límite extendido a 5 metros. Desliza con cuidado para ajustes finos.' : 'Extended limit to 5 meters. Slide carefully for fine adjustments.')
+              : (lang === 'es' ? 'Límite estándar de 2 metros para mayor precisión. Activa Modo Gigantografía para más tamaño.' : 'Standard 2-meter limit for better precision. Enable Giant Mode for more size.')
+            }
+          </p>
         </div>
       </div>
 
@@ -551,7 +534,6 @@ export default function PosterGridEditor() {
         </div>
       )}
 
-      {/* SEO Section - Expandable */}
       <Collapsible open={isInfoOpen} onOpenChange={setIsInfoOpen} className="mt-8">
         <CollapsibleTrigger asChild>
           <Button variant="ghost" className="w-full flex items-center justify-between p-4 bg-primary/5 hover:bg-primary/10 rounded-xl transition-all">
@@ -567,29 +549,11 @@ export default function PosterGridEditor() {
             <h3 className="text-sm font-black text-foreground uppercase tracking-tight">{t.posterSeoTitle}</h3>
             <p className="text-xs text-muted-foreground leading-relaxed font-medium">{t.posterSeoIntro}</p>
           </div>
-          
           <div className="grid gap-4">
-            <div className="p-3 bg-card border rounded-xl space-y-1">
-              <h4 className="text-[10px] font-black text-primary uppercase">{t.posterSeoStep1Title}</h4>
-              <p className="text-[10px] text-muted-foreground font-medium">{t.posterSeoStep1Desc}</p>
-            </div>
-            <div className="p-3 bg-card border rounded-xl space-y-1">
-              <h4 className="text-[10px] font-black text-primary uppercase">{t.posterSeoStep2Title}</h4>
-              <p className="text-[10px] text-muted-foreground font-medium">{t.posterSeoStep2Desc}</p>
-            </div>
-            <div className="p-3 bg-card border rounded-xl space-y-1">
-              <h4 className="text-[10px] font-black text-primary uppercase">{t.posterSeoStep3Title}</h4>
-              <p className="text-[10px] text-muted-foreground font-medium">{t.posterSeoStep3Desc}</p>
-            </div>
-            <div className="p-3 bg-card border rounded-xl space-y-1">
-              <h4 className="text-[10px] font-black text-primary uppercase">{t.posterSeoStep4Title}</h4>
-              <p className="text-[10px] text-muted-foreground font-medium">{t.posterSeoStep4Desc}</p>
-            </div>
-          </div>
-
-          <div className="space-y-2 pt-2">
-            <h3 className="text-xs font-black text-foreground uppercase tracking-tight">{t.posterSeoWhyTitle}</h3>
-            <p className="text-[10px] text-muted-foreground leading-relaxed font-medium">{t.posterSeoWhyDesc}</p>
+            <div className="p-3 bg-card border rounded-xl space-y-1"><h4 className="text-[10px] font-black text-primary uppercase">{t.posterSeoStep1Title}</h4><p className="text-[10px] text-muted-foreground font-medium">{t.posterSeoStep1Desc}</p></div>
+            <div className="p-3 bg-card border rounded-xl space-y-1"><h4 className="text-[10px] font-black text-primary uppercase">{t.posterSeoStep2Title}</h4><p className="text-[10px] text-muted-foreground font-medium">{t.posterSeoStep2Desc}</p></div>
+            <div className="p-3 bg-card border rounded-xl space-y-1"><h4 className="text-[10px] font-black text-primary uppercase">{t.posterSeoStep3Title}</h4><p className="text-[10px] text-muted-foreground font-medium">{t.posterSeoStep3Desc}</p></div>
+            <div className="p-3 bg-card border rounded-xl space-y-1"><h4 className="text-[10px] font-black text-primary uppercase">{t.posterSeoStep4Title}</h4><p className="text-[10px] text-muted-foreground font-medium">{t.posterSeoStep4Desc}</p></div>
           </div>
         </CollapsibleContent>
       </Collapsible>
@@ -633,7 +597,7 @@ export default function PosterGridEditor() {
           )}
         </section>
         <aside className="hidden lg:block w-80 border-l border-border bg-background overflow-y-auto shadow-xl z-10 shrink-0 h-full">
-          {renderSettings(rows, cols, overlap, marginV, marginH, paperSize, orientation, showGuides, showOutline, targetWidth, targetHeight, physicalInfo, lockAspect)}
+          {renderSettings(rows, cols, overlap, marginV, marginH, paperSize, orientation, showGuides, showOutline, targetWidth, targetHeight, physicalInfo, lockAspect, isGiantMode)}
         </aside>
       </main>
 
@@ -659,7 +623,7 @@ export default function PosterGridEditor() {
             </Button>
           </div>
           <div className="flex-1 overflow-y-auto relative">
-            {renderSettings(draftRows, draftCols, draftOverlap, draftMarginV, draftMarginH, draftPaperSize, draftOrientation, draftShowGuides, draftShowOutline, draftTargetWidth, draftTargetHeight, draftInfo, draftLockAspect, true)}
+            {renderSettings(draftRows, draftCols, draftOverlap, draftMarginV, draftMarginH, draftPaperSize, draftOrientation, draftShowGuides, draftShowOutline, draftTargetWidth, draftTargetHeight, draftInfo, draftLockAspect, draftGiantMode, true)}
             
             <Button 
               size="icon" 
