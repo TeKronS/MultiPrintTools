@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useRef, useState, useMemo, memo } from "react";
@@ -17,6 +18,8 @@ interface MuralCanvasProps {
   showOutline?: boolean;
   imageWidth?: number;
   imageHeight?: number;
+  customPaperWidth?: number;
+  customPaperHeight?: number;
 }
 
 const PAPER_DIMENSIONS: Record<string, { width: number; height: number }> = {
@@ -41,7 +44,9 @@ export const MuralCanvas = memo(function MuralCanvas({
   showGuides,
   showOutline = false,
   imageWidth = 1,
-  imageHeight = 1
+  imageHeight = 1,
+  customPaperWidth,
+  customPaperHeight
 }: MuralCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState(0.8);
@@ -49,10 +54,15 @@ export const MuralCanvas = memo(function MuralCanvas({
   const [isDragging, setIsDragging] = useState(false);
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
 
-  const paperBase = PAPER_DIMENSIONS[paperSize] || PAPER_DIMENSIONS['Carta'];
-  const paper = orientation === 'portrait' 
-    ? { width: Math.min(paperBase.width, paperBase.height), height: Math.max(paperBase.width, paperBase.height) }
-    : { width: Math.max(paperBase.width, paperBase.height), height: Math.min(paperBase.width, paperBase.height) };
+  const paper = useMemo(() => {
+    if (paperSize.includes('Personalizado') && customPaperWidth && customPaperHeight) {
+      return { width: customPaperWidth, height: customPaperHeight };
+    }
+    const paperBase = PAPER_DIMENSIONS[paperSize] || PAPER_DIMENSIONS['Carta'];
+    return orientation === 'portrait' 
+      ? { width: Math.min(paperBase.width, paperBase.height), height: Math.max(paperBase.width, paperBase.height) }
+      : { width: Math.max(paperBase.width, paperBase.height), height: Math.min(paperBase.width, paperBase.height) };
+  }, [paperSize, orientation, customPaperWidth, customPaperHeight]);
 
   const isDense = useMemo(() => (rows * cols) > 30, [rows, cols]);
 

@@ -24,7 +24,8 @@ import {
   Square,
   Info,
   ChevronDown,
-  Expand
+  Expand,
+  ScrollText
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -64,7 +65,8 @@ const PAPER_DIMENSIONS: Record<string, { width: number; height: number; format: 
   'Oficio (Legal 35.5cm)': { width: 215.9, height: 355.6, format: 'legal' },
   'Folio (33cm)': { width: 215.9, height: 330.2, format: 'folio' },
   'Oficio (34cm)': { width: 216, height: 340, format: 'oficio' },
-  'Extra Oficio (38cm)': { width: 216, height: 380, format: 'extra-oficio' }
+  'Extra Oficio (38cm)': { width: 216, height: 380, format: 'extra-oficio' },
+  'Personalizado (Rollo)': { width: 610, height: 1000, format: 'custom' }
 };
 
 const DEFAULT_MAX_CM = 200;
@@ -88,6 +90,10 @@ export default function PosterGridEditor() {
   const [isGiantMode, setIsGiantMode] = useState(false);
   const [isInfoOpen, setIsInfoOpen] = useState(false);
 
+  // Custom roll dimensions (mm)
+  const [customRollWidth, setCustomRollWidth] = useState(610);
+  const [customRollLength, setCustomRollLength] = useState(1000);
+
   const [targetWidth, setTargetWidth] = useState<string>('0');
   const [targetHeight, setTargetHeight] = useState<string>('0');
 
@@ -104,6 +110,8 @@ export default function PosterGridEditor() {
   const [draftTargetHeight, setDraftTargetHeight] = useState<string>('0');
   const [draftLockAspect, setDraftLockAspect] = useState(true);
   const [draftGiantMode, setDraftGiantMode] = useState(false);
+  const [draftCustomRollWidth, setDraftCustomRollWidth] = useState(610);
+  const [draftCustomRollLength, setDraftCustomRollLength] = useState(1000);
 
   const deferredRows = useDeferredValue(rows);
   const deferredCols = useDeferredValue(cols);
@@ -154,17 +162,31 @@ export default function PosterGridEditor() {
     pSize: string, 
     ov_cm: number, 
     mV_cm: number, 
-    mH_cm: number
+    mH_cm: number,
+    cW_mm?: number,
+    cL_mm?: number
   ) => {
-    const paperBase = PAPER_DIMENSIONS[pSize];
     const targetW_mm = w_cm * 10;
     const targetH_mm = h_cm * 10;
     const overlap_mm = ov_cm * 10;
 
     const calcForOrientation = (orient: 'portrait' | 'landscape') => {
-      const paper = orient === 'portrait' 
-        ? { width: Math.min(paperBase.width, paperBase.height), height: Math.max(paperBase.width, paperBase.height) }
-        : { width: Math.max(paperBase.width, paperBase.height), height: Math.min(paperBase.width, paperBase.height) };
+      let paper;
+      if (pSize.includes('Personalizado') && cW_mm && cL_mm) {
+        // Custom Roll Logic:
+        // If image is portrait, roll width (cW_mm) is Width, cut length (cL_mm) is Height.
+        // If image is landscape, roll width (cW_mm) is Height, cut length (cL_mm) is Width.
+        if (targetW_mm <= targetH_mm) {
+          paper = { width: cW_mm, height: cL_mm };
+        } else {
+          paper = { width: cL_mm, height: cW_mm };
+        }
+      } else {
+        const paperBase = PAPER_DIMENSIONS[pSize];
+        paper = orient === 'portrait' 
+          ? { width: Math.min(paperBase.width, paperBase.height), height: Math.max(paperBase.width, paperBase.height) }
+          : { width: Math.max(paperBase.width, paperBase.height), height: Math.min(paperBase.width, paperBase.height) };
+      }
 
       const { appliedMH, appliedMV } = getAppliedMargins(orient, mV_cm, mH_cm);
       const printableW = paper.width - (appliedMH * 20);
@@ -196,8 +218,10 @@ export default function PosterGridEditor() {
     const ov = isDraft ? draftOverlap : overlap;
     const mV = isDraft ? draftMarginV : marginV;
     const mH = isDraft ? draftMarginH : marginH;
+    const cW = isDraft ? draftCustomRollWidth : customRollWidth;
+    const cL = isDraft ? draftCustomRollLength : customRollLength;
 
-    const opt = calculateOptimizedGrid(parseFloat(curWidthStr), parseFloat(curHeightStr), pSize, ov, mV, mH);
+    const opt = calculateOptimizedGrid(parseFloat(curWidthStr), parseFloat(curHeightStr), pSize, ov, mV, mH, cW, cL);
     
     if (isDraft) {
       setDraftRows(opt.rows);
@@ -214,6 +238,9 @@ export default function PosterGridEditor() {
     if (!image) return;
     const num = Math.max(0, parseFloat(val));
     const isLocked = isDraft ? draftLockAspect : lockAspect;
+    const pSize = isDraft ? draftPaperSize : paperSize;
+    const cW = isDraft ? draftCustomRollWidth : customRollWidth;
+    const cL = isDraft ? draftCustomRollLength : customRollLength;
     
     const setW = isDraft ? setDraftTargetWidth : setTargetWidth;
     const setH = isDraft ? setDraftTargetHeight : setTargetHeight;
@@ -233,14 +260,14 @@ export default function PosterGridEditor() {
       setH(newHeight.toFixed(1));
 
       if (num > 0) {
-        const opt = calculateOptimizedGrid(num, newHeight, isDraft ? draftPaperSize : paperSize, isDraft ? draftOverlap : overlap, isDraft ? draftMarginV : marginV, isDraft ? draftMarginH : marginH);
+        const opt = calculateOptimizedGrid(num, newHeight, pSize, isDraft ? draftOverlap : overlap, isDraft ? draftMarginV : marginV, isDraft ? draftMarginH : marginH, cW, cL);
         setR(opt.rows); setC(opt.cols); setO(opt.orientation);
       }
     } else {
       setW(num.toString());
       if (num > 0) {
         const curH = parseFloat(isDraft ? draftTargetHeight : targetHeight);
-        const opt = calculateOptimizedGrid(num, curH, isDraft ? draftPaperSize : paperSize, isDraft ? draftOverlap : overlap, isDraft ? draftMarginV : marginV, isDraft ? draftMarginH : marginH);
+        const opt = calculateOptimizedGrid(num, curH, pSize, isDraft ? draftOverlap : overlap, isDraft ? draftMarginV : marginV, isDraft ? draftMarginH : marginH, cW, cL);
         setR(opt.rows); setC(opt.cols); setO(opt.orientation);
       }
     }
@@ -250,6 +277,9 @@ export default function PosterGridEditor() {
     if (!image) return;
     const num = Math.max(0, parseFloat(val));
     const isLocked = isDraft ? draftLockAspect : lockAspect;
+    const pSize = isDraft ? draftPaperSize : paperSize;
+    const cW = isDraft ? draftCustomRollWidth : customRollWidth;
+    const cL = isDraft ? draftCustomRollLength : customRollLength;
     
     const setW = isDraft ? setDraftTargetWidth : setTargetWidth;
     const setH = isDraft ? setDraftTargetHeight : setTargetHeight;
@@ -269,14 +299,14 @@ export default function PosterGridEditor() {
       setW(newWidth.toFixed(1));
 
       if (num > 0) {
-        const opt = calculateOptimizedGrid(newWidth, num, isDraft ? draftPaperSize : paperSize, isDraft ? draftOverlap : overlap, isDraft ? draftMarginV : marginV, isDraft ? draftMarginH : marginH);
+        const opt = calculateOptimizedGrid(newWidth, num, pSize, isDraft ? draftOverlap : overlap, isDraft ? draftMarginV : marginV, isDraft ? draftMarginH : marginH, cW, cL);
         setR(opt.rows); setC(opt.cols); setO(opt.orientation);
       }
     } else {
       setH(num.toString());
       if (num > 0) {
         const curW = parseFloat(isDraft ? draftTargetWidth : targetWidth);
-        const opt = calculateOptimizedGrid(curW, num, isDraft ? draftPaperSize : paperSize, isDraft ? draftOverlap : overlap, isDraft ? draftMarginV : marginV, isDraft ? draftMarginH : marginH);
+        const opt = calculateOptimizedGrid(curW, num, pSize, isDraft ? draftOverlap : overlap, isDraft ? draftMarginV : marginV, isDraft ? draftMarginH : marginH, cW, cL);
         setR(opt.rows); setC(opt.cols); setO(opt.orientation);
       }
     }
@@ -312,9 +342,9 @@ export default function PosterGridEditor() {
 
   const handleMenuOpenChange = (open: boolean) => {
     if (open) {
-      setDraftRows(rows); setDraftCols(cols); setDraftOverlap(overlap); setDraftMarginV(marginV); setDraftMarginH(marginH); setDraftPaperSize(paperSize); setDraftOrientation(orientation); setDraftShowGuides(showGuides); setDraftShowOutline(showOutline); setDraftTargetWidth(targetWidth); setDraftTargetHeight(targetHeight); setDraftLockAspect(lockAspect); setDraftGiantMode(isGiantMode);
+      setDraftRows(rows); setDraftCols(cols); setDraftOverlap(overlap); setDraftMarginV(marginV); setDraftMarginH(marginH); setDraftPaperSize(paperSize); setDraftOrientation(orientation); setDraftShowGuides(showGuides); setDraftShowOutline(showOutline); setDraftTargetWidth(targetWidth); setDraftTargetHeight(targetHeight); setDraftLockAspect(lockAspect); setDraftGiantMode(isGiantMode); setDraftCustomRollWidth(customRollWidth); setDraftCustomRollLength(customRollLength);
     } else {
-      setRows(draftRows); setCols(draftCols); setOverlap(draftOverlap); setMarginV(draftMarginV); setMarginH(draftMarginH); setPaperSize(draftPaperSize); setOrientation(draftOrientation); setShowGuides(draftShowGuides); setShowOutline(draftShowOutline); setTargetWidth(draftTargetWidth); setTargetHeight(draftTargetHeight); setLockAspect(draftLockAspect); setIsGiantMode(draftGiantMode);
+      setRows(draftRows); setCols(draftCols); setOverlap(draftOverlap); setMarginV(draftMarginV); setMarginH(draftMarginH); setPaperSize(draftPaperSize); setOrientation(draftOrientation); setShowGuides(draftShowGuides); setShowOutline(draftShowOutline); setTargetWidth(draftTargetWidth); setTargetHeight(draftTargetHeight); setLockAspect(draftLockAspect); setIsGiantMode(draftGiantMode); setCustomRollWidth(draftCustomRollWidth); setCustomRollLength(draftCustomRollLength);
     }
     setIsMenuOpen(open);
   };
@@ -336,11 +366,26 @@ export default function PosterGridEditor() {
       const activeTargetW = parseFloat(isMenuOpen ? draftTargetWidth : targetWidth);
       const activeTargetH = parseFloat(isMenuOpen ? draftTargetHeight : targetHeight);
       const activeShowOutline = isMenuOpen ? draftShowOutline : showOutline;
+      const activeCustomW = isMenuOpen ? draftCustomRollWidth : customRollWidth;
+      const activeCustomL = isMenuOpen ? draftCustomRollLength : customRollLength;
       
-      const paperBase = PAPER_DIMENSIONS[activePaperSize];
-      const pdfFormat = ['letter', 'a4', 'a3', 'legal'].includes(paperBase.format) ? paperBase.format : [paperBase.width, paperBase.height];
+      let paper;
+      let pdfFormat;
+      if (activePaperSize.includes('Personalizado')) {
+        // Roll logic for export: matches calculateOptimizedGrid
+        if (activeTargetW <= activeTargetH) {
+          paper = { width: activeCustomW, height: activeCustomL };
+        } else {
+          paper = { width: activeCustomL, height: activeCustomW };
+        }
+        pdfFormat = [paper.width, paper.height];
+      } else {
+        const paperBase = PAPER_DIMENSIONS[activePaperSize];
+        pdfFormat = ['letter', 'a4', 'a3', 'legal'].includes(paperBase.format) ? paperBase.format : [paperBase.width, paperBase.height];
+        paper = activeOrientation === 'portrait' ? { width: Math.min(paperBase.width, paperBase.height), height: Math.max(paperBase.width, paperBase.height) } : { width: Math.max(paperBase.width, paperBase.height), height: Math.min(paperBase.width, paperBase.height) };
+      }
+
       const pdf = new jsPDF({ orientation: activeOrientation === 'portrait' ? 'p' : 'l', unit: 'mm', format: pdfFormat as any });
-      const paper = activeOrientation === 'portrait' ? { width: Math.min(paperBase.width, paperBase.height), height: Math.max(paperBase.width, paperBase.height) } : { width: Math.max(paperBase.width, paperBase.height), height: Math.min(paperBase.width, paperBase.height) };
       const { appliedMH, appliedMV } = getAppliedMargins(activeOrientation, activeMarginV, activeMarginH);
       const printableW = paper.width - (appliedMH * 20);
       const printableH = paper.height - (appliedMV * 20);
@@ -403,13 +448,26 @@ export default function PosterGridEditor() {
     } catch (e) { console.error(e); toast({ variant: "destructive", title: "Error", description: "No se pudo generar el PDF." }); } finally { setIsExporting(false); }
   };
 
-  const physicalInfo = useMemo(() => getMeasures(rows, cols, overlap, marginV, marginH, paperSize, orientation, targetWidth, targetHeight), [image, rows, cols, overlap, marginV, marginH, paperSize, orientation, targetWidth, targetHeight]);
-  const draftInfo = useMemo(() => getMeasures(draftRows, draftCols, draftOverlap, draftMarginV, draftMarginH, draftPaperSize, draftOrientation, draftTargetWidth, draftTargetHeight), [image, draftRows, draftCols, draftOverlap, draftMarginV, draftMarginH, draftPaperSize, draftOrientation, draftTargetWidth, draftTargetHeight]);
+  const physicalInfo = useMemo(() => getMeasures(rows, cols, overlap, marginV, marginH, paperSize, orientation, targetWidth, targetHeight, customRollWidth, customRollLength), [image, rows, cols, overlap, marginV, marginH, paperSize, orientation, targetWidth, targetHeight, customRollWidth, customRollLength]);
+  const draftInfo = useMemo(() => getMeasures(draftRows, draftCols, draftOverlap, draftMarginV, draftMarginH, draftPaperSize, draftOrientation, draftTargetWidth, draftTargetHeight, draftCustomRollWidth, draftCustomRollLength), [image, draftRows, draftCols, draftOverlap, draftMarginV, draftMarginH, draftPaperSize, draftOrientation, draftTargetWidth, draftTargetHeight, draftCustomRollWidth, draftCustomRollLength]);
 
-  function getMeasures(r: number, c: number, ov: number, mV: number, mH: number, pS: string, orient: 'portrait' | 'landscape', tW: string, tH: string) {
+  function getMeasures(r: number, c: number, ov: number, mV: number, mH: number, pS: string, orient: 'portrait' | 'landscape', tW: string, tH: string, cW: number, cL: number) {
     if (!image) return null;
-    const paperBase = PAPER_DIMENSIONS[pS];
-    const paper = orient === 'portrait' ? { width: Math.min(paperBase.width, paperBase.height), height: Math.max(paperBase.width, paperBase.height) } : { width: Math.max(paperBase.width, paperBase.height), height: Math.min(paperBase.width, paperBase.height) };
+    let paper;
+    const targetW_mm = parseFloat(tW) * 10;
+    const targetH_mm = parseFloat(tH) * 10;
+
+    if (pS.includes('Personalizado')) {
+      if (targetW_mm <= targetH_mm) {
+        paper = { width: cW, height: cL };
+      } else {
+        paper = { width: cL, height: cW };
+      }
+    } else {
+      const paperBase = PAPER_DIMENSIONS[pS];
+      paper = orient === 'portrait' ? { width: Math.min(paperBase.width, paperBase.height), height: Math.max(paperBase.width, paperBase.height) } : { width: Math.max(paperBase.width, paperBase.height), height: Math.min(paperBase.width, paperBase.height) };
+    }
+
     const { appliedMH, appliedMV } = getAppliedMargins(orient, mV, mH);
     const printableW = paper.width - (appliedMH * 20);
     const printableH = paper.height - (appliedMV * 20);
@@ -418,12 +476,10 @@ export default function PosterGridEditor() {
     const effectiveH = printableH - overlapMm;
     const totalGridW = (c * effectiveW) + overlapMm;
     const totalGridH = (r * effectiveH) + overlapMm;
-    const finalW_mm = parseFloat(tW) * 10;
-    const finalH_mm = parseFloat(tH) * 10;
-    return { imgW: (finalW_mm / 10).toFixed(1), imgH: (finalH_mm / 10).toFixed(1), printableW: (printableW / 10).toFixed(1), printableH: (printableH / 10).toFixed(1), blankW: Math.max(0, (totalGridW - finalW_mm) / 10).toFixed(1), blankH: Math.max(0, (totalGridH - finalH_mm) / 10).toFixed(1) };
+    return { imgW: (targetW_mm / 10).toFixed(1), imgH: (targetH_mm / 10).toFixed(1), printableW: (printableW / 10).toFixed(1), printableH: (printableH / 10).toFixed(1), blankW: Math.max(0, (totalGridW - targetW_mm) / 10).toFixed(1), blankH: Math.max(0, (totalGridH - targetH_mm) / 10).toFixed(1) };
   }
 
-  const renderSettings = (currentRows: number, currentCols: number, currentOverlap: number, currentMarginV: number, currentMarginH: number, currentPaperSize: string, currentOrientation: 'portrait' | 'landscape', currentShowGuides: boolean, currentShowOutline: boolean, curWidth: string, curHeight: string, info: any, isLocked: boolean, isGiant: boolean, isMobile?: boolean) => (
+  const renderSettings = (currentRows: number, currentCols: number, currentOverlap: number, currentMarginV: number, currentMarginH: number, currentPaperSize: string, currentOrientation: 'portrait' | 'landscape', currentShowGuides: boolean, currentShowOutline: boolean, curWidth: string, curHeight: string, info: any, isLocked: boolean, isGiant: boolean, cW: number, cL: number, isMobile?: boolean) => (
     <div className={cn("space-y-6", isMobile ? "p-4 pt-1 pb-40" : "p-4")}>
       <div className="space-y-4">
         <div className="flex items-center justify-between">
@@ -482,24 +538,50 @@ export default function PosterGridEditor() {
           <Settings2 className="h-3.5 w-3.5 text-amber-600" /> {lang === 'es' ? 'Configuración de Impresión' : 'Print Configuration'}
         </h2>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1">
-            <Label className="text-[10px] font-black uppercase text-muted-foreground">{t.paperSize}</Label>
-            <Select value={currentPaperSize} onValueChange={(v) => { if (isMobile) setDraftPaperSize(v); else setPaperSize(v); setTimeout(() => syncGridFromTechnicalSettings(!!isMobile), 0); }}>
-              <SelectTriggerUI className="h-8 rounded-lg text-xs font-bold bg-card border-border/10"><SelectValue /></SelectTriggerUI>
-              <SelectContent>{Object.keys(PAPER_DIMENSIONS).map(key => <SelectItem key={key} value={key} className="text-xs font-bold">{key}</SelectItem>)}</SelectContent>
-            </Select>
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-[10px] font-black uppercase text-muted-foreground">{t.paperSize}</Label>
+              <Select value={currentPaperSize} onValueChange={(v) => { if (isMobile) setDraftPaperSize(v); else setPaperSize(v); setTimeout(() => syncGridFromTechnicalSettings(!!isMobile), 0); }}>
+                <SelectTriggerUI className="h-8 rounded-lg text-xs font-bold bg-card border-border/10"><SelectValue /></SelectTriggerUI>
+                <SelectContent>{Object.keys(PAPER_DIMENSIONS).map(key => <SelectItem key={key} value={key} className="text-xs font-bold">{key}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            {!currentPaperSize.includes('Personalizado') && (
+              <div className="space-y-1">
+                <Label className="text-[10px] font-black uppercase text-muted-foreground">{t.orientation}</Label>
+                <Select value={currentOrientation} onValueChange={(v: any) => { if (isMobile) setDraftOrientation(v); else setOrientation(v); setTimeout(() => syncGridFromTechnicalSettings(!!isMobile), 0); }}>
+                  <SelectTriggerUI className="h-8 rounded-lg text-xs font-bold bg-card border-border/10"><SelectValue /></SelectTriggerUI>
+                  <SelectContent>
+                    <SelectItem value="portrait" className="text-xs font-bold">{t.portrait}</SelectItem>
+                    <SelectItem value="landscape" className="text-xs font-bold">{t.landscape}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
-          <div className="space-y-1">
-            <Label className="text-[10px] font-black uppercase text-muted-foreground">{t.orientation}</Label>
-            <Select value={currentOrientation} onValueChange={(v: any) => { if (isMobile) setDraftOrientation(v); else setOrientation(v); setTimeout(() => syncGridFromTechnicalSettings(!!isMobile), 0); }}>
-              <SelectTriggerUI className="h-8 rounded-lg text-xs font-bold bg-card border-border/10"><SelectValue /></SelectTriggerUI>
-              <SelectContent>
-                <SelectItem value="portrait" className="text-xs font-bold">{t.portrait}</SelectItem>
-                <SelectItem value="landscape" className="text-xs font-bold">{t.landscape}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+
+          {currentPaperSize.includes('Personalizado') && (
+            <div className="bg-amber-500/5 p-4 rounded-xl border border-amber-500/10 space-y-4">
+              <div className="flex items-center gap-2 mb-1">
+                <ScrollText className="h-3.5 w-3.5 text-amber-600" />
+                <span className="text-[10px] font-black text-amber-700 uppercase tracking-widest">{lang === 'es' ? 'Ajustes de Rollo' : 'Roll Settings'}</span>
+              </div>
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <div className="flex justify-between"><Label className="text-[8px] font-bold text-muted-foreground uppercase">{t.rollWidth}</Label><span className="text-[10px] font-black text-amber-600">{cW/10} cm</span></div>
+                  <Slider value={[cW]} onValueChange={(v) => { if (isMobile) setDraftCustomRollWidth(v[0]); else setCustomRollWidth(v[0]); syncGridFromTechnicalSettings(!!isMobile); }} min={100} max={1600} step={1} />
+                </div>
+                <div className="space-y-1">
+                  <div className="flex justify-between"><Label className="text-[8px] font-bold text-muted-foreground uppercase">{t.rollLength}</Label><span className="text-[10px] font-black text-amber-600">{cL/10} cm</span></div>
+                  <Slider value={[cL]} onValueChange={(v) => { if (isMobile) setDraftCustomRollLength(v[0]); else setCustomRollLength(v[0]); syncGridFromTechnicalSettings(!!isMobile); }} min={100} max={5000} step={1} />
+                </div>
+              </div>
+              <p className="text-[8px] text-amber-600/80 font-medium leading-tight">
+                {t.rollDesc}
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -554,6 +636,10 @@ export default function PosterGridEditor() {
             <div className="p-3 bg-card border rounded-xl space-y-1"><h4 className="text-[10px] font-black text-primary uppercase">{t.posterSeoStep2Title}</h4><p className="text-[10px] text-muted-foreground font-medium">{t.posterSeoStep2Desc}</p></div>
             <div className="p-3 bg-card border rounded-xl space-y-1"><h4 className="text-[10px] font-black text-primary uppercase">{t.posterSeoStep3Title}</h4><p className="text-[10px] text-muted-foreground font-medium">{t.posterSeoStep3Desc}</p></div>
             <div className="p-3 bg-card border rounded-xl space-y-1"><h4 className="text-[10px] font-black text-primary uppercase">{t.posterSeoStep4Title}</h4><p className="text-[10px] text-muted-foreground font-medium">{t.posterSeoStep4Desc}</p></div>
+            <div className="p-3 bg-amber-500/5 border border-amber-500/20 rounded-xl space-y-1">
+              <h4 className="text-[10px] font-black text-amber-700 uppercase">Modo Rollo (Plotter)</h4>
+              <p className="text-[10px] text-muted-foreground font-medium">{lang === 'es' ? 'Define el ancho de tu rollo y el largo deseado. El sistema rota la hoja automáticamente según la imagen y añade tiras de papel si el ancho es insuficiente.' : 'Define your roll width and desired length. The system automatically rotates the sheet and adds strips if the width is exceeded.'}</p>
+            </div>
           </div>
         </CollapsibleContent>
       </Collapsible>
@@ -580,11 +666,11 @@ export default function PosterGridEditor() {
           ) : (
             <>
               {physicalInfo && (
-                <div className="absolute top-4 lg:top-6 left-1/2 -translate-x-1/2 z-20 pointer-events-none w-full max-w-5xl px-4 lg:px-8"><div className="bg-background/80 backdrop-blur-xl border border-primary/20 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.1)] px-4 lg:px-6 py-2 lg:py-3 rounded-2xl flex items-center justify-between pointer-events-auto animate-fade-in"><div className="flex items-center gap-3 lg:gap-6"><div className="flex flex-col"><span className="text-[6px] lg:text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">{t.finalMeasures}</span><div className="flex items-center gap-1.5 lg:gap-2"><Maximize2 className="h-2.5 w-2.5 lg:h-3.5 lg:w-3.5 text-primary" /><span className="text-xs lg:text-base font-black text-foreground">{physicalInfo.imgW} x {physicalInfo.imgH} cm</span></div></div><Separator orientation="vertical" className="h-6 lg:h-8 opacity-50" /><div className="flex flex-col"><span className="text-[6px] lg:text-[9px] font-black text-muted-foreground uppercase tracking-widest monolithic mb-1">Distribución</span><div className="flex items-center gap-1.5 lg:gap-2"><Layers className="h-2.5 w-2.5 lg:h-3.5 lg:w-3.5 text-amber-600" /><span className="text-xs lg:text-base font-black text-foreground">{rows * cols} <span className="hidden sm:inline">{lang === 'es' ? 'HOJAS' : 'SHEETS'}</span></span></div></div></div><div className="flex items-center gap-2 lg:gap-4"><div className="hidden sm:flex flex-col items-end mr-2"><span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">{t.paperSize}</span><span className="text-[11px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">{paperSize} {orientation === 'portrait' ? '(V)' : '(H)'}</span></div><Button variant="secondary" size="sm" onClick={() => setImage(null)} className="h-8 lg:h-10 text-[10px] lg:text-xs font-black uppercase gap-2 rounded-xl border border-border/50 shadow-sm"><RefreshCcw className="h-3.5 w-3.5" /><span className="hidden xs:inline">{lang === 'es' ? 'Cambiar Imagen' : 'Change Image'}</span></Button></div></div></div>
+                <div className="absolute top-4 lg:top-6 left-1/2 -translate-x-1/2 z-20 pointer-events-none w-full max-w-5xl px-4 lg:px-8"><div className="bg-background/80 backdrop-blur-xl border border-primary/20 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.1)] px-4 lg:px-6 py-2 lg:py-3 rounded-2xl flex items-center justify-between pointer-events-auto animate-fade-in"><div className="flex items-center gap-3 lg:gap-6"><div className="flex flex-col"><span className="text-[6px] lg:text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">{t.finalMeasures}</span><div className="flex items-center gap-1.5 lg:gap-2"><Maximize2 className="h-2.5 w-2.5 lg:h-3.5 lg:w-3.5 text-primary" /><span className="text-xs lg:text-base font-black text-foreground">{physicalInfo.imgW} x {physicalInfo.imgH} cm</span></div></div><Separator orientation="vertical" className="h-6 lg:h-8 opacity-50" /><div className="flex flex-col"><span className="text-[6px] lg:text-[9px] font-black text-muted-foreground uppercase tracking-widest monolithic mb-1">Distribución</span><div className="flex items-center gap-1.5 lg:gap-2"><Layers className="h-2.5 w-2.5 lg:h-3.5 lg:w-3.5 text-amber-600" /><span className="text-xs lg:text-base font-black text-foreground">{rows * cols} <span className="hidden sm:inline">{lang === 'es' ? 'HOJAS' : 'SHEETS'}</span></span></div></div></div><div className="flex items-center gap-2 lg:gap-4"><div className="hidden sm:flex flex-col items-end mr-2"><span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">{t.paperSize}</span><span className="text-[11px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">{paperSize} {!paperSize.includes('Personalizado') && (orientation === 'portrait' ? '(V)' : '(H)')}</span></div><Button variant="secondary" size="sm" onClick={() => setImage(null)} className="h-8 lg:h-10 text-[10px] lg:text-xs font-black uppercase gap-2 rounded-xl border border-border/50 shadow-sm"><RefreshCcw className="h-3.5 w-3.5" /><span className="hidden xs:inline">{lang === 'es' ? 'Cambiar Imagen' : 'Change Image'}</span></Button></div></div></div>
               )}
               <div className="w-full h-[calc(100svh-4rem)] p-4 lg:p-8 flex flex-col pt-16 lg:pt-24 overflow-hidden">
                 <div className="flex-1 min-h-0">
-                  <MuralCanvas imageUrl={image.url} rows={deferredRows} cols={deferredCols} overlap={deferredOverlap} marginV={deferredMarginV} marginH={deferredMarginH} paperSize={paperSize} orientation={orientation} showGuides={showGuides} showOutline={showOutline} imageWidth={parseFloat(targetWidth)} imageHeight={parseFloat(targetHeight)} />
+                  <MuralCanvas imageUrl={image.url} rows={deferredRows} cols={deferredCols} overlap={deferredOverlap} marginV={deferredMarginV} marginH={deferredMarginH} paperSize={paperSize} orientation={orientation} showGuides={showGuides} showOutline={showOutline} imageWidth={parseFloat(targetWidth)} imageHeight={parseFloat(targetHeight)} customPaperWidth={customRollWidth} customPaperHeight={customRollLength} />
                 </div>
                 <div className="lg:hidden mt-4 pb-4 w-full max-w-xl mx-auto shrink-0">
                   <Button className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-black gap-3 rounded-2xl shadow-xl transition-all active:scale-95 text-sm uppercase tracking-widest" onClick={handleExport} disabled={!image || isExporting}>
@@ -597,7 +683,7 @@ export default function PosterGridEditor() {
           )}
         </section>
         <aside className="hidden lg:block w-80 border-l border-border bg-background overflow-y-auto shadow-xl z-10 shrink-0 h-full">
-          {renderSettings(rows, cols, overlap, marginV, marginH, paperSize, orientation, showGuides, showOutline, targetWidth, targetHeight, physicalInfo, lockAspect, isGiantMode)}
+          {renderSettings(rows, cols, overlap, marginV, marginH, paperSize, orientation, showGuides, showOutline, targetWidth, targetHeight, physicalInfo, lockAspect, isGiantMode, customRollWidth, customRollLength)}
         </aside>
       </main>
 
@@ -623,7 +709,7 @@ export default function PosterGridEditor() {
             </Button>
           </div>
           <div className="flex-1 overflow-y-auto relative">
-            {renderSettings(draftRows, draftCols, draftOverlap, draftMarginV, draftMarginH, draftPaperSize, draftOrientation, draftShowGuides, draftShowOutline, draftTargetWidth, draftTargetHeight, draftInfo, draftLockAspect, draftGiantMode, true)}
+            {renderSettings(draftRows, draftCols, draftOverlap, draftMarginV, draftMarginH, draftPaperSize, draftOrientation, draftShowGuides, draftShowOutline, draftTargetWidth, draftTargetHeight, draftInfo, draftLockAspect, draftGiantMode, draftCustomRollWidth, draftCustomRollLength, true)}
             
             <Button 
               size="icon" 

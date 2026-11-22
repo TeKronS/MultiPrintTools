@@ -36,6 +36,11 @@ export const translations = {
     panelArea: 'Print Area/Panel',
     optimizationNote: 'Smart Optimization: System is using the most efficient layout.',
     keepAspectRatio: 'Keep Aspect Ratio',
+    // Roll / Custom sheet
+    customSheet: 'Custom (Roll)',
+    rollWidth: 'Roll Width (Fixed)',
+    rollLength: 'Cut Length (Variable)',
+    rollDesc: 'Ideal for plotters. Fixed dimension is roll width; variable is the length you want to cut.',
     // Home translations
     heroBadge: 'Flagship Tool: Poster Grid',
     heroTitlePrefix: 'Automate your ',
@@ -243,6 +248,11 @@ export const translations = {
     panelArea: 'Área Impresión/Panel',
     optimizationNote: 'Optimización Inteligente: El sistema calculó la orientación más eficiente.',
     keepAspectRatio: 'Mantener Proporción',
+    // Roll / Custom sheet
+    customSheet: 'Personalizado (Rollo)',
+    rollWidth: 'Ancho de Rollo (Fijo)',
+    rollLength: 'Largo de Corte (Variable)',
+    rollDesc: 'Ideal para plotters. La dimensión fija es el ancho del rollo; la variable es el largo que desees cortar.',
     // Home translations
     heroBadge: 'Herramienta Estrella: Cuadrícula Poster',
     heroTitlePrefix: 'Automatiza tu ',
@@ -282,7 +292,7 @@ export const translations = {
     imgToPdfSeoFit: 'Ajuste de Imagen: "Ajustar a la página" mantiene la foto íntegra dentro de los márgenes. "Rellenar página" expande la imagen para cubrir todo el espacio asignado (útil para diseños sin bordes, aunque puede recortar partes de la foto).',
     imgToPdfSeoAuto: 'Proceso Automatizado: Olvídate de acomodar fotos a mano. Sube tus archivos y deja que nuestro motor de diseño genere el layout perfecto al instante. Ideal para crear PDF de "varias fotos en una hoja".',
     // PDF to Word
-    pdfToWordTitle: 'PDF a Word',
+    pdfToWordTitle: 'PDF to Word',
     pdfToWordDesc: 'Extrae el texto de tus archivos PDF y conviértelos en documentos de Word editables (.docx).',
     selectPdf: 'Seleccionar archivo PDF',
     convertingPdf: 'Convirtiéndo PDF a Word...',
