@@ -191,7 +191,7 @@ export const translations = {
     textSeoTitle: 'Online Case Converter',
     textSeoIntro: 'Format your professional documents instantly. Convert to uppercase, lowercase, or sentence case with one click.',
     textSeoFeature1: 'Sentence Case: Automatically adds capital letters after periods.',
-    textSeoFeature2: 'Clean Text: Removes unnecessary formatting while keeping the content.',
+    textSeoFeature2: 'Spreadsheet Ready: The converter preserves tab and line breaks, making it perfect for processing entire columns from Excel or Google Sheets and pasting them back while maintaining the grid structure.',
     textSeoFeature3: 'Productivity: Ideal for copy centers, students, and writers who need to fix long texts quickly.',
     // About & Contact
     aboutTitle: 'About MultiPrintTools',
@@ -390,7 +390,7 @@ export const translations = {
     textSeoTitle: 'Convertidor de Mayúsculas Online',
     textSeoIntro: 'Formatea tus documentos profesionales al instante. Pasa a mayúsculas, minúsculas o tipo oración con un clic.',
     textSeoFeature1: 'Tipo Oración: Añade mayúsculas después de los puntos automáticamente.',
-    textSeoFeature2: 'Texto Limpio: Elimina formatos innecesarios manteniendo el contenido.',
+    textSeoFeature2: 'Ideal para Excel y Hojas de Cálculo: Nuestra herramienta respeta los saltos de línea y tabulaciones, permitiéndote procesar columnas enteras de datos y volver a pegarlas manteniendo cada dato en su celda original.',
     textSeoFeature3: 'Productividad: Ideal para imprentas, estudiantes y redactores que necesitan arreglar textos largos rápido.',
     // About & Contact
     aboutTitle: 'Sobre MultiPrintTools',
