@@ -324,11 +324,11 @@ export default function PdfToImageConverter() {
         </CollapsibleTrigger>
         <CollapsibleContent className="space-y-4 pt-4 text-left">
           <div className="space-y-1">
-            <h3 className="text-[10px] font-black text-foreground uppercase">{t.pdfToImgTitle}</h3>
-            <p className="text-[10px] text-muted-foreground font-medium leading-tight">Extrae imágenes de alta resolución de tus documentos PDF de forma segura y local.</p>
+            <h3 className="text-[10px] font-black text-foreground uppercase">{t.pdfToImgSeoTitle}</h3>
+            <p className="text-[10px] text-muted-foreground font-medium leading-tight">{t.pdfToImgSeoIntro}</p>
           </div>
           <div className="p-2 bg-card border rounded-lg">
-            <p className="text-[9px] text-muted-foreground leading-tight">Exporta a JPG o PNG con calidad profesional (300 DPI) para diseño gráfico o redes sociales.</p>
+            <p className="text-[9px] text-muted-foreground leading-tight">{t.pdfToImgSeoDetails}</p>
           </div>
         </CollapsibleContent>
       </Collapsible>
@@ -530,6 +530,14 @@ export default function PdfToImageConverter() {
                   <SheetDescription>Configura el formato y calidad de salida</SheetDescription>
                 </SheetHeader>
                 {renderSettingsContent()}
+                
+                <Button 
+                  size="icon" 
+                  className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-2xl bg-slate-800 text-white z-[210] border-4 border-white animate-in fade-in zoom-in-95 duration-200"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <Settings2 className="h-6 w-6" />
+                </Button>
               </SheetContent>
             </Sheet>
           </div>

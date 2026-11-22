@@ -120,6 +120,9 @@ export const translations = {
     convertingToImg: 'Converting to images...',
     format: 'Format',
     qualityImg: 'Image Quality',
+    pdfToImgSeoTitle: 'How to extract images from PDF or convert PDF to image?',
+    pdfToImgSeoIntro: 'Our tool allows you to transform PDF to image files (JPEG or PNG) with professional quality. Whether you need to extract photos from PDF documents or save entire pages as high-resolution images, our local processor ensures privacy and speed. It is the best way to get images out of a PDF without uploading to the cloud.',
+    pdfToImgSeoDetails: 'Export PDF to JPG at 300 DPI, perfect for graphic design, social media, or high-quality printing. Support for individual page selection and format control.',
     // Text Tools
     textToolsTitle: 'Case Converter',
     textToolsDesc: 'Change text case to uppercase, lowercase, sentence case, or capitalize words instantly.',
@@ -319,6 +322,9 @@ export const translations = {
     convertingToImg: 'Convirtiendo a imágenes...',
     format: 'Format',
     qualityImg: 'Calidad de Imagen',
+    pdfToImgSeoTitle: '¿Cómo sacar imágenes de un PDF o convertir PDF a imagen?',
+    pdfToImgSeoIntro: 'Nuestra herramienta te permite transformar un PDF a imagen (JPEG o PNG) con calidad profesional. Si necesitas extraer fotos de documentos PDF o convertir páginas completas en imágenes de alta resolución, nuestro procesador local garantiza privacidad y rapidez. Es la forma más fácil de pasar un PDF a JPG o PNG sin subir archivos a internet.',
+    pdfToImgSeoDetails: 'Exporta tus documentos a imágenes de 300 DPI, ideal para diseño gráfico, redes sociales o impresiones de alta calidad. Permite la selección de páginas específicas y control total del formato de salida.',
     // Text Tools
     textToolsTitle: 'Convertidor de Mayúsculas',
     textToolsDesc: 'Cambia el formato de tu texto a mayúsculas, minúsculas, mayúscula después de punto o capitalizado.',
@@ -391,7 +397,7 @@ export const translations = {
     textSeoIntro: 'Formatea tus documentos profesionales al instante. Pasa a mayúsculas, minúsculas o tipo oración con un clic.',
     textSeoFeature1: 'Tipo Oración: Añade mayúsculas después de los puntos automáticamente.',
     textSeoFeature2: 'Ideal para Excel y Hojas de Cálculo: Nuestra herramienta respeta los saltos de línea y tabulaciones, permitiéndote procesar columnas enteras de datos y volver a pegarlas manteniendo cada dato en su celda original.',
-    textSeoFeature3: 'Productividad: Ideal para imprentas, estudiantes y redactores que necesitan arreglar textos largos rápido.',
+    textSeoFeature3: 'Productivity: Ideal para imprentas, estudiantes y redactores que necesitan arreglar textos largos rápido.',
     // About & Contact
     aboutTitle: 'Sobre MultiPrintTools',
     aboutDesc: 'Una suite de herramientas digitales especializada para profesionales de la impresión y oficinas. Nuestro objetivo es facilitar tareas del trabajo como cuadrículas para pósters y gestión de PDFs. Priorizamos el procesamiento local en el navegador para la mayoría de herramientas, garantizando privacidad e independencia, y utilizamos servicios seguros en la nube solo para conversiones complejas cuando es necesario.',
