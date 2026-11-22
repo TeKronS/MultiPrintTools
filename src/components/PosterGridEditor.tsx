@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useDeferredValue, useMemo } from "react";
@@ -20,7 +21,9 @@ import {
   Maximize2,
   Ruler,
   Zap,
-  Square
+  Square,
+  Info,
+  ChevronDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -42,6 +45,11 @@ import {
   SheetTitle,
   SheetDescription
 } from "@/components/ui/sheet";
+import { 
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { jsPDF } from "jspdf";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -75,6 +83,7 @@ export default function PosterGridEditor() {
   const [showGuides, setShowGuides] = useState(true);
   const [showOutline, setShowOutline] = useState(false);
   const [lockAspect, setLockAspect] = useState(true);
+  const [isInfoOpen, setIsInfoOpen] = useState(false);
 
   const [targetWidth, setTargetWidth] = useState<string>('0');
   const [targetHeight, setTargetHeight] = useState<string>('0');
@@ -639,6 +648,49 @@ export default function PosterGridEditor() {
           <div className="flex justify-between items-center"><span className="text-[8px] font-bold text-muted-foreground uppercase">{t.blankSpace}</span><span className={cn("text-[10px] font-black", Number(info.blankW) > 0 || Number(info.blankH) > 0 ? "text-amber-600" : "text-muted-foreground")}>+{info.blankW}w / +{info.blankH}h cm</span></div>
         </div>
       )}
+
+      {/* SEO Section - Expandable */}
+      <Collapsible open={isInfoOpen} onOpenChange={setIsInfoOpen} className="mt-8">
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" className="w-full flex items-center justify-between p-4 bg-primary/5 hover:bg-primary/10 rounded-xl transition-all">
+            <div className="flex items-center gap-2">
+              <Info className="h-4 w-4 text-primary" />
+              <span className="text-[10px] font-black uppercase tracking-widest">{isInfoOpen ? t.closeInfo : t.learnMore}</span>
+            </div>
+            <ChevronDown className={cn("h-4 w-4 text-primary transition-transform", isInfoOpen ? "rotate-180" : "rotate-0")} />
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-6 pt-4 text-left">
+          <div className="space-y-2">
+            <h3 className="text-sm font-black text-foreground uppercase tracking-tight">{t.seoTitle}</h3>
+            <p className="text-xs text-muted-foreground leading-relaxed font-medium">{t.seoIntro}</p>
+          </div>
+          
+          <div className="grid gap-4">
+            <div className="p-3 bg-card border rounded-xl space-y-1">
+              <h4 className="text-[10px] font-black text-primary uppercase">{t.seoStep1Title}</h4>
+              <p className="text-[10px] text-muted-foreground font-medium">{t.seoStep1Desc}</p>
+            </div>
+            <div className="p-3 bg-card border rounded-xl space-y-1">
+              <h4 className="text-[10px] font-black text-primary uppercase">{t.seoStep2Title}</h4>
+              <p className="text-[10px] text-muted-foreground font-medium">{t.seoStep2Desc}</p>
+            </div>
+            <div className="p-3 bg-card border rounded-xl space-y-1">
+              <h4 className="text-[10px] font-black text-primary uppercase">{t.seoStep3Title}</h4>
+              <p className="text-[10px] text-muted-foreground font-medium">{t.seoStep3Desc}</p>
+            </div>
+            <div className="p-3 bg-card border rounded-xl space-y-1">
+              <h4 className="text-[10px] font-black text-primary uppercase">{t.seoStep4Title}</h4>
+              <p className="text-[10px] text-muted-foreground font-medium">{t.seoStep4Desc}</p>
+            </div>
+          </div>
+
+          <div className="space-y-2 pt-2">
+            <h3 className="text-xs font-black text-foreground uppercase tracking-tight">{t.seoWhyTitle}</h3>
+            <p className="text-[10px] text-muted-foreground leading-relaxed font-medium">{t.seoWhyDesc}</p>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   );
 
