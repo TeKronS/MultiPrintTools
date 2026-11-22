@@ -538,7 +538,7 @@ export default function PosterGridEditor() {
   const draftInfo = useMemo(() => getMeasures(draftRows, draftCols, draftOverlap, draftMarginV, draftMarginH, draftPaperSize, draftOrientation, draftTargetWidth, draftTargetHeight), [image, draftRows, draftCols, draftOverlap, draftMarginV, draftMarginH, draftPaperSize, draftOrientation, draftTargetWidth, draftTargetHeight]);
 
   const renderSettings = (currentRows: number, currentCols: number, currentOverlap: number, currentMarginV: number, currentMarginH: number, currentPaperSize: string, currentOrientation: 'portrait' | 'landscape', currentShowGuides: boolean, currentShowOutline: boolean, curWidth: string, curHeight: string, info: any, isLocked: boolean, isMobile?: boolean) => (
-    <div className={cn("space-y-6", isMobile ? "p-4 pt-1" : "p-4")}>
+    <div className={cn("space-y-6", isMobile ? "p-4 pt-1 pb-40" : "p-4")}>
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2 bg-card px-2 py-1 rounded-md shadow-sm border border-border/20">
@@ -755,8 +755,17 @@ export default function PosterGridEditor() {
               {isExporting ? "..." : t.export}
             </Button>
           </div>
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto relative">
             {renderSettings(draftRows, draftCols, draftOverlap, draftMarginV, draftMarginH, draftPaperSize, draftOrientation, draftShowGuides, draftShowOutline, draftTargetWidth, draftTargetHeight, draftInfo, draftLockAspect, true)}
+            
+            {/* Botón Espejo para cerrar el menú en la misma posición */}
+            <Button 
+              size="icon" 
+              className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-2xl bg-primary text-white z-[210] border-4 border-white animate-in fade-in zoom-in-95 duration-200"
+              onClick={() => handleMenuOpenChange(false)}
+            >
+              <Settings2 className="h-6 w-6" />
+            </Button>
           </div>
         </SheetContent>
       </Sheet>
