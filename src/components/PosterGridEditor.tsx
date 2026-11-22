@@ -52,6 +52,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { Badge } from "@/components/ui/badge";
 import { jsPDF } from "jspdf";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
