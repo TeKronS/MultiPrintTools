@@ -66,7 +66,7 @@ const PAPER_DIMENSIONS: Record<string, { width: number; height: number; format: 
   'Extra Oficio (38cm)': { width: 216, height: 380, format: 'extra-oficio' }
 };
 
-const MAX_GRID_DIM = 24; 
+const MAX_DIMENSION_CM = 500; 
 
 export default function PosterGridEditor() {
   const [mounted, setMounted] = useState(false);
@@ -205,90 +205,6 @@ export default function PosterGridEditor() {
       setRows(opt.rows);
       setCols(opt.cols);
       setOrientation(opt.orientation);
-    }
-  };
-
-  const handleRowsGridChange = (newRows: number, isDraft: boolean) => {
-    if (!image) return;
-    const isLocked = isDraft ? draftLockAspect : lockAspect;
-    const pS = isDraft ? draftPaperSize : paperSize;
-    const orient = isDraft ? draftOrientation : orientation;
-    const ov = isDraft ? draftOverlap : overlap;
-    const mV = isDraft ? draftMarginV : marginV;
-    const mH = isDraft ? draftMarginH : marginH;
-    
-    const paperBase = PAPER_DIMENSIONS[pS];
-    const paper = orient === 'portrait' 
-      ? { width: Math.min(paperBase.width, paperBase.height), height: Math.max(paperBase.width, paperBase.height) }
-      : { width: Math.max(paperBase.width, paperBase.height), height: Math.min(paperBase.width, paperBase.height) };
-
-    const { appliedMH, appliedMV } = getAppliedMargins(orient, mV, mH);
-    const printableH = paper.height - (appliedMV * 20);
-    const overlapMm = ov * 10;
-    const effectiveH = printableH - overlapMm;
-    const newH_mm = (newRows * effectiveH) + overlapMm;
-    
-    const setR = isDraft ? setDraftRows : setRows;
-    const setH = isDraft ? setDraftTargetHeight : setTargetHeight;
-    const setW = isDraft ? setDraftTargetWidth : setTargetWidth;
-    const setC = isDraft ? setDraftCols : setCols;
-
-    if (isLocked) {
-      const aspect = image.width / image.height;
-      const newW_mm = newH_mm * aspect;
-      const printableW = paper.width - (appliedMH * 20);
-      const effectiveW = printableW - overlapMm;
-      const neededCols = Math.ceil((newW_mm - overlapMm) / effectiveW);
-      
-      setR(newRows);
-      setC(Math.max(1, neededCols));
-      setW((newW_mm / 10).toFixed(1));
-      setH((newH_mm / 10).toFixed(1));
-    } else {
-      setR(newRows);
-      setH((newH_mm / 10).toFixed(1));
-    }
-  };
-
-  const handleColsGridChange = (newCols: number, isDraft: boolean) => {
-    if (!image) return;
-    const isLocked = isDraft ? draftLockAspect : lockAspect;
-    const pS = isDraft ? draftPaperSize : paperSize;
-    const orient = isDraft ? draftOrientation : orientation;
-    const ov = isDraft ? draftOverlap : overlap;
-    const mV = isDraft ? draftMarginV : marginV;
-    const mH = isDraft ? draftMarginH : marginH;
-
-    const paperBase = PAPER_DIMENSIONS[pS];
-    const paper = orient === 'portrait' 
-      ? { width: Math.min(paperBase.width, paperBase.height), height: Math.max(paperBase.width, paperBase.height) }
-      : { width: Math.max(paperBase.width, paperBase.height), height: Math.min(paperBase.width, paperBase.height) };
-
-    const { appliedMH, appliedMV } = getAppliedMargins(orient, mV, mH);
-    const printableW = paper.width - (appliedMH * 20);
-    const overlapMm = ov * 10;
-    const effectiveW = printableW - overlapMm;
-    const newW_mm = (newCols * effectiveW) + overlapMm;
-    
-    const setC = isDraft ? setDraftCols : setCols;
-    const setW = isDraft ? setDraftTargetWidth : setTargetWidth;
-    const setR = isDraft ? setDraftRows : setRows;
-    const setH = isDraft ? setDraftTargetHeight : setTargetHeight;
-
-    if (isLocked) {
-      const aspect = image.width / image.height;
-      const newH_mm = newW_mm / aspect;
-      const printableH = paper.height - (appliedMV * 20);
-      const effectiveH = printableH - overlapMm;
-      const neededRows = Math.ceil((newH_mm - overlapMm) / effectiveH);
-      
-      setC(newCols);
-      setR(Math.max(1, neededRows));
-      setW((newW_mm / 10).toFixed(1));
-      setH((newH_mm / 10).toFixed(1));
-    } else {
-      setC(newCols);
-      setW((newW_mm / 10).toFixed(1));
     }
   };
 
@@ -550,18 +466,29 @@ export default function PosterGridEditor() {
           </div>
         </div>
         
-        <div className="bg-card p-4 rounded-xl border border-primary/10 shadow-sm space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
+        <div className="bg-card p-4 rounded-xl border border-primary/10 shadow-sm space-y-4">
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
               <Label className="text-[8px] font-bold text-muted-foreground uppercase">{t.width} (cm)</Label>
-              <Input type="number" value={curWidth} onChange={(e) => handleWidthChange(e.target.value, !!isMobile)} min="0.1" step="0.1" className="h-9 font-black text-sm text-primary bg-primary/5 border-primary/20" />
+              <span className="text-xs font-black text-primary">{curWidth} cm</span>
             </div>
-            <div className="space-y-1">
-              <Label className="text-[8px] font-bold text-muted-foreground uppercase">{t.height} (cm)</Label>
-              <Input type="number" value={curHeight} onChange={(e) => handleHeightChange(e.target.value, !!isMobile)} min="0.1" step="0.1" className="h-9 font-black text-sm text-primary bg-primary/5 border-primary/20" />
+            <div className="flex items-center gap-3">
+              <Input type="number" value={curWidth} onChange={(e) => handleWidthChange(e.target.value, !!isMobile)} min="0.1" step="0.1" className="w-20 h-8 font-black text-xs text-primary bg-primary/5 border-primary/20" />
+              <Slider value={[parseFloat(curWidth) || 0]} onValueChange={(v) => handleWidthChange(v[0].toString(), !!isMobile)} min={1} max={MAX_DIMENSION_CM} step={0.1} className="flex-1" />
             </div>
           </div>
-          <p className="text-[9px] text-muted-foreground font-medium leading-tight">{lang === 'es' ? 'Puedes anchear o alargar la imagen desactivando el candado.' : 'You can stretch or squash the image by disabling the lock.'}</p>
+
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <Label className="text-[8px] font-bold text-muted-foreground uppercase">{t.height} (cm)</Label>
+              <span className="text-xs font-black text-primary">{curHeight} cm</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <Input type="number" value={curHeight} onChange={(e) => handleHeightChange(e.target.value, !!isMobile)} min="0.1" step="0.1" className="w-20 h-8 font-black text-xs text-primary bg-primary/5 border-primary/20" />
+              <Slider value={[parseFloat(curHeight) || 0]} onValueChange={(v) => handleHeightChange(v[0].toString(), !!isMobile)} min={1} max={MAX_DIMENSION_CM} step={0.1} className="flex-1" />
+            </div>
+          </div>
+          <p className="text-[9px] text-muted-foreground font-medium leading-tight">{lang === 'es' ? 'Desliza las barras para ajustar el tamaño real. La cuadrícula se adaptará automáticamente.' : 'Slide the bars to adjust the real size. The grid will adapt automatically.'}</p>
         </div>
       </div>
 
@@ -569,7 +496,7 @@ export default function PosterGridEditor() {
 
       <div className="space-y-4">
         <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2 bg-card px-2 py-1 rounded-md shadow-sm border border-border/20">
-          <Settings2 className="h-3.5 w-3.5 text-amber-600" /> {lang === 'es' ? 'Configuración de Cuadrícula' : 'Grid Configuration'}
+          <Settings2 className="h-3.5 w-3.5 text-amber-600" /> {lang === 'es' ? 'Configuración de Impresión' : 'Print Configuration'}
         </h2>
 
         <div className="grid grid-cols-2 gap-3">
@@ -589,30 +516,6 @@ export default function PosterGridEditor() {
                 <SelectItem value="landscape" className="text-xs font-bold">{t.landscape}</SelectItem>
               </SelectContent>
             </Select>
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <div className="flex justify-between items-center">
-            <Label className="text-[10px] font-black uppercase text-muted-foreground">{t.rows}</Label>
-            <span className="text-xs font-black text-primary">{currentRows}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10" onClick={() => handleRowsGridChange(Math.max(1, currentRows - 1), !!isMobile)}><Minus className="h-3 w-3" /></Button>
-            <Slider value={[currentRows]} onValueChange={(v) => handleRowsGridChange(v[0], !!isMobile)} min={1} max={MAX_GRID_DIM} step={1} className="flex-1" />
-            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10" onClick={() => handleRowsGridChange(Math.min(MAX_GRID_DIM, currentRows + 1), !!isMobile)}><Plus className="h-3 w-3" /></Button>
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <div className="flex justify-between items-center">
-            <Label className="text-[10px] font-black uppercase text-muted-foreground">{t.columns}</Label>
-            <span className="text-xs font-black text-primary">{currentCols}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10" onClick={() => handleColsGridChange(Math.max(1, currentCols - 1), !!isMobile)}><Minus className="h-3 w-3" /></Button>
-            <Slider value={[currentCols]} onValueChange={(v) => handleColsGridChange(v[0], !!isMobile)} min={1} max={MAX_GRID_DIM} step={1} className="flex-1" />
-            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10" onClick={() => handleColsGridChange(Math.min(MAX_GRID_DIM, currentCols + 1), !!isMobile)}><Plus className="h-3 w-3" /></Button>
           </div>
         </div>
 
@@ -641,7 +544,7 @@ export default function PosterGridEditor() {
           <div className="flex items-center gap-2"><Ruler className="h-3 w-3 text-muted-foreground" /><span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{lang === 'es' ? 'Resumen de Impresión' : 'Print Summary'}</span></div>
           <div className="grid grid-cols-2 gap-3">
             <div><span className="text-[8px] font-bold text-muted-foreground uppercase block">{lang === 'es' ? 'Imagen Final' : 'Final Image'}</span><span className="text-xs font-black text-primary">{info.imgW} x {info.imgH} cm</span></div>
-            <div><span className="text-[8px] font-bold text-muted-foreground uppercase block">{t.panelArea}</span><span className="text-xs font-black text-foreground">{info.printableW} x {info.printableH} cm</span></div>
+            <div><span className="text-[8px] font-bold text-muted-foreground uppercase block">Distribución</span><span className="text-xs font-black text-foreground">{currentRows}x{currentCols} Hojas</span></div>
           </div>
           <Separator className="opacity-20" />
           <div className="flex justify-between items-center"><span className="text-[8px] font-bold text-muted-foreground uppercase">{t.blankSpace}</span><span className={cn("text-[10px] font-black", Number(info.blankW) > 0 || Number(info.blankH) > 0 ? "text-amber-600" : "text-muted-foreground")}>+{info.blankW}w / +{info.blankH}h cm</span></div>
@@ -713,7 +616,7 @@ export default function PosterGridEditor() {
           ) : (
             <>
               {physicalInfo && (
-                <div className="absolute top-4 lg:top-6 left-1/2 -translate-x-1/2 z-20 pointer-events-none w-full max-w-5xl px-4 lg:px-8"><div className="bg-background/80 backdrop-blur-xl border border-primary/20 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.1)] px-4 lg:px-6 py-2 lg:py-3 rounded-2xl flex items-center justify-between pointer-events-auto animate-fade-in"><div className="flex items-center gap-3 lg:gap-6"><div className="flex flex-col"><span className="text-[6px] lg:text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">{t.finalMeasures}</span><div className="flex items-center gap-1.5 lg:gap-2"><Maximize2 className="h-2.5 w-2.5 lg:h-3.5 lg:w-3.5 text-primary" /><span className="text-xs lg:text-base font-black text-foreground">{physicalInfo.imgW} x {physicalInfo.imgH} cm</span></div></div><Separator orientation="vertical" className="h-6 lg:h-8 opacity-50" /><div className="flex flex-col"><span className="text-[6px] lg:text-[9px] font-black text-muted-foreground uppercase tracking-widest monolithic mb-1">Paneles</span><div className="flex items-center gap-1.5 lg:gap-2"><Layers className="h-2.5 w-2.5 lg:h-3.5 lg:w-3.5 text-amber-600" /><span className="text-xs lg:text-base font-black text-foreground">{rows * cols} <span className="hidden sm:inline">{lang === 'es' ? 'HOJAS' : 'SHEETS'}</span></span></div></div></div><div className="flex items-center gap-2 lg:gap-4"><div className="hidden sm:flex flex-col items-end mr-2"><span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">{t.paperSize}</span><span className="text-[11px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">{paperSize} {orientation === 'portrait' ? '(V)' : '(H)'}</span></div><Button variant="secondary" size="sm" onClick={() => setImage(null)} className="h-8 lg:h-10 text-[10px] lg:text-xs font-black uppercase gap-2 rounded-xl border border-border/50 shadow-sm"><RefreshCcw className="h-3.5 w-3.5" /><span className="hidden xs:inline">{lang === 'es' ? 'Cambiar Imagen' : 'Change Image'}</span></Button></div></div></div>
+                <div className="absolute top-4 lg:top-6 left-1/2 -translate-x-1/2 z-20 pointer-events-none w-full max-w-5xl px-4 lg:px-8"><div className="bg-background/80 backdrop-blur-xl border border-primary/20 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.1)] px-4 lg:px-6 py-2 lg:py-3 rounded-2xl flex items-center justify-between pointer-events-auto animate-fade-in"><div className="flex items-center gap-3 lg:gap-6"><div className="flex flex-col"><span className="text-[6px] lg:text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">{t.finalMeasures}</span><div className="flex items-center gap-1.5 lg:gap-2"><Maximize2 className="h-2.5 w-2.5 lg:h-3.5 lg:w-3.5 text-primary" /><span className="text-xs lg:text-base font-black text-foreground">{physicalInfo.imgW} x {physicalInfo.imgH} cm</span></div></div><Separator orientation="vertical" className="h-6 lg:h-8 opacity-50" /><div className="flex flex-col"><span className="text-[6px] lg:text-[9px] font-black text-muted-foreground uppercase tracking-widest monolithic mb-1">Distribución</span><div className="flex items-center gap-1.5 lg:gap-2"><Layers className="h-2.5 w-2.5 lg:h-3.5 lg:w-3.5 text-amber-600" /><span className="text-xs lg:text-base font-black text-foreground">{rows * cols} <span className="hidden sm:inline">{lang === 'es' ? 'HOJAS' : 'SHEETS'}</span></span></div></div></div><div className="flex items-center gap-2 lg:gap-4"><div className="hidden sm:flex flex-col items-end mr-2"><span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">{t.paperSize}</span><span className="text-[11px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">{paperSize} {orientation === 'portrait' ? '(V)' : '(H)'}</span></div><Button variant="secondary" size="sm" onClick={() => setImage(null)} className="h-8 lg:h-10 text-[10px] lg:text-xs font-black uppercase gap-2 rounded-xl border border-border/50 shadow-sm"><RefreshCcw className="h-3.5 w-3.5" /><span className="hidden xs:inline">{lang === 'es' ? 'Cambiar Imagen' : 'Change Image'}</span></Button></div></div></div>
               )}
               <div className="w-full h-[calc(100svh-4rem)] p-4 lg:p-8 flex flex-col pt-16 lg:pt-24 overflow-hidden">
                 <div className="flex-1 min-h-0">
@@ -721,7 +624,7 @@ export default function PosterGridEditor() {
                 </div>
                 <div className="lg:hidden mt-4 pb-4 w-full max-w-xl mx-auto shrink-0">
                   <Button className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-black gap-3 rounded-2xl shadow-xl transition-all active:scale-95 text-sm uppercase tracking-widest" onClick={handleExport} disabled={!image || isExporting}>
-                    {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+                    {isExporting ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileDown className="h-4 w-4" />}
                     {isExporting ? "Generando PDF..." : t.export}
                   </Button>
                 </div>
@@ -758,7 +661,6 @@ export default function PosterGridEditor() {
           <div className="flex-1 overflow-y-auto relative">
             {renderSettings(draftRows, draftCols, draftOverlap, draftMarginV, draftMarginH, draftPaperSize, draftOrientation, draftShowGuides, draftShowOutline, draftTargetWidth, draftTargetHeight, draftInfo, draftLockAspect, true)}
             
-            {/* Botón Espejo para cerrar el menú en la misma posición */}
             <Button 
               size="icon" 
               className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-2xl bg-primary text-white z-[210] border-4 border-white animate-in fade-in zoom-in-95 duration-200"
