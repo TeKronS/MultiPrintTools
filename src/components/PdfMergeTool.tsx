@@ -520,7 +520,7 @@ export default function PdfMergeTool() {
         </aside>
 
         {!isPreviewOpen && (
-          <div className="md:hidden fixed bottom-6 left-6 right-6 z-[100] animate-in slide-in-from-bottom-10 flex gap-3 pointer-events-auto">
+          <div className="md:hidden fixed bottom-6 left-6 right-6 z-[100] animate-in slide-in-from-bottom-10 flex gap-3 pointer-events-auto justify-end">
             {files.length > 0 && (
                <div className="flex-1 bg-card/90 backdrop-blur-md p-2 rounded-2xl border border-border shadow-2xl flex items-center justify-between">
                 <div className="flex gap-2">

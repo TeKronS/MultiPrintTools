@@ -659,9 +659,13 @@ export default function StickerSheetEditor() {
           {stickers.length > 0 && !isCropping && (<div className="p-6 border-t bg-muted/50"><Button className="w-full h-14 bg-yellow-600 hover:bg-yellow-700 text-white font-black rounded-2xl shadow-xl shadow-yellow-600/20 uppercase tracking-widest text-xs gap-3 transition-all active:scale-95" onClick={exportPdf} disabled={isExporting}>{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}{isExporting ? "Generando..." : "Descargar Plancha PDF"}</Button></div>)}
         </aside>
 
-        {stickers.length > 0 && !isCropping && (
-          <div className="lg:hidden fixed bottom-6 left-6 right-6 z-[40] flex gap-3 pointer-events-auto">
-            <div className="flex-1"><Button className="w-full h-14 bg-yellow-600 hover:bg-yellow-700 text-white font-black rounded-2xl shadow-xl shadow-yellow-600/20 uppercase tracking-widest text-sm gap-3 border-4 border-white/10" onClick={exportPdf} disabled={isExporting}>{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}{isExporting ? "..." : "Exportar"}</Button></div>
+        {!isCropping && (
+          <div className="lg:hidden fixed bottom-6 left-6 right-6 z-[100] flex gap-3 pointer-events-auto justify-end">
+            {stickers.length > 0 && (
+              <div className="flex-1">
+                <Button className="w-full h-14 bg-yellow-600 hover:bg-yellow-700 text-white font-black rounded-2xl shadow-xl shadow-yellow-600/20 uppercase tracking-widest text-sm gap-3 border-4 border-white/10" onClick={exportPdf} disabled={isExporting}>{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}{isExporting ? "..." : "Exportar"}</Button>
+              </div>
+            )}
             <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
               <Button 
                 size="icon" 
@@ -674,13 +678,12 @@ export default function StickerSheetEditor() {
                 <SheetHeader className="sr-only"><SheetTitle>Ajustes de Plancha</SheetTitle><SheetDescription>Configura tamaños, papel y espaciado</SheetDescription></SheetHeader>
                 
                 <div className="p-4 bg-yellow-500/5 border-b shrink-0 flex items-center justify-between">
-                  <Button className="flex-1 h-12 bg-yellow-600 hover:bg-yellow-700 text-white font-black rounded-xl shadow-lg transition-all active:scale-95 text-xs uppercase tracking-widest gap-2" onClick={exportPdf} disabled={isExporting}>{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}{isExporting ? "..." : "Exportar PDF"}</Button>
+                  <Button className="flex-1 h-12 bg-yellow-600 hover:bg-yellow-700 text-white font-black rounded-xl shadow-lg transition-all active:scale-95 text-xs uppercase tracking-widest gap-2" onClick={exportPdf} disabled={stickers.length === 0 || isExporting}>{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}{isExporting ? "..." : "Exportar PDF"}</Button>
                 </div>
 
                 <div className="flex-1 overflow-y-auto relative">
                   {renderSettings(true)}
                   
-                  {/* Botón Espejo para cerrar el menú en la misma posición */}
                   <Button 
                     size="icon" 
                     className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-2xl bg-slate-800 text-white z-[210] border-4 border-white animate-in fade-in zoom-in-95 duration-200"

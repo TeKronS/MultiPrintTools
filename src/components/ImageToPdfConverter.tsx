@@ -709,7 +709,7 @@ export default function ImageToPdfConverter() {
           {renderSettingsContent()}
         </aside>
 
-        <div className="lg:hidden fixed bottom-6 left-6 right-6 z-[100] flex gap-3 pointer-events-auto">
+        <div className="lg:hidden fixed bottom-6 left-6 right-6 z-[100] flex gap-3 pointer-events-auto justify-end">
           {expandedImagesList.length > 0 && (
             <div className="flex-1">
               <Button 
