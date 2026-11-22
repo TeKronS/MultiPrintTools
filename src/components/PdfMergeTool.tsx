@@ -86,6 +86,22 @@ export default function PdfMergeTool() {
     }
   }, []);
 
+  // Handle mobile back button to close menu/preview
+  useEffect(() => {
+    if (isPreviewOpen) {
+      window.history.pushState({ previewOpen: true }, '');
+    }
+
+    const handlePopState = () => {
+      if (isPreviewOpen) {
+        setIsPreviewOpen(false);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [isPreviewOpen]);
+
   const generateThumbnail = async (blob: Blob) => {
     try {
       const arrayBuffer = await blob.arrayBuffer();
@@ -399,8 +415,8 @@ export default function PdfMergeTool() {
           </div>
         </div>
 
-        <aside className="hidden md:flex w-80 bg-card border-l border-border flex-col shrink-0 shadow-2xl z-20 p-6">
-          <div className="flex-1 space-y-6">
+        <aside className="hidden md:flex w-80 bg-card border-l border-border flex-col shrink-0 shadow-2xl z-20">
+          <div className="flex-1 overflow-y-auto p-6 space-y-6">
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4 text-emerald-500" />
@@ -469,10 +485,10 @@ export default function PdfMergeTool() {
             </Collapsible>
           </div>
 
-          <div className="pt-6 space-y-3">
+          <div className="p-6 pt-2 border-t bg-muted/50 space-y-3 shrink-0">
             <Button 
               variant="outline"
-              className="w-full h-12 border-2 border-indigo-200 hover:border-indigo-500 text-indigo-600 font-black rounded-xl gap-2 uppercase tracking-widest text-[10px] transition-all active:scale-95"
+              className="w-full h-11 border-2 border-indigo-200 hover:border-indigo-500 text-indigo-600 font-black rounded-xl gap-2 uppercase tracking-widest text-[10px] transition-all active:scale-95"
               onClick={handlePreviewMerged}
               disabled={files.length < 2 || isMerging}
             >
@@ -480,7 +496,7 @@ export default function PdfMergeTool() {
               {t.preview}
             </Button>
             <Button 
-              className="w-full h-14 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-2xl shadow-xl shadow-indigo-500/20 uppercase tracking-widest text-xs gap-3 transition-all active:scale-95"
+              className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl shadow-xl shadow-indigo-500/20 uppercase tracking-widest text-xs gap-3 transition-all active:scale-95"
               onClick={mergeAndDownload}
               disabled={files.length < 2 || isMerging}
             >
