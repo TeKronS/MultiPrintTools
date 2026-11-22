@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -520,7 +519,7 @@ export default function PdfMergeTool() {
         </aside>
 
         {!isPreviewOpen && (
-          <div className="md:hidden fixed bottom-6 left-6 right-6 z-[100] animate-in slide-in-from-bottom-10 flex gap-3 pointer-events-auto justify-end">
+          <div className="md:hidden fixed bottom-6 left-6 right-6 z-[40] animate-in slide-in-from-bottom-10 flex gap-3 pointer-events-auto justify-end">
             {files.length > 0 && (
                <div className="flex-1 bg-card/90 backdrop-blur-md p-2 rounded-2xl border border-border shadow-2xl flex items-center justify-between">
                 <div className="flex gap-2">
@@ -558,14 +557,17 @@ export default function PdfMergeTool() {
               </Button>
               <SheetContent 
                 side="right" 
-                className="w-[85%] sm:w-[350px] p-6 bg-card backdrop-blur-xl shadow-2xl overflow-y-auto"
+                className="w-[85%] sm:w-[350px] p-0 bg-card backdrop-blur-xl shadow-2xl overflow-hidden flex flex-col z-[150]"
                 onOpenAutoFocus={(e) => e.preventDefault()}
               >
                 <SheetHeader className="sr-only">
                   <SheetTitle>Ajustes de Combinación</SheetTitle>
                   <SheetDescription>Configura el PDF resultante</SheetDescription>
                 </SheetHeader>
-                {renderSettingsContent()}
+                
+                <div className="flex-1 overflow-y-auto p-6 relative">
+                  {renderSettingsContent()}
+                </div>
                 
                 <Button 
                   size="icon" 

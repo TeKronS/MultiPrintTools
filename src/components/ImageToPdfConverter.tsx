@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useRef, useMemo, useEffect, useDeferredValue } from "react";
@@ -482,7 +481,6 @@ export default function ImageToPdfConverter() {
         >
           {t.clearAll}
         </Button>
-        <div className="h-32 sm:h-0" />
       </div>
     </div>
   );
@@ -709,7 +707,7 @@ export default function ImageToPdfConverter() {
           {renderSettingsContent()}
         </aside>
 
-        <div className="lg:hidden fixed bottom-6 left-6 right-6 z-[100] flex gap-3 pointer-events-auto justify-end">
+        <div className="lg:hidden fixed bottom-6 left-6 right-6 z-[40] flex gap-3 pointer-events-auto justify-end">
           {expandedImagesList.length > 0 && (
             <div className="flex-1">
               <Button 
@@ -733,7 +731,7 @@ export default function ImageToPdfConverter() {
                 <Settings2 className="h-6 w-6" />
               </Button>
             </div>
-            <SheetContent side="right" className="w-[85%] sm:w-[400px] p-0 bg-background/80 backdrop-blur-xl shadow-2xl overflow-hidden flex flex-col">
+            <SheetContent side="right" className="w-[85%] sm:w-[400px] p-0 bg-background/80 backdrop-blur-xl shadow-2xl overflow-hidden flex flex-col z-[150]">
               <SheetHeader className="sr-only">
                 <SheetTitle>Configuración</SheetTitle>
                 <SheetDescription>Ajustes de exportación a PDF</SheetDescription>
@@ -752,15 +750,15 @@ export default function ImageToPdfConverter() {
 
               <div className="flex-1 overflow-y-auto p-5 relative">
                 {renderSettingsContent()}
-
-                <Button 
-                  size="icon" 
-                  className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-2xl bg-primary text-white z-[210] border-4 border-white animate-in fade-in zoom-in-95 duration-200"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  <Settings2 className="h-6 w-6" />
-                </Button>
               </div>
+
+              <Button 
+                size="icon" 
+                className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-2xl bg-primary text-white z-[210] border-4 border-white animate-in fade-in zoom-in-95 duration-200"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <Settings2 className="h-6 w-6" />
+              </Button>
             </SheetContent>
           </Sheet>
         </div>
