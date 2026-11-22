@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useDeferredValue, useMemo } from "react";
@@ -72,7 +71,7 @@ const PAPER_DIMENSIONS: Record<string, { width: number; height: number; format: 
 
 const DEFAULT_MAX_CM = 200;
 const GIANT_MAX_CM = 500;
-const MAX_ROLL_LENGTH_MM = 5000; // 5 metros es el límite razonable para PDF/Plotter
+const MAX_ROLL_LENGTH_MM = 5000;
 
 export default function PosterGridEditor() {
   const [mounted, setMounted] = useState(false);
@@ -92,8 +91,7 @@ export default function PosterGridEditor() {
   const [isGiantMode, setIsGiantMode] = useState(false);
   const [isInfoOpen, setIsInfoOpen] = useState(false);
 
-  // Custom roll dimensions (mm)
-  const [customRollWidth, setCustomRollWidth] = useState(215.9); // Default Letter width
+  const [customRollWidth, setCustomRollWidth] = useState(215.9);
   const [customRollLength, setCustomRollLength] = useState(1000);
 
   const [targetWidth, setTargetWidth] = useState<string>('0');
@@ -128,26 +126,8 @@ export default function PosterGridEditor() {
   useEffect(() => {
     setMounted(true);
     const savedLang = localStorage.getItem('pref-lang') as Language;
-    if (savedLang === 'en' || savedLang === 'es') {
-      setLang(savedLang);
-    } else {
-      const browserLang = navigator.language.split('-')[0];
-      if (browserLang === 'en') setLang('en');
-    }
+    if (savedLang === 'en' || savedLang === 'es') setLang(savedLang);
   }, []);
-
-  useEffect(() => {
-    if (isMenuOpen) {
-      window.history.pushState({ menuOpen: true }, '');
-    }
-    const handlePopState = () => {
-      if (isMenuOpen) {
-        setIsMenuOpen(false);
-      }
-    };
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, [isMenuOpen]);
 
   const t = translations[lang];
 
@@ -176,97 +156,58 @@ export default function PosterGridEditor() {
       let calculatedLength = 0;
       
       if (pSize.includes('Personalizado')) {
-        // Roll Logic: cW_mm is the fixed width.
-        // We calculate how much length we need for the target image.
         const rollWidth = cW_mm || 215.9;
-        
-        // Auto-orient roll to match image best
-        // If image is horizontal, we treat roll length as the wide dimension
         if (targetW_mm > targetH_mm) {
           paper = { width: MAX_ROLL_LENGTH_MM, height: rollWidth };
         } else {
           paper = { width: rollWidth, height: MAX_ROLL_LENGTH_MM };
         }
-
         const { appliedMH, appliedMV } = getAppliedMargins(orient, mV_cm, mH_cm);
         const printableW = (targetW_mm > targetH_mm ? paper.height : paper.width) - (appliedMH * 20);
         const printableH = (targetW_mm > targetH_mm ? paper.width : paper.height) - (appliedMV * 20);
-        
         const effectiveW = printableW - overlap_mm;
         const effectiveH = printableH - overlap_mm;
-
         const c = Math.ceil((targetW_mm - overlap_mm) / effectiveW);
         const r = Math.ceil((targetH_mm - overlap_mm) / effectiveH);
-
-        // Calculate dynamic length to use just enough roll
         calculatedLength = Math.min(MAX_ROLL_LENGTH_MM, (targetW_mm > targetH_mm ? targetW_mm : targetH_mm) + (appliedMV * 20) + overlap_mm);
-        
-        return { 
-          rows: Math.max(1, r), 
-          cols: Math.max(1, c), 
-          total: Math.max(1, r) * Math.max(1, c),
-          orientation: orient,
-          dynamicLength: calculatedLength
-        };
+        return { rows: Math.max(1, r), cols: Math.max(1, c), total: r * c, orientation: orient, dynamicLength: calculatedLength };
       } else {
         const paperBase = PAPER_DIMENSIONS[pSize];
         paper = orient === 'portrait' 
           ? { width: Math.min(paperBase.width, paperBase.height), height: Math.max(paperBase.width, paperBase.height) }
           : { width: Math.max(paperBase.width, paperBase.height), height: Math.min(paperBase.width, paperBase.height) };
-
         const { appliedMH, appliedMV } = getAppliedMargins(orient, mV_cm, mH_cm);
         const printableW = paper.width - (appliedMH * 20);
         const printableH = paper.height - (appliedMV * 20);
         const effectiveW = printableW - overlap_mm;
         const effectiveH = printableH - overlap_mm;
-
         const c = Math.ceil((targetW_mm - overlap_mm) / effectiveW);
         const r = Math.ceil((targetH_mm - overlap_mm) / effectiveH);
-        
-        return { 
-          rows: Math.max(1, r), 
-          cols: Math.max(1, c), 
-          total: Math.max(1, r) * Math.max(1, c),
-          orientation: orient
-        };
+        return { rows: Math.max(1, r), cols: Math.max(1, c), total: r * c, orientation: orient };
       }
     };
 
     const pResults = calcForOrientation('portrait');
     const lResults = calcForOrientation('landscape');
-    
-    // Choose orientation that minimizes total sheets
     const best = pResults.total <= lResults.total ? pResults : lResults;
-    
     if (pSize.includes('Personalizado') && best.dynamicLength) {
-      if (isMenuOpen) setDraftCustomRollLength(best.dynamicLength);
-      else setCustomRollLength(best.dynamicLength);
+      if (isMenuOpen) setDraftCustomRollLength(best.dynamicLength); else setCustomRollLength(best.dynamicLength);
     }
-    
     return best;
   };
 
   const syncGridFromTechnicalSettings = (isDraft: boolean) => {
     if (!image) return;
-    const curWidthStr = isDraft ? draftTargetWidth : targetWidth;
-    const curHeightStr = isDraft ? draftTargetHeight : targetHeight;
+    const curWStr = isDraft ? draftTargetWidth : targetWidth;
+    const curHStr = isDraft ? draftTargetHeight : targetHeight;
     const pSize = isDraft ? draftPaperSize : paperSize;
     const ov = isDraft ? draftOverlap : overlap;
     const mV = isDraft ? draftMarginV : marginV;
     const mH = isDraft ? draftMarginH : marginH;
     const cW = isDraft ? draftCustomRollWidth : customRollWidth;
-
-    const opt = calculateOptimizedGrid(parseFloat(curWidthStr), parseFloat(curHeightStr), pSize, ov, mV, mH, cW);
-    
-    if (isDraft) {
-      setDraftRows(opt.rows);
-      setDraftCols(opt.cols);
-      setDraftOrientation(opt.orientation);
-    } else {
-      setRows(opt.rows);
-      setCols(opt.cols);
-      setOrientation(opt.orientation);
-    }
+    const opt = calculateOptimizedGrid(parseFloat(curWStr), parseFloat(curHStr), pSize, ov, mV, mH, cW);
+    if (isDraft) { setDraftRows(opt.rows); setDraftCols(opt.cols); setDraftOrientation(opt.orientation); }
+    else { setRows(opt.rows); setCols(opt.cols); setOrientation(opt.orientation); }
   };
 
   const handleWidthChange = (val: string, isDraft: boolean) => {
@@ -275,35 +216,23 @@ export default function PosterGridEditor() {
     const isLocked = isDraft ? draftLockAspect : lockAspect;
     const pSize = isDraft ? draftPaperSize : paperSize;
     const cW = isDraft ? draftCustomRollWidth : customRollWidth;
-    
     const setW = isDraft ? setDraftTargetWidth : setTargetWidth;
     const setH = isDraft ? setDraftTargetHeight : setTargetHeight;
     const setR = isDraft ? setDraftRows : setRows;
     const setC = isDraft ? setDraftCols : setCols;
     const setO = isDraft ? setDraftOrientation : setOrientation;
-
-    if (isNaN(num)) {
-      setW(val);
-      return;
-    }
-
+    if (isNaN(num)) { setW(val); return; }
     if (isLocked) {
       const aspect = image.width / image.height;
       const newHeight = num / aspect;
-      setW(num.toString());
-      setH(newHeight.toFixed(1));
-
-      if (num > 0) {
-        const opt = calculateOptimizedGrid(num, newHeight, pSize, isDraft ? draftOverlap : overlap, isDraft ? draftMarginV : marginV, isDraft ? draftMarginH : marginH, cW);
-        setR(opt.rows); setC(opt.cols); setO(opt.orientation);
-      }
+      setW(num.toString()); setH(newHeight.toFixed(1));
+      const opt = calculateOptimizedGrid(num, newHeight, pSize, isDraft ? draftOverlap : overlap, isDraft ? draftMarginV : marginV, isDraft ? draftMarginH : marginH, cW);
+      setR(opt.rows); setC(opt.cols); setO(opt.orientation);
     } else {
       setW(num.toString());
-      if (num > 0) {
-        const curH = parseFloat(isDraft ? draftTargetHeight : targetHeight);
-        const opt = calculateOptimizedGrid(num, curH, pSize, isDraft ? draftOverlap : overlap, isDraft ? draftMarginV : marginV, isDraft ? draftMarginH : marginH, cW);
-        setR(opt.rows); setC(opt.cols); setO(opt.orientation);
-      }
+      const curH = parseFloat(isDraft ? draftTargetHeight : targetHeight);
+      const opt = calculateOptimizedGrid(num, curH, pSize, isDraft ? draftOverlap : overlap, isDraft ? draftMarginV : marginV, isDraft ? draftMarginH : marginH, cW);
+      setR(opt.rows); setC(opt.cols); setO(opt.orientation);
     }
   };
 
@@ -313,35 +242,23 @@ export default function PosterGridEditor() {
     const isLocked = isDraft ? draftLockAspect : lockAspect;
     const pSize = isDraft ? draftPaperSize : paperSize;
     const cW = isDraft ? draftCustomRollWidth : customRollWidth;
-    
     const setW = isDraft ? setDraftTargetWidth : setTargetWidth;
     const setH = isDraft ? setDraftTargetHeight : setTargetHeight;
     const setR = isDraft ? setDraftRows : setRows;
     const setC = isDraft ? setDraftCols : setCols;
     const setO = isDraft ? setDraftOrientation : setOrientation;
-
-    if (isNaN(num)) {
-      setH(val);
-      return;
-    }
-
+    if (isNaN(num)) { setH(val); return; }
     if (isLocked) {
       const aspect = image.width / image.height;
       const newWidth = num * aspect;
-      setH(num.toString());
-      setW(newWidth.toFixed(1));
-
-      if (num > 0) {
-        const opt = calculateOptimizedGrid(newWidth, num, pSize, isDraft ? draftOverlap : overlap, isDraft ? draftMarginV : marginV, isDraft ? draftMarginH : marginH, cW);
-        setR(opt.rows); setC(opt.cols); setO(opt.orientation);
-      }
+      setH(num.toString()); setW(newWidth.toFixed(1));
+      const opt = calculateOptimizedGrid(newWidth, num, pSize, isDraft ? draftOverlap : overlap, isDraft ? draftMarginV : marginV, isDraft ? draftMarginH : marginH, cW);
+      setR(opt.rows); setC(opt.cols); setO(opt.orientation);
     } else {
       setH(num.toString());
-      if (num > 0) {
-        const curW = parseFloat(isDraft ? draftTargetWidth : targetWidth);
-        const opt = calculateOptimizedGrid(curW, num, pSize, isDraft ? draftOverlap : overlap, isDraft ? draftMarginV : marginV, isDraft ? draftMarginH : marginH, cW);
-        setR(opt.rows); setC(opt.cols); setO(opt.orientation);
-      }
+      const curW = parseFloat(isDraft ? draftTargetWidth : targetWidth);
+      const opt = calculateOptimizedGrid(curW, num, pSize, isDraft ? draftOverlap : overlap, isDraft ? draftMarginV : marginV, isDraft ? draftMarginH : marginH, cW);
+      setR(opt.rows); setC(opt.cols); setO(opt.orientation);
     }
   };
 
@@ -350,26 +267,20 @@ export default function PosterGridEditor() {
     img.src = url;
     img.onload = () => {
       setImage({ file, url, width: img.width, height: img.height });
-      const paperBase = PAPER_DIMENSIONS[paperSize];
-      const overlapMm = overlap * 10;
+      const pB = PAPER_DIMENSIONS[paperSize];
       const aspect = img.width / img.height;
       const calcSize = (orient: 'portrait' | 'landscape') => {
-        const p = orient === 'portrait' ? { w: Math.min(paperBase.width, paperBase.height), h: Math.max(paperBase.width, paperBase.height) } : { w: Math.max(paperBase.width, paperBase.height), h: Math.min(paperBase.width, paperBase.height) };
+        const p = orient === 'portrait' ? { w: Math.min(pB.width, pB.height), h: Math.max(pB.width, pB.height) } : { w: Math.max(pB.width, pB.height), h: Math.min(pB.width, pB.height) };
         const { appliedMH, appliedMV } = getAppliedMargins(orient, marginV, marginH);
-        const printableW = p.w - (appliedMH * 20);
-        const printableH = p.h - (appliedMV * 20);
-        const effectiveW = printableW - overlapMm;
-        const effectiveH = printableH - overlapMm;
-        const targetGridW = (2 * effectiveW) + overlapMm;
-        const targetGridH = (2 * effectiveH) + overlapMm;
+        const printableW = p.w - (appliedMH * 20); const printableH = p.h - (appliedMV * 20);
+        const effW = printableW - (overlap * 10); const effH = printableH - (overlap * 10);
+        const tGW = (2 * effW) + (overlap * 10); const tGH = (2 * effH) + (overlap * 10);
         let finalW, finalH;
-        if (targetGridW / targetGridH > aspect) { finalH = targetGridH; finalW = finalH * aspect; } else { finalW = targetGridW; finalH = finalW / aspect; }
+        if (tGW / tGH > aspect) { finalH = tGH; finalW = finalH * aspect; } else { finalW = tGW; finalH = finalW / aspect; }
         return { w: finalW, h: finalH, area: finalW * finalH, orient };
       };
-      const port = calcSize('portrait');
-      const land = calcSize('landscape');
-      const best = port.area >= land.area ? port : land;
-      setRows(2); setCols(2); setOrientation(best.orient); setTargetWidth((best.w / 10).toFixed(1)); setTargetHeight((best.h / 10).toFixed(1)); setLockAspect(true);
+      const p = calcSize('portrait'); const l = calcSize('landscape'); const b = p.area >= l.area ? p : l;
+      setRows(2); setCols(2); setOrientation(b.orient); setTargetWidth((b.w / 10).toFixed(1)); setTargetHeight((b.h / 10).toFixed(1)); setLockAspect(true);
     };
   };
 
@@ -386,98 +297,58 @@ export default function PosterGridEditor() {
     if (!image) return;
     setIsExporting(true);
     try {
-      const img = new window.Image();
-      img.src = image.url;
-      await new Promise((resolve) => img.onload = resolve);
-      const activeRows = isMenuOpen ? draftRows : rows;
-      const activeCols = isMenuOpen ? draftCols : cols;
-      const activeOverlap = isMenuOpen ? draftOverlap : overlap;
-      const activeMarginV = isMenuOpen ? draftMarginV : marginV;
-      const activeMarginH = isMenuOpen ? draftMarginH : marginH;
-      const activePaperSize = isMenuOpen ? draftPaperSize : paperSize;
-      const activeOrientation = isMenuOpen ? draftOrientation : orientation;
-      const activeTargetW = parseFloat(isMenuOpen ? draftTargetWidth : targetWidth);
-      const activeTargetH = parseFloat(isMenuOpen ? draftTargetHeight : targetHeight);
-      const activeShowOutline = isMenuOpen ? draftShowOutline : showOutline;
-      const activeCustomW = isMenuOpen ? draftCustomRollWidth : customRollWidth;
-      const activeCustomL = isMenuOpen ? draftCustomRollLength : customRollLength;
-      
-      let paper;
-      let pdfFormat;
-      if (activePaperSize.includes('Personalizado')) {
-        if (activeTargetW <= activeTargetH) {
-          paper = { width: activeCustomW, height: activeCustomL };
-        } else {
-          paper = { width: activeCustomL, height: activeCustomW };
-        }
+      const img = new window.Image(); img.src = image.url; await new Promise(r => img.onload = r);
+      const aR = isMenuOpen ? draftRows : rows; const aC = isMenuOpen ? draftCols : cols;
+      const aO = isMenuOpen ? draftOverlap : overlap; const aMV = isMenuOpen ? draftMarginV : marginV; const aMH = isMenuOpen ? draftMarginH : marginH;
+      const aPS = isMenuOpen ? draftPaperSize : paperSize; const aOrient = isMenuOpen ? draftOrientation : orientation;
+      const aTW = parseFloat(isMenuOpen ? draftTargetWidth : targetWidth); const aTH = parseFloat(isMenuOpen ? draftTargetHeight : targetHeight);
+      const aSO = isMenuOpen ? draftShowOutline : showOutline; const aCW = isMenuOpen ? draftCustomRollWidth : customRollWidth; const aCL = isMenuOpen ? draftCustomRollLength : customRollLength;
+      let paper; let pdfFormat;
+      if (aPS.includes('Personalizado')) {
+        if (aTW <= aTH) { paper = { width: aCW, height: aCL }; } else { paper = { width: aCL, height: aCW }; }
         pdfFormat = [paper.width, paper.height];
       } else {
-        const paperBase = PAPER_DIMENSIONS[activePaperSize];
-        pdfFormat = ['letter', 'a4', 'a3', 'legal'].includes(paperBase.format) ? paperBase.format : [paperBase.width, paperBase.height];
-        paper = activeOrientation === 'portrait' ? { width: Math.min(paperBase.width, paperBase.height), height: Math.max(paperBase.width, paperBase.height) } : { width: Math.max(paperBase.width, paperBase.height), height: Math.min(paperBase.width, paperBase.height) };
+        const pB = PAPER_DIMENSIONS[aPS]; pdfFormat = ['letter', 'a4', 'a3', 'legal'].includes(pB.format) ? pB.format : [pB.width, pB.height];
+        paper = aOrient === 'portrait' ? { width: Math.min(pB.width, pB.height), height: Math.max(pB.width, pB.height) } : { width: Math.max(pB.width, pB.height), height: Math.min(pB.width, pB.height) };
       }
-
-      const pdf = new jsPDF({ orientation: activeOrientation === 'portrait' ? 'p' : 'l', unit: 'mm', format: pdfFormat as any });
-      const { appliedMH, appliedMV } = getAppliedMargins(activeOrientation, activeMarginV, activeMarginH);
-      const printableW = paper.width - (appliedMH * 20);
-      const printableH = paper.height - (appliedMV * 20);
-      const overlapMm = activeOverlap * 10;
-      const effectiveSheetW = printableW - overlapMm;
-      const effectiveSheetH = printableH - overlapMm;
-      const totalGridW = (activeCols * effectiveSheetW) + overlapMm;
-      const totalGridH = (activeRows * effectiveSheetH) + overlapMm;
-      const finalW_mm = activeTargetW * 10;
-      const finalH_mm = activeTargetH * 10;
-      const offsetX_mm = (totalGridW - finalW_mm) / 2;
-      const offsetY_mm = (totalGridH - finalH_mm) / 2;
-      const targetDPI = 300;
-      const outputPxPerMm = targetDPI / 25.4;
-      const sourcePxPerMmX = img.width / finalW_mm;
-      const sourcePxPerMmY = img.height / finalH_mm;
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error("Canvas fail");
-
-      for (let r = 0; r < activeRows; r++) {
-        for (let c = 0; c < activeCols; c++) {
-          if (r > 0 || c > 0) pdf.addPage(pdfFormat as any, activeOrientation === 'portrait' ? 'p' : 'l');
-          const sheetLeft_mm = c * effectiveSheetW;
-          const sheetTop_mm = r * effectiveSheetH;
-          const drawInSheetX_mm = Math.max(0, offsetX_mm - sheetLeft_mm);
-          const drawInSheetY_mm = Math.max(0, offsetY_mm - sheetTop_mm);
-          const visibleW_mm = Math.min(effectiveSheetW + overlapMm - drawInSheetX_mm, finalW_mm - Math.max(0, sheetLeft_mm - offsetX_mm));
-          const visibleH_mm = Math.min(effectiveSheetH + overlapMm - drawInSheetY_mm, finalH_mm - Math.max(0, sheetTop_mm - offsetY_mm));
-          const sx = Math.max(0, (sheetLeft_mm - offsetX_mm) * sourcePxPerMmX);
-          const sy = Math.max(0, (sheetTop_mm - offsetY_mm) * sourcePxPerMmY);
-          const sw = visibleW_mm * sourcePxPerMmX;
-          const sh = visibleH_mm * sourcePxPerMmY;
-          const dw = visibleW_mm * outputPxPerMm;
-          const dh = visibleH_mm * outputPxPerMm;
-
+      const pdf = new jsPDF({ orientation: aOrient === 'portrait' ? 'p' : 'l', unit: 'mm', format: pdfFormat as any });
+      const { appliedMH, appliedMV } = getAppliedMargins(aOrient, aMV, aMH);
+      const printableW = paper.width - (appliedMH * 20); const printableH = paper.height - (appliedMV * 20);
+      const overlapMm = aO * 10; const effW = printableW - overlapMm; const effH = printableH - overlapMm;
+      const totalGridW = (aC * effW) + overlapMm; const totalGridH = (aR * effH) + overlapMm;
+      const finalW_mm = aTW * 10; const finalH_mm = aTH * 10;
+      const offsetX = (totalGridW - finalW_mm) / 2; const offsetY = (totalGridH - finalH_mm) / 2;
+      const outPxMm = 300 / 25.4; const sPxMmX = img.width / finalW_mm; const sPxMmY = img.height / finalH_mm;
+      const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d')!;
+      for (let r = 0; r < aR; r++) {
+        for (let c = 0; c < aC; c++) {
+          if (r > 0 || c > 0) pdf.addPage(pdfFormat as any, aOrient === 'portrait' ? 'p' : 'l');
+          const sLeft = c * effW; const sTop = r * effH;
+          const dX = Math.max(0, offsetX - sLeft); const dY = Math.max(0, offsetY - sTop);
+          const vW = Math.min(effW + overlapMm - dX, finalW_mm - Math.max(0, sLeft - offsetX));
+          const vH = Math.min(effH + overlapMm - dY, finalH_mm - Math.max(0, sTop - offsetY));
+          const sx = Math.max(0, (sLeft - offsetX) * sPxMmX); const sy = Math.max(0, (sTop - offsetY) * sPxMmY);
+          const sw = vW * sPxMmX; const sh = vH * sPxMmY;
+          const dw = vW * outPxMm; const dh = vH * outPxMm;
           if (sw > 0 && sh > 0) {
             canvas.width = Math.max(1, dw); canvas.height = Math.max(1, dh);
-            ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
             ctx.fillStyle = "white"; ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(img, sx, sy, sw, sh, 0, 0, dw, dh);
-            const panelX = (appliedMH * 10) + drawInSheetX_mm;
-            const panelY = (appliedMV * 10) + drawInSheetY_mm;
-            pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', panelX, panelY, visibleW_mm, visibleH_mm);
-            if (activeShowOutline) { pdf.setDrawColor(200); pdf.setLineWidth(0.1); pdf.rect(panelX, panelY, visibleW_mm, visibleH_mm); }
+            const pX = (appliedMH * 10) + dX; const pY = (appliedMV * 10) + dY;
+            pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', pX, pY, vW, vH);
+            if (aSO) { pdf.setDrawColor(200); pdf.rect(pX, pY, vW, vH); }
           }
           pdf.setDrawColor(220); pdf.setLineDashPattern([2, 2], 0);
-          if (c < activeCols - 1) { const gx = (appliedMH * 10) + (printableW - overlapMm); pdf.line(gx, appliedMV * 10, gx, appliedMV * 10 + printableH); }
-          if (r < activeRows - 1) { const gy = (appliedMV * 10) + (printableH - overlapMm); pdf.line(appliedMH * 10, gy, appliedMH * 10 + printableW, gy); }
-          
+          if (c < aC - 1) { const gx = (appliedMH * 10) + effW; pdf.line(gx, appliedMV * 10, gx, (appliedMV * 10) + printableH); }
+          if (r < aR - 1) { const gy = (appliedMV * 10) + effH; pdf.line(appliedMH * 10, gy, (appliedMH * 10) + printableW, gy); }
           pdf.setFontSize(7); pdf.setTextColor(180);
-          const footerText = `MULTIPRINTTOOLS | CUADRÍCULA POSTER | PANEL ${r+1}-${c+1} | ${activePaperSize} (${activeOrientation === 'portrait' ? 'P' : 'L'})`;
-          if (activeOrientation === 'portrait') { pdf.text(footerText, appliedMH * 10, paper.height - (appliedMV * 5)); } else { pdf.text(footerText, paper.width - (appliedMH * 5), paper.height - (appliedMV * 10), { angle: 90 }); }
+          const footer = `MULTIPRINTTOOLS | POSTER | PANEL ${r+1}-${c+1} | ${aPS}`;
+          if (aOrient === 'portrait') { pdf.text(footer, appliedMH * 10, paper.height - (appliedMV * 5)); } else { pdf.text(footer, paper.width - (appliedMH * 5), paper.height - (appliedMV * 10), { angle: 90 }); }
         }
       }
-      
-      const fileName = `Poster_${activeTargetW}x${activeTargetH}cm_${activeRows * activeCols}hojas_${activePaperSize}_MultiPrint.pdf`;
-      pdf.save(fileName);
+      pdf.save(`Poster_${aTW}x${aTH}cm_MultiPrint.pdf`);
       toast({ title: t.export, description: "PDF generado con éxito." });
-    } catch (e) { console.error(e); toast({ variant: "destructive", title: "Error", description: "No se pudo generar el PDF." }); } finally { setIsExporting(false); }
+    } catch (e) { console.error(e); toast({ variant: "destructive", title: "Error", description: "Fallo al exportar." }); } finally { setIsExporting(false); }
   };
 
   const physicalInfo = useMemo(() => getMeasures(rows, cols, overlap, marginV, marginH, paperSize, orientation, targetWidth, targetHeight, customRollWidth, customRollLength), [image, rows, cols, overlap, marginV, marginH, paperSize, orientation, targetWidth, targetHeight, customRollWidth, customRollLength]);
@@ -485,241 +356,86 @@ export default function PosterGridEditor() {
 
   function getMeasures(r: number, c: number, ov: number, mV: number, mH: number, pS: string, orient: 'portrait' | 'landscape', tW: string, tH: string, cW: number, cL: number) {
     if (!image) return null;
-    let paper;
-    const targetW_mm = parseFloat(tW) * 10;
-    const targetH_mm = parseFloat(tH) * 10;
-
-    if (pS.includes('Personalizado')) {
-      if (targetW_mm <= targetH_mm) {
-        paper = { width: cW, height: cL };
-      } else {
-        paper = { width: cL, height: cW };
-      }
-    } else {
-      const paperBase = PAPER_DIMENSIONS[pS];
-      paper = orient === 'portrait' ? { width: Math.min(paperBase.width, paperBase.height), height: Math.max(paperBase.width, paperBase.height) } : { width: Math.max(paperBase.width, paperBase.height), height: Math.min(paperBase.width, paperBase.height) };
-    }
-
+    let paper; const twMm = parseFloat(tW) * 10; const thMm = parseFloat(tH) * 10;
+    if (pS.includes('Personalizado')) { if (twMm <= thMm) { paper = { width: cW, height: cL }; } else { paper = { width: cL, height: cW }; } }
+    else { const pB = PAPER_DIMENSIONS[pS]; paper = orient === 'portrait' ? { width: Math.min(pB.width, pB.height), height: Math.max(pB.width, pB.height) } : { width: Math.max(pB.width, pB.height), height: Math.min(pB.width, pB.height) }; }
     const { appliedMH, appliedMV } = getAppliedMargins(orient, mV, mH);
-    const printableW = paper.width - (appliedMH * 20);
-    const printableH = paper.height - (appliedMV * 20);
-    const overlapMm = ov * 10;
-    const effectiveW = printableW - overlapMm;
-    const effectiveH = printableH - overlapMm;
-    const totalGridW = (c * effectiveW) + overlapMm;
-    const totalGridH = (r * effectiveH) + overlapMm;
-    return { imgW: (targetW_mm / 10).toFixed(1), imgH: (targetH_mm / 10).toFixed(1), printableW: (printableW / 10).toFixed(1), printableH: (printableH / 10).toFixed(1), blankW: Math.max(0, (totalGridW - targetW_mm) / 10).toFixed(1), blankH: Math.max(0, (totalGridH - targetH_mm) / 10).toFixed(1) };
+    const pW = paper.width - (appliedMH * 20); const pH = paper.height - (appliedMV * 20);
+    const ovMm = ov * 10; const eW = pW - ovMm; const eH = pH - ovMm;
+    const tGW = (c * eW) + ovMm; const tGH = (r * eH) + ovMm;
+    return { imgW: (twMm / 10).toFixed(1), imgH: (thMm / 10).toFixed(1), printableW: (pW / 10).toFixed(1), printableH: (pH / 10).toFixed(1), blankW: Math.max(0, (tGW - twMm) / 10).toFixed(1), blankH: Math.max(0, (tGH - thMm) / 10).toFixed(1) };
   }
 
   const renderSettings = (currentRows: number, currentCols: number, currentOverlap: number, currentMarginV: number, currentMarginH: number, currentPaperSize: string, currentOrientation: 'portrait' | 'landscape', currentShowGuides: boolean, currentShowOutline: boolean, curWidth: string, curHeight: string, info: any, isLocked: boolean, isGiant: boolean, cW: number, cL: number, isMobile?: boolean) => {
-    // Check for snaps (Letter: 215.9, A4: 210)
     const isLetterSnap = Math.abs(cW - 215.9) < 2;
     const isA4Snap = Math.abs(cW - 210) < 2;
     const isSnapped = isLetterSnap || isA4Snap;
-
     return (
       <div className={cn("space-y-6", isMobile ? "p-4 pt-1 pb-40" : "p-4")}>
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2 bg-card px-2 py-1 rounded-md shadow-sm border border-border/20">
-              <Maximize2 className="h-3.5 w-3.5 text-primary" /> {lang === 'es' ? 'Dimensiones del Póster' : 'Poster Dimensions'}
-            </h2>
+            <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2 bg-card px-2 py-1 rounded-md shadow-sm border border-border/20"><Maximize2 className="h-3.5 w-3.5 text-primary" /> {lang === 'es' ? 'Dimensiones' : 'Dimensions'}</h2>
             <div className="flex items-center gap-2">
-              <Label htmlFor={isMobile ? "draft-lock" : "lock"} className="text-[8px] font-black text-muted-foreground uppercase cursor-pointer">{t.keepAspectRatio}</Label>
-              <Switch id={isMobile ? "draft-lock" : "lock"} checked={isLocked} onCheckedChange={(v) => isMobile ? setDraftLockAspect(v) : setLockAspect(v)} className="scale-75 origin-right" />
+              <Label htmlFor={isMobile ? "d-lock" : "lock"} className="text-[8px] font-black text-muted-foreground uppercase cursor-pointer">{t.keepAspectRatio}</Label>
+              <Switch id={isMobile ? "d-lock" : "lock"} checked={isLocked} onCheckedChange={(v) => isMobile ? setDraftLockAspect(v) : setLockAspect(v)} className="scale-75 origin-right" />
             </div>
           </div>
-          
           <div className="bg-card p-4 rounded-xl border border-primary/10 shadow-sm space-y-4">
             <div className="flex items-center justify-between px-1">
-              <div className="flex items-center gap-2">
-                <Expand className="h-3 w-3 text-primary" />
-                <Label htmlFor={isMobile ? "draft-giant" : "giant"} className="text-[9px] font-black uppercase text-primary tracking-widest cursor-pointer">Modo Gigantografía</Label>
-              </div>
-              <Switch id={isMobile ? "draft-giant" : "giant"} checked={isGiant} onCheckedChange={(v) => isMobile ? setDraftGiantMode(v) : setIsGiantMode(v)} className="scale-75 origin-right" />
+              <div className="flex items-center gap-2"><Expand className="h-3 w-3 text-primary" /><Label htmlFor={isMobile ? "d-giant" : "giant"} className="text-[9px] font-black uppercase text-primary tracking-widest cursor-pointer">Gigantografía</Label></div>
+              <Switch id={isMobile ? "d-giant" : "giant"} checked={isGiant} onCheckedChange={(v) => isMobile ? setDraftGiantMode(v) : setIsGiantMode(v)} className="scale-75 origin-right" />
             </div>
-
             <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <Label className="text-[8px] font-bold text-muted-foreground uppercase">{t.width} (cm)</Label>
-                <span className="text-xs font-black text-primary">{curWidth} cm</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <Input type="number" value={curWidth} onChange={(e) => handleWidthChange(e.target.value, !!isMobile)} min="0.1" step="0.1" className="w-20 h-8 font-black text-xs text-primary bg-primary/5 border-primary/20" />
-                <Slider value={[parseFloat(curWidth) || 0]} onValueChange={(v) => handleWidthChange(v[0].toString(), !!isMobile)} min={1} max={isGiant ? GIANT_MAX_CM : DEFAULT_MAX_CM} step={0.1} className="flex-1" />
-              </div>
+              <div className="flex justify-between items-center"><Label className="text-[8px] font-bold text-muted-foreground uppercase">{t.width} (cm)</Label><span className="text-xs font-black text-primary">{curWidth} cm</span></div>
+              <div className="flex items-center gap-3"><Input type="number" value={curWidth} onChange={(e) => handleWidthChange(e.target.value, !!isMobile)} className="w-20 h-8 font-black text-xs text-primary bg-primary/5 border-primary/20" /><Slider value={[parseFloat(curWidth) || 0]} onValueChange={(v) => handleWidthChange(v[0].toString(), !!isMobile)} min={1} max={isGiant ? GIANT_MAX_CM : DEFAULT_MAX_CM} step={0.1} className="flex-1" /></div>
             </div>
-
             <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <Label className="text-[8px] font-bold text-muted-foreground uppercase">{t.height} (cm)</Label>
-                <span className="text-xs font-black text-primary">{curHeight} cm</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <Input type="number" value={curHeight} onChange={(e) => handleHeightChange(e.target.value, !!isMobile)} min="0.1" step="0.1" className="w-20 h-8 font-black text-xs text-primary bg-primary/5 border-primary/20" />
-                <Slider value={[parseFloat(curHeight) || 0]} onValueChange={(v) => handleHeightChange(v[0].toString(), !!isMobile)} min={1} max={isGiant ? GIANT_MAX_CM : DEFAULT_MAX_CM} step={0.1} className="flex-1" />
-              </div>
+              <div className="flex justify-between items-center"><Label className="text-[8px] font-bold text-muted-foreground uppercase">{t.height} (cm)</Label><span className="text-xs font-black text-primary">{curHeight} cm</span></div>
+              <div className="flex items-center gap-3"><Input type="number" value={curHeight} onChange={(e) => handleHeightChange(e.target.value, !!isMobile)} className="w-20 h-8 font-black text-xs text-primary bg-primary/5 border-primary/20" /><Slider value={[parseFloat(curHeight) || 0]} onValueChange={(v) => handleHeightChange(v[0].toString(), !!isMobile)} min={1} max={isGiant ? GIANT_MAX_CM : DEFAULT_MAX_CM} step={0.1} className="flex-1" /></div>
             </div>
-            <p className="text-[9px] text-muted-foreground font-medium leading-tight">
-              {isGiant 
-                ? (lang === 'es' ? 'Límite extendido a 5 metros. Desliza con cuidado para ajustes finos.' : 'Extended limit to 5 meters. Slide carefully for fine adjustments.')
-                : (lang === 'es' ? 'Límite estándar de 2 metros para mayor precisión. Activa Modo Gigantografía para más tamaño.' : 'Standard 2-meter limit for better precision. Enable Giant Mode for more size.')
-              }
-            </p>
           </div>
         </div>
-
         <Separator className="bg-border/40" />
-
         <div className="space-y-4">
-          <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2 bg-card px-2 py-1 rounded-md shadow-sm border border-border/20">
-            <Settings2 className="h-3.5 w-3.5 text-amber-600" /> {lang === 'es' ? 'Configuración de Impresión' : 'Print Configuration'}
-          </h2>
-
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-[10px] font-black uppercase text-muted-foreground">{t.paperSize}</Label>
-                <Select value={currentPaperSize} onValueChange={(v) => { if (isMobile) setDraftPaperSize(v); else setPaperSize(v); setTimeout(() => syncGridFromTechnicalSettings(!!isMobile), 0); }}>
-                  <SelectTriggerUI className="h-8 rounded-lg text-xs font-bold bg-card border-border/10"><SelectValue /></SelectTriggerUI>
-                  <SelectContent>{Object.keys(PAPER_DIMENSIONS).map(key => <SelectItem key={key} value={key} className="text-xs font-bold">{key}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              {!currentPaperSize.includes('Personalizado') && (
-                <div className="space-y-1">
-                  <Label className="text-[10px] font-black uppercase text-muted-foreground">{t.orientation}</Label>
-                  <Select value={currentOrientation} onValueChange={(v: any) => { if (isMobile) setDraftOrientation(v); else setOrientation(v); setTimeout(() => syncGridFromTechnicalSettings(!!isMobile), 0); }}>
-                    <SelectTriggerUI className="h-8 rounded-lg text-xs font-bold bg-card border-border/10"><SelectValue /></SelectTriggerUI>
-                    <SelectContent>
-                      <SelectItem value="portrait" className="text-xs font-bold">{t.portrait}</SelectItem>
-                      <SelectItem value="landscape" className="text-xs font-bold">{t.landscape}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
+          <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2 bg-card px-2 py-1 rounded-md shadow-sm border border-border/20"><Settings2 className="h-3.5 w-3.5 text-amber-600" /> {lang === 'es' ? 'Impresión' : 'Print'}</h2>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-[10px] font-black uppercase text-muted-foreground">{t.paperSize}</Label>
+              <Select value={currentPaperSize} onValueChange={(v) => { if (isMobile) setDraftPaperSize(v); else setPaperSize(v); setTimeout(() => syncGridFromTechnicalSettings(!!isMobile), 0); }}>
+                <SelectTriggerUI className="h-8 rounded-lg text-xs font-bold bg-card border-border/10"><SelectValue /></SelectTriggerUI>
+                <SelectContent className="z-[1000]">{Object.keys(PAPER_DIMENSIONS).map(key => <SelectItem key={key} value={key} className="text-xs font-bold">{key}</SelectItem>)}</SelectContent>
+              </Select>
             </div>
-
-            {currentPaperSize.includes('Personalizado') && (
-              <div className={cn(
-                "p-4 rounded-xl border transition-all space-y-4 shadow-sm",
-                isSnapped ? "bg-primary/10 border-primary/40 ring-4 ring-primary/5" : "bg-amber-500/5 border-amber-500/10"
-              )}>
-                <div className="flex items-center justify-between mb-1">
-                  <div className="flex items-center gap-2">
-                    <ScrollText className={cn("h-3.5 w-3.5", isSnapped ? "text-primary" : "text-amber-600")} />
-                    <span className={cn("text-[10px] font-black uppercase tracking-widest", isSnapped ? "text-primary" : "text-amber-700")}>
-                      {lang === 'es' ? 'Ajustes de Rollo' : 'Roll Settings'}
-                    </span>
-                  </div>
-                  {isSnapped && (
-                    <Badge variant="outline" className="bg-primary text-white border-none font-black text-[7px] uppercase tracking-tighter flex gap-1 px-1.5 py-0.5 rounded-sm">
-                      <Anchor className="h-2 w-2" />
-                      {isLetterSnap ? 'Carta Snap' : 'A4 Snap'}
-                    </Badge>
-                  )}
-                </div>
-                <div className="space-y-3">
-                  <div className="space-y-1">
-                    <div className="flex justify-between">
-                      <Label className="text-[8px] font-bold text-muted-foreground uppercase">{t.rollWidth}</Label>
-                      <span className={cn("text-[10px] font-black", isSnapped ? "text-primary" : "text-amber-600")}>{(cW/10).toFixed(1)} cm</span>
-                    </div>
-                    <Slider 
-                      value={[cW]} 
-                      onValueChange={(v) => { 
-                        let val = v[0];
-                        // Snap logic: help user find exact 210 (A4) or 215.9 (Letter)
-                        if (Math.abs(val - 210) < 3) val = 210;
-                        if (Math.abs(val - 215.9) < 3) val = 215.9;
-
-                        if (isMobile) setDraftCustomRollWidth(val); 
-                        else setCustomRollWidth(val); 
-                        syncGridFromTechnicalSettings(!!isMobile); 
-                      }} 
-                      min={100} 
-                      max={1600} 
-                      step={0.1} 
-                      className={cn(isSnapped && "[&_[role=slider]]:bg-primary [&_[role=slider]]:border-primary")}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex justify-between">
-                      <Label className="text-[8px] font-bold text-muted-foreground uppercase">{lang === 'es' ? 'Largo Automático' : 'Auto Length'}</Label>
-                      <span className="text-[10px] font-black text-muted-foreground">{(cL/10).toFixed(1)} cm</span>
-                    </div>
-                    <div className="h-2 bg-muted rounded-full overflow-hidden border">
-                      <div className="h-full bg-primary/40" style={{ width: `${(cL/MAX_ROLL_LENGTH_MM)*100}%` }} />
-                    </div>
-                  </div>
-                </div>
-                <p className="text-[8px] text-muted-foreground font-medium leading-tight">
-                  {lang === 'es' 
-                    ? 'El sistema ajusta el largo automáticamente para minimizar el número de hojas y aprovechar la hoja continua del rollo.' 
-                    : 'The system automatically adjusts length to minimize pages and utilize the continuous roll sheet.'}
-                </p>
+            {!currentPaperSize.includes('Personalizado') && (
+              <div className="space-y-1">
+                <Label className="text-[10px] font-black uppercase text-muted-foreground">{t.orientation}</Label>
+                <Select value={currentOrientation} onValueChange={(v: any) => { if (isMobile) setDraftOrientation(v); else setOrientation(v); setTimeout(() => syncGridFromTechnicalSettings(!!isMobile), 0); }}>
+                  <SelectTriggerUI className="h-8 rounded-lg text-xs font-bold bg-card border-border/10"><SelectValue /></SelectTriggerUI>
+                  <SelectContent className="z-[1000]"><SelectItem value="portrait" className="text-xs font-bold">{t.portrait}</SelectItem><SelectItem value="landscape" className="text-xs font-bold">{t.landscape}</SelectItem></SelectContent>
+                </Select>
               </div>
             )}
           </div>
-
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <Label className="text-[10px] font-black uppercase text-muted-foreground"><Scissors className="h-3 w-3 inline mr-1" /> {t.overlap}</Label>
-              <span className="text-xs font-black text-amber-600">{currentOverlap} cm</span>
+          {currentPaperSize.includes('Personalizado') && (
+            <div className={cn("p-4 rounded-xl border transition-all space-y-4 shadow-sm", isSnapped ? "bg-primary/10 border-primary/40 ring-4 ring-primary/5" : "bg-amber-500/5 border-amber-500/10")}>
+              <div className="flex items-center justify-between mb-1"><div className="flex items-center gap-2"><ScrollText className={cn("h-3.5 w-3.5", isSnapped ? "text-primary" : "text-amber-600")} /><span className={cn("text-[10px] font-black uppercase tracking-widest", isSnapped ? "text-primary" : "text-amber-700")}>{lang === 'es' ? 'Ajustes de Rollo' : 'Roll Settings'}</span></div>{isSnapped && (<Badge className="bg-primary text-white text-[7px] px-1.5 py-0.5 rounded-sm">{isLetterSnap ? 'Carta Snap' : 'A4 Snap'}</Badge>)}</div>
+              <div className="space-y-3">
+                <div className="space-y-1"><div className="flex justify-between"><Label className="text-[8px] font-bold text-muted-foreground uppercase">{t.rollWidth}</Label><span className={cn("text-[10px] font-black", isSnapped ? "text-primary" : "text-amber-600")}>{(cW/10).toFixed(1)} cm</span></div><Slider value={[cW]} onValueChange={(v) => { let val = v[0]; if (Math.abs(val-210)<3) val=210; if (Math.abs(val-215.9)<3) val=215.9; if (isMobile) setDraftCustomRollWidth(val); else setCustomRollWidth(val); syncGridFromTechnicalSettings(!!isMobile); }} min={100} max={1600} step={0.1} /></div>
+                <div className="space-y-1"><div className="flex justify-between"><Label className="text-[8px] font-bold text-muted-foreground uppercase">Largo Automático</Label><span className="text-[10px] font-black text-muted-foreground">{(cL/10).toFixed(1)} cm</span></div><div className="h-2 bg-muted rounded-full overflow-hidden border"><div className="h-full bg-primary/40" style={{ width: `${(cL/MAX_ROLL_LENGTH_MM)*100}%` }} /></div></div>
+              </div>
             </div>
+          )}
+          <div className="space-y-2">
+            <div className="flex justify-between items-center"><Label className="text-[10px] font-black uppercase text-muted-foreground"><Scissors className="h-3 w-3 inline mr-1" /> {t.overlap}</Label><span className="text-xs font-black text-amber-600">{currentOverlap} cm</span></div>
             <Slider value={[currentOverlap]} onValueChange={(v) => { if (isMobile) setDraftOverlap(v[0]); else setOverlap(v[0]); syncGridFromTechnicalSettings(!!isMobile); }} min={0} max={10} step={0.1} />
           </div>
-
           <div className="grid grid-cols-2 gap-4 pt-2">
-            <div className="flex items-center justify-between">
-              <Label className="text-[10px] font-black uppercase text-muted-foreground cursor-pointer" htmlFor={isMobile ? "draft-guides" : "guides"}>{t.guides}</Label>
-              <Switch id={isMobile ? "draft-guides" : "guides"} checked={currentShowGuides} onCheckedChange={isMobile ? setDraftShowGuides : setShowGuides} className="bg-muted scale-75" />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label className="text-[10px] font-black uppercase text-muted-foreground cursor-pointer" htmlFor={isMobile ? "draft-outline" : "outline"}>{t.outline}</Label>
-              <Switch id={isMobile ? "draft-outline" : "outline"} checked={currentShowOutline} onCheckedChange={isMobile ? setDraftShowOutline : setShowOutline} className="bg-muted scale-75" />
-            </div>
+            <div className="flex items-center justify-between"><Label className="text-[10px] font-black uppercase text-muted-foreground cursor-pointer" htmlFor={isMobile ? "dg" : "g"}>{t.guides}</Label><Switch id={isMobile ? "dg" : "g"} checked={currentShowGuides} onCheckedChange={isMobile ? setDraftShowGuides : setShowGuides} className="bg-muted scale-75" /></div>
+            <div className="flex items-center justify-between"><Label className="text-[10px] font-black uppercase text-muted-foreground cursor-pointer" htmlFor={isMobile ? "do" : "o"}>{t.outline}</Label><Switch id={isMobile ? "do" : "o"} checked={currentShowOutline} onCheckedChange={isMobile ? setDraftShowOutline : setShowOutline} className="bg-muted scale-75" /></div>
           </div>
         </div>
-
-        {info && (
-          <div className="p-4 bg-card/90 rounded-xl border border-border shadow-md space-y-3">
-            <div className="flex items-center gap-2"><Ruler className="h-3 w-3 text-muted-foreground" /><span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{lang === 'es' ? 'Resumen de Impresión' : 'Print Summary'}</span></div>
-            <div className="grid grid-cols-2 gap-3">
-              <div><span className="text-[8px] font-bold text-muted-foreground uppercase block">{lang === 'es' ? 'Imagen Final' : 'Final Image'}</span><span className="text-xs font-black text-primary">{info.imgW} x {info.imgH} cm</span></div>
-              <div><span className="text-[8px] font-bold text-muted-foreground uppercase block">Distribución</span><span className="text-xs font-black text-foreground">{currentRows}x{currentCols} Hojas</span></div>
-            </div>
-            <Separator className="opacity-20" />
-            <div className="flex justify-between items-center"><span className="text-[8px] font-bold text-muted-foreground uppercase">{t.blankSpace}</span><span className={cn("text-[10px] font-black", Number(info.blankW) > 0 || Number(info.blankH) > 0 ? "text-amber-600" : "text-muted-foreground")}>+{info.blankW}w / +{info.blankH}h cm</span></div>
-          </div>
-        )}
-
-        <Collapsible open={isInfoOpen} onOpenChange={setIsInfoOpen} className="mt-8">
-          <CollapsibleTrigger asChild>
-            <Button variant="ghost" className="w-full flex items-center justify-between p-4 bg-primary/5 hover:bg-primary/10 rounded-xl transition-all">
-              <div className="flex items-center gap-2">
-                <Info className="h-4 w-4 text-primary" />
-                <span className="text-[10px] font-black uppercase tracking-widest">{isInfoOpen ? t.closeInfo : t.learnMore}</span>
-              </div>
-              <ChevronDown className={cn("h-4 w-4 text-primary transition-transform", isInfoOpen ? "rotate-180" : "rotate-0")} />
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-6 pt-4 text-left">
-            <div className="space-y-2">
-              <h3 className="text-sm font-black text-foreground uppercase tracking-tight">{t.posterSeoTitle}</h3>
-              <p className="text-xs text-muted-foreground leading-relaxed font-medium">{t.posterSeoIntro}</p>
-            </div>
-            <div className="grid gap-4">
-              <div className="p-3 bg-card border rounded-xl space-y-1"><h4 className="text-[10px] font-black text-primary uppercase">{t.posterSeoStep1Title}</h4><p className="text-[10px] text-muted-foreground font-medium">{t.posterSeoStep1Desc}</p></div>
-              <div className="p-3 bg-card border rounded-xl space-y-1"><h4 className="text-[10px] font-black text-primary uppercase">{t.posterSeoStep2Title}</h4><p className="text-[10px] text-muted-foreground font-medium">{t.posterSeoStep2Desc}</p></div>
-              <div className="p-3 bg-card border rounded-xl space-y-1"><h4 className="text-[10px] font-black text-primary uppercase">{t.posterSeoStep3Title}</h4><p className="text-[10px] text-muted-foreground font-medium">{t.posterSeoStep3Desc}</p></div>
-              <div className="p-3 bg-card border rounded-xl space-y-1"><h4 className="text-[10px] font-black text-primary uppercase">{t.posterSeoStep4Title}</h4><p className="text-[10px] text-muted-foreground font-medium">{t.posterSeoStep4Desc}</p></div>
-              <div className="p-3 bg-amber-500/5 border border-amber-500/20 rounded-xl space-y-1">
-                <h4 className="text-[10px] font-black text-amber-700 uppercase">Modo Rollo (Plotter)</h4>
-                <p className="text-[10px] text-muted-foreground font-medium">{lang === 'es' ? 'Define el ancho de tu rollo y el largo deseado. El sistema rota la hoja automáticamente según la imagen y añade tiras de papel si el ancho es insuficiente.' : 'Define your roll width and desired length. The system automatically rotates the sheet and adds strips if the width is exceeded.'}</p>
-              </div>
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
+        {info && (<div className="p-4 bg-card/90 rounded-xl border border-border shadow-md space-y-3"><div className="flex items-center gap-2"><Ruler className="h-3 w-3 text-muted-foreground" /><span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Resumen</span></div><div className="grid grid-cols-2 gap-3"><div><span className="text-[8px] font-bold text-muted-foreground uppercase block">Final</span><span className="text-xs font-black text-primary">{info.imgW}x{info.imgH} cm</span></div><div><span className="text-[8px] font-bold text-muted-foreground uppercase block">Hojas</span><span className="text-xs font-black text-foreground">{currentRows}x{currentCols}</span></div></div></div>)}
+        <Collapsible open={isInfoOpen} onOpenChange={setIsInfoOpen} className="mt-8"><CollapsibleTrigger asChild><Button variant="ghost" className="w-full flex items-center justify-between p-4 bg-primary/5 hover:bg-primary/10 rounded-xl transition-all"><div className="flex items-center gap-2"><Info className="h-4 w-4 text-primary" /><span className="text-[10px] font-black uppercase tracking-widest">{isInfoOpen ? t.closeInfo : t.learnMore}</span></div><ChevronDown className={cn("h-4 w-4 text-primary transition-transform", isInfoOpen ? "rotate-180" : "rotate-0")} /></Button></CollapsibleTrigger><CollapsibleContent className="space-y-4 pt-4 text-left"><p className="text-xs text-muted-foreground font-medium leading-relaxed">{t.posterSeoIntro}</p></CollapsibleContent></Collapsible>
       </div>
     );
   };
@@ -729,77 +445,28 @@ export default function PosterGridEditor() {
   return (
     <div className="flex flex-col h-screen w-full font-body bg-background text-foreground overflow-hidden">
       <header className="h-16 border-b border-border bg-background/80 backdrop-blur-md flex items-center justify-between px-4 lg:px-6 z-50 shadow-sm shrink-0 sticky top-0">
-        <div className="flex items-center gap-2 lg:gap-6">
-          <Link href="/"><Button variant="ghost" size="sm" className="gap-2 font-bold text-muted-foreground px-2"><ChevronLeft className="h-4 w-4" /><span className="hidden lg:inline">Inicio</span></Button></Link>
-          <div className="flex items-center gap-2 lg:gap-3"><div className="w-6 h-6 lg:w-8 lg:h-8 relative overflow-hidden rounded-lg shadow-sm bg-white border border-border/10"><Image src={logo} alt="Logo" fill className="object-contain" /></div><h1 className="text-lg lg:text-xl font-headline font-black tracking-tighter text-primary uppercase">CUADRÍCULA POSTER<span className="text-amber-600">.</span></h1></div>
-          <Separator orientation="vertical" className="h-8 hidden lg:block" />
-        </div>
+        <div className="flex items-center gap-2 lg:gap-6"><Link href="/"><Button variant="ghost" size="sm" className="gap-2 font-bold text-muted-foreground px-2"><ChevronLeft className="h-4 w-4" /><span className="hidden lg:inline">Inicio</span></Button></Link><div className="flex items-center gap-2 lg:gap-3"><div className="w-6 h-6 lg:w-8 lg:h-8 relative overflow-hidden rounded-lg shadow-sm bg-white border border-border/10"><Image src={logo} alt="Logo" fill className="object-contain" /></div><h1 className="text-lg lg:text-xl font-headline font-black tracking-tighter text-primary uppercase">CUADRÍCULA POSTER</h1></div></div>
         <div className="flex items-center gap-2 lg:gap-4"><ThemeToggle /><LanguageSelector language={lang} setLanguage={setLang} /><Button className="hidden lg:flex bg-primary hover:bg-primary/90 text-white font-black gap-2 h-10 px-6 rounded-xl shadow-md transition-all active:scale-95 text-xs" onClick={handleExport} disabled={!image || isExporting}>{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}{isExporting ? "..." : t.export}</Button></div>
       </header>
-
       <main className="flex-1 flex overflow-hidden relative">
-        <section className={cn("flex-1 relative bg-muted/30 flex flex-col items-center overflow-y-auto lg:overflow-hidden", !image ? "justify-start py-8" : "justify-start")}>
-          {!image ? (
-            <div className="max-w-lg w-full px-6 lg:p-8 animate-fade-in text-center flex flex-col gap-6 lg:gap-8 my-auto"><div className="order-1"><ImageUploader onImageUpload={handleImageUpload} language={lang} t={t} /></div><div className="order-2 space-y-2"><h2 className="text-2xl lg:text-3xl font-headline font-black tracking-tighter">{lang === 'es' ? 'Preparar nuevo poster' : 'Prepare new poster'}</h2><p className="text-muted-foreground font-medium text-sm lg:text-base">{lang === 'es' ? 'Sube una imagen de alta resolución para generar tu cuadrícula.' : 'Upload a high-resolution image to generate your grid.'}</p></div></div>
-          ) : (
-            <>
-              {physicalInfo && (
-                <div className="absolute top-4 lg:top-6 left-1/2 -translate-x-1/2 z-20 pointer-events-none w-full max-w-5xl px-4 lg:px-8"><div className="bg-background/80 backdrop-blur-xl border border-primary/20 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.1)] px-4 lg:px-6 py-2 lg:py-3 rounded-2xl flex items-center justify-between pointer-events-auto animate-fade-in"><div className="flex items-center gap-3 lg:gap-6"><div className="flex flex-col"><span className="text-[6px] lg:text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">{t.finalMeasures}</span><div className="flex items-center gap-1.5 lg:gap-2"><Maximize2 className="h-2.5 w-2.5 lg:h-3.5 lg:w-3.5 text-primary" /><span className="text-xs lg:text-base font-black text-foreground">{physicalInfo.imgW} x {physicalInfo.imgH} cm</span></div></div><Separator orientation="vertical" className="h-6 lg:h-8 opacity-50" /><div className="flex flex-col"><span className="text-[6px] lg:text-[9px] font-black text-muted-foreground uppercase tracking-widest monolithic mb-1">Distribución</span><div className="flex items-center gap-1.5 lg:gap-2"><Layers className="h-2.5 w-2.5 lg:h-3.5 lg:w-3.5 text-amber-600" /><span className="text-xs lg:text-base font-black text-foreground">{rows * cols} <span className="hidden sm:inline">{lang === 'es' ? 'HOJAS' : 'SHEETS'}</span></span></div></div></div><div className="flex items-center gap-2 lg:gap-4"><div className="hidden sm:flex flex-col items-end mr-2"><span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">{t.paperSize}</span><span className="text-[11px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">{paperSize} {!paperSize.includes('Personalizado') && (orientation === 'portrait' ? '(V)' : '(H)')}</span></div><Button variant="secondary" size="sm" onClick={() => setImage(null)} className="h-8 lg:h-10 text-[10px] lg:text-xs font-black uppercase gap-2 rounded-xl border border-border/50 shadow-sm"><RefreshCcw className="h-3.5 w-3.5" /><span className="hidden xs:inline">{lang === 'es' ? 'Cambiar Imagen' : 'Change Image'}</span></Button></div></div></div>
-              )}
-              <div className="w-full h-[calc(100svh-4rem)] p-4 lg:p-8 flex flex-col pt-16 lg:pt-24 overflow-hidden">
-                <div className="flex-1 min-h-0">
-                  <MuralCanvas imageUrl={image.url} rows={deferredRows} cols={deferredCols} overlap={deferredOverlap} marginV={deferredMarginV} marginH={deferredMarginH} paperSize={paperSize} orientation={orientation} showGuides={showGuides} showOutline={showOutline} imageWidth={parseFloat(targetWidth)} imageHeight={parseFloat(targetHeight)} customPaperWidth={customRollWidth} customPaperHeight={customRollLength} />
-                </div>
-                <div className="lg:hidden mt-4 pb-4 w-full max-w-xl mx-auto shrink-0">
-                  <Button className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-black gap-3 rounded-2xl shadow-xl transition-all active:scale-95 text-sm uppercase tracking-widest" onClick={handleExport} disabled={!image || isExporting}>
-                    {isExporting ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileDown className="h-4 w-4" />}
-                    {isExporting ? "Generando PDF..." : t.export}
-                  </Button>
-                </div>
-              </div>
-            </>
+        <section className={cn("flex-1 relative bg-muted/30 flex flex-col items-center overflow-y-auto lg:overflow-hidden", !image ? "justify-center" : "justify-start")}>
+          {!image ? (<div className="max-w-lg w-full px-6 lg:p-8 animate-fade-in text-center flex flex-col gap-6 lg:gap-8"><ImageUploader onImageUpload={handleImageUpload} language={lang} t={t} /><div className="space-y-2"><h2 className="text-2xl lg:text-3xl font-headline font-black tracking-tighter">Preparar poster</h2><p className="text-muted-foreground font-medium text-sm lg:text-base">Sube una imagen de alta resolución.</p></div></div>) : (
+            <><div className="w-full h-[calc(100svh-4rem)] p-4 lg:p-8 flex flex-col pt-4 lg:pt-8 overflow-hidden"><div className="flex-1 min-h-0"><MuralCanvas imageUrl={image.url} rows={deferredRows} cols={deferredCols} overlap={deferredOverlap} marginV={deferredMarginV} marginH={deferredMarginH} paperSize={paperSize} orientation={orientation} showGuides={showGuides} showOutline={showOutline} imageWidth={parseFloat(targetWidth)} imageHeight={parseFloat(targetHeight)} customPaperWidth={customRollWidth} customPaperHeight={customRollLength} /></div></div></>
           )}
         </section>
-        <aside className="hidden lg:block w-80 border-l border-border bg-background overflow-y-auto shadow-xl z-10 shrink-0 h-full">
-          {renderSettings(rows, cols, overlap, marginV, marginH, paperSize, orientation, showGuides, showOutline, targetWidth, targetHeight, physicalInfo, lockAspect, isGiantMode, customRollWidth, customRollLength)}
-        </aside>
+        <aside className="hidden lg:block w-80 border-l border-border bg-background overflow-y-auto shadow-xl z-10 shrink-0 h-full">{renderSettings(rows, cols, overlap, marginV, marginH, paperSize, orientation, showGuides, showOutline, targetWidth, targetHeight, physicalInfo, lockAspect, isGiantMode, customRollWidth, customRollLength)}</aside>
       </main>
-
-      <Sheet open={isMenuOpen} onOpenChange={handleMenuOpenChange}>
-        <div className="lg:hidden fixed bottom-6 right-6 z-[100] pointer-events-auto">
-          <Button 
-            size="icon" 
-            className="h-14 w-14 rounded-full shadow-2xl bg-primary text-white hover:bg-primary/90 transition-all active:scale-95 border-4 border-white"
-            onClick={() => handleMenuOpenChange(true)}
-          >
-            <Settings2 className="h-6 w-6" />
-          </Button>
-        </div>
-        <SheetContent side="right" className="w-[85%] sm:w-[400px] p-0 bg-background/80 backdrop-blur-xl shadow-2xl overflow-hidden flex flex-col z-[110]">
-          <SheetHeader className="sr-only">
-            <SheetTitle>{t.gridSettings}</SheetTitle>
-            <SheetDescription>Panel de ajustes para la cuadrícula del poster</SheetDescription>
-          </SheetHeader>
-          <div className="p-3 bg-primary/5 flex flex-col gap-3">
-            <Button className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-black gap-3 rounded-xl shadow-lg transition-all active:scale-95 text-xs uppercase tracking-widest" onClick={handleExport} disabled={!image || isExporting}>
-              {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
-              {isExporting ? "..." : t.export}
-            </Button>
-          </div>
-          <div className="flex-1 overflow-y-auto relative">
-            {renderSettings(draftRows, draftCols, draftOverlap, draftMarginV, draftMarginH, draftPaperSize, draftOrientation, draftShowGuides, draftShowOutline, draftTargetWidth, draftTargetHeight, draftInfo, draftLockAspect, draftGiantMode, draftCustomRollWidth, draftCustomRollLength, true)}
-            
-            <Button 
-              size="icon" 
-              className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-2xl bg-primary text-white z-[210] border-4 border-white animate-in fade-in zoom-in-95 duration-200"
-              onClick={() => handleMenuOpenChange(false)}
-            >
-              <Settings2 className="h-6 w-6" />
-            </Button>
-          </div>
-        </SheetContent>
-      </Sheet>
+      <div className="lg:hidden fixed bottom-6 right-6 z-40 pointer-events-auto flex gap-3">
+        {image && (<Button className="h-14 bg-primary hover:bg-primary/90 text-white font-black rounded-2xl shadow-2xl px-8" onClick={handleExport} disabled={isExporting}>{isExporting ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileDown className="h-5 w-5" />}</Button>)}
+        <Sheet open={isMenuOpen} onOpenChange={handleMenuOpenChange}>
+          <Button size="icon" className="h-14 w-14 rounded-full shadow-2xl bg-primary text-white border-4 border-white" onClick={() => handleMenuOpenChange(true)}><Settings2 className="h-6 w-6" /></Button>
+          <SheetContent side="right" className="w-[85%] sm:w-[400px] p-0 bg-background/95 backdrop-blur-xl shadow-2xl overflow-hidden flex flex-col z-[50]">
+            <SheetHeader className="sr-only"><SheetTitle>Ajustes</SheetTitle></SheetHeader>
+            <div className="p-3 bg-primary/5 flex flex-col gap-3"><Button className="w-full h-12 bg-primary text-white font-black rounded-xl" onClick={handleExport} disabled={!image || isExporting}>{isExporting ? "Generando..." : t.export}</Button></div>
+            <div className="flex-1 overflow-y-auto relative">{renderSettings(draftRows, draftCols, draftOverlap, draftMarginV, draftMarginH, draftPaperSize, draftOrientation, draftShowGuides, draftShowOutline, draftTargetWidth, draftTargetHeight, draftInfo, draftLockAspect, draftGiantMode, draftCustomRollWidth, draftCustomRollLength, true)}<Button size="icon" className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-2xl bg-primary text-white z-[210] border-4 border-white" onClick={() => handleMenuOpenChange(false)}><Settings2 className="h-6 w-6" /></Button></div>
+          </SheetContent>
+        </Sheet>
+      </div>
     </div>
   );
 }
-
