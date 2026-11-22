@@ -25,7 +25,8 @@ import {
   Info,
   ChevronDown,
   Expand,
-  ScrollText
+  ScrollText,
+  Anchor
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -71,6 +72,7 @@ const PAPER_DIMENSIONS: Record<string, { width: number; height: number; format: 
 
 const DEFAULT_MAX_CM = 200;
 const GIANT_MAX_CM = 500;
+const MAX_ROLL_LENGTH_MM = 5000; // 5 metros es el límite razonable para PDF/Plotter
 
 export default function PosterGridEditor() {
   const [mounted, setMounted] = useState(false);
@@ -91,7 +93,7 @@ export default function PosterGridEditor() {
   const [isInfoOpen, setIsInfoOpen] = useState(false);
 
   // Custom roll dimensions (mm)
-  const [customRollWidth, setCustomRollWidth] = useState(610);
+  const [customRollWidth, setCustomRollWidth] = useState(215.9); // Default Letter width
   const [customRollLength, setCustomRollLength] = useState(1000);
 
   const [targetWidth, setTargetWidth] = useState<string>('0');
@@ -110,7 +112,7 @@ export default function PosterGridEditor() {
   const [draftTargetHeight, setDraftTargetHeight] = useState<string>('0');
   const [draftLockAspect, setDraftLockAspect] = useState(true);
   const [draftGiantMode, setDraftGiantMode] = useState(false);
-  const [draftCustomRollWidth, setDraftCustomRollWidth] = useState(610);
+  const [draftCustomRollWidth, setDraftCustomRollWidth] = useState(215.9);
   const [draftCustomRollLength, setDraftCustomRollLength] = useState(1000);
 
   const deferredRows = useDeferredValue(rows);
@@ -163,8 +165,7 @@ export default function PosterGridEditor() {
     ov_cm: number, 
     mV_cm: number, 
     mH_cm: number,
-    cW_mm?: number,
-    cL_mm?: number
+    cW_mm?: number
   ) => {
     const targetW_mm = w_cm * 10;
     const targetH_mm = h_cm * 10;
@@ -172,42 +173,77 @@ export default function PosterGridEditor() {
 
     const calcForOrientation = (orient: 'portrait' | 'landscape') => {
       let paper;
-      if (pSize.includes('Personalizado') && cW_mm && cL_mm) {
-        // Custom Roll Logic:
-        // If image is portrait, roll width (cW_mm) is Width, cut length (cL_mm) is Height.
-        // If image is landscape, roll width (cW_mm) is Height, cut length (cL_mm) is Width.
-        if (targetW_mm <= targetH_mm) {
-          paper = { width: cW_mm, height: cL_mm };
+      let calculatedLength = 0;
+      
+      if (pSize.includes('Personalizado')) {
+        // Roll Logic: cW_mm is the fixed width.
+        // We calculate how much length we need for the target image.
+        const rollWidth = cW_mm || 215.9;
+        
+        // Auto-orient roll to match image best
+        // If image is horizontal, we treat roll length as the wide dimension
+        if (targetW_mm > targetH_mm) {
+          paper = { width: MAX_ROLL_LENGTH_MM, height: rollWidth };
         } else {
-          paper = { width: cL_mm, height: cW_mm };
+          paper = { width: rollWidth, height: MAX_ROLL_LENGTH_MM };
         }
+
+        const { appliedMH, appliedMV } = getAppliedMargins(orient, mV_cm, mH_cm);
+        const printableW = (targetW_mm > targetH_mm ? paper.height : paper.width) - (appliedMH * 20);
+        const printableH = (targetW_mm > targetH_mm ? paper.width : paper.height) - (appliedMV * 20);
+        
+        const effectiveW = printableW - overlap_mm;
+        const effectiveH = printableH - overlap_mm;
+
+        const c = Math.ceil((targetW_mm - overlap_mm) / effectiveW);
+        const r = Math.ceil((targetH_mm - overlap_mm) / effectiveH);
+
+        // Calculate dynamic length to use just enough roll
+        calculatedLength = Math.min(MAX_ROLL_LENGTH_MM, (targetW_mm > targetH_mm ? targetW_mm : targetH_mm) + (appliedMV * 20) + overlap_mm);
+        
+        return { 
+          rows: Math.max(1, r), 
+          cols: Math.max(1, c), 
+          total: Math.max(1, r) * Math.max(1, c),
+          orientation: orient,
+          dynamicLength: calculatedLength
+        };
       } else {
         const paperBase = PAPER_DIMENSIONS[pSize];
         paper = orient === 'portrait' 
           ? { width: Math.min(paperBase.width, paperBase.height), height: Math.max(paperBase.width, paperBase.height) }
           : { width: Math.max(paperBase.width, paperBase.height), height: Math.min(paperBase.width, paperBase.height) };
+
+        const { appliedMH, appliedMV } = getAppliedMargins(orient, mV_cm, mH_cm);
+        const printableW = paper.width - (appliedMH * 20);
+        const printableH = paper.height - (appliedMV * 20);
+        const effectiveW = printableW - overlap_mm;
+        const effectiveH = printableH - overlap_mm;
+
+        const c = Math.ceil((targetW_mm - overlap_mm) / effectiveW);
+        const r = Math.ceil((targetH_mm - overlap_mm) / effectiveH);
+        
+        return { 
+          rows: Math.max(1, r), 
+          cols: Math.max(1, c), 
+          total: Math.max(1, r) * Math.max(1, c),
+          orientation: orient
+        };
       }
-
-      const { appliedMH, appliedMV } = getAppliedMargins(orient, mV_cm, mH_cm);
-      const printableW = paper.width - (appliedMH * 20);
-      const printableH = paper.height - (appliedMV * 20);
-      const effectiveW = printableW - overlap_mm;
-      const effectiveH = printableH - overlap_mm;
-
-      const c = Math.ceil((targetW_mm - overlap_mm) / effectiveW);
-      const r = Math.ceil((targetH_mm - overlap_mm) / effectiveH);
-      
-      return { 
-        rows: Math.max(1, r), 
-        cols: Math.max(1, c), 
-        total: Math.max(1, r) * Math.max(1, c),
-        orientation: orient
-      };
     };
 
     const pResults = calcForOrientation('portrait');
     const lResults = calcForOrientation('landscape');
-    return pResults.total <= lResults.total ? pResults : lResults;
+    
+    // Choose orientation that minimizes total sheets
+    const best = pResults.total <= lResults.total ? pResults : lResults;
+    
+    if (pSize.includes('Personalizado') && best.dynamicLength) {
+      if (isMenuOpen) setDraftCustomRollLength(best.dynamicLength);
+      else setCustomRollLength(best.dynamicLength);
+    }
+    
+    return best;
   };
 
   const syncGridFromTechnicalSettings = (isDraft: boolean) => {
@@ -219,9 +255,8 @@ export default function PosterGridEditor() {
     const mV = isDraft ? draftMarginV : marginV;
     const mH = isDraft ? draftMarginH : marginH;
     const cW = isDraft ? draftCustomRollWidth : customRollWidth;
-    const cL = isDraft ? draftCustomRollLength : customRollLength;
 
-    const opt = calculateOptimizedGrid(parseFloat(curWidthStr), parseFloat(curHeightStr), pSize, ov, mV, mH, cW, cL);
+    const opt = calculateOptimizedGrid(parseFloat(curWidthStr), parseFloat(curHeightStr), pSize, ov, mV, mH, cW);
     
     if (isDraft) {
       setDraftRows(opt.rows);
@@ -236,11 +271,10 @@ export default function PosterGridEditor() {
 
   const handleWidthChange = (val: string, isDraft: boolean) => {
     if (!image) return;
-    const num = Math.max(0, parseFloat(val));
+    const num = Math.max(0.1, parseFloat(val));
     const isLocked = isDraft ? draftLockAspect : lockAspect;
     const pSize = isDraft ? draftPaperSize : paperSize;
     const cW = isDraft ? draftCustomRollWidth : customRollWidth;
-    const cL = isDraft ? draftCustomRollLength : customRollLength;
     
     const setW = isDraft ? setDraftTargetWidth : setTargetWidth;
     const setH = isDraft ? setDraftTargetHeight : setTargetHeight;
@@ -260,14 +294,14 @@ export default function PosterGridEditor() {
       setH(newHeight.toFixed(1));
 
       if (num > 0) {
-        const opt = calculateOptimizedGrid(num, newHeight, pSize, isDraft ? draftOverlap : overlap, isDraft ? draftMarginV : marginV, isDraft ? draftMarginH : marginH, cW, cL);
+        const opt = calculateOptimizedGrid(num, newHeight, pSize, isDraft ? draftOverlap : overlap, isDraft ? draftMarginV : marginV, isDraft ? draftMarginH : marginH, cW);
         setR(opt.rows); setC(opt.cols); setO(opt.orientation);
       }
     } else {
       setW(num.toString());
       if (num > 0) {
         const curH = parseFloat(isDraft ? draftTargetHeight : targetHeight);
-        const opt = calculateOptimizedGrid(num, curH, pSize, isDraft ? draftOverlap : overlap, isDraft ? draftMarginV : marginV, isDraft ? draftMarginH : marginH, cW, cL);
+        const opt = calculateOptimizedGrid(num, curH, pSize, isDraft ? draftOverlap : overlap, isDraft ? draftMarginV : marginV, isDraft ? draftMarginH : marginH, cW);
         setR(opt.rows); setC(opt.cols); setO(opt.orientation);
       }
     }
@@ -275,11 +309,10 @@ export default function PosterGridEditor() {
 
   const handleHeightChange = (val: string, isDraft: boolean) => {
     if (!image) return;
-    const num = Math.max(0, parseFloat(val));
+    const num = Math.max(0.1, parseFloat(val));
     const isLocked = isDraft ? draftLockAspect : lockAspect;
     const pSize = isDraft ? draftPaperSize : paperSize;
     const cW = isDraft ? draftCustomRollWidth : customRollWidth;
-    const cL = isDraft ? draftCustomRollLength : customRollLength;
     
     const setW = isDraft ? setDraftTargetWidth : setTargetWidth;
     const setH = isDraft ? setDraftTargetHeight : setTargetHeight;
@@ -299,14 +332,14 @@ export default function PosterGridEditor() {
       setW(newWidth.toFixed(1));
 
       if (num > 0) {
-        const opt = calculateOptimizedGrid(newWidth, num, pSize, isDraft ? draftOverlap : overlap, isDraft ? draftMarginV : marginV, isDraft ? draftMarginH : marginH, cW, cL);
+        const opt = calculateOptimizedGrid(newWidth, num, pSize, isDraft ? draftOverlap : overlap, isDraft ? draftMarginV : marginV, isDraft ? draftMarginH : marginH, cW);
         setR(opt.rows); setC(opt.cols); setO(opt.orientation);
       }
     } else {
       setH(num.toString());
       if (num > 0) {
         const curW = parseFloat(isDraft ? draftTargetWidth : targetWidth);
-        const opt = calculateOptimizedGrid(curW, num, pSize, isDraft ? draftOverlap : overlap, isDraft ? draftMarginV : marginV, isDraft ? draftMarginH : marginH, cW, cL);
+        const opt = calculateOptimizedGrid(curW, num, pSize, isDraft ? draftOverlap : overlap, isDraft ? draftMarginV : marginV, isDraft ? draftMarginH : marginH, cW);
         setR(opt.rows); setC(opt.cols); setO(opt.orientation);
       }
     }
@@ -372,7 +405,6 @@ export default function PosterGridEditor() {
       let paper;
       let pdfFormat;
       if (activePaperSize.includes('Personalizado')) {
-        // Roll logic for export: matches calculateOptimizedGrid
         if (activeTargetW <= activeTargetH) {
           paper = { width: activeCustomW, height: activeCustomL };
         } else {
@@ -479,172 +511,218 @@ export default function PosterGridEditor() {
     return { imgW: (targetW_mm / 10).toFixed(1), imgH: (targetH_mm / 10).toFixed(1), printableW: (printableW / 10).toFixed(1), printableH: (printableH / 10).toFixed(1), blankW: Math.max(0, (totalGridW - targetW_mm) / 10).toFixed(1), blankH: Math.max(0, (totalGridH - targetH_mm) / 10).toFixed(1) };
   }
 
-  const renderSettings = (currentRows: number, currentCols: number, currentOverlap: number, currentMarginV: number, currentMarginH: number, currentPaperSize: string, currentOrientation: 'portrait' | 'landscape', currentShowGuides: boolean, currentShowOutline: boolean, curWidth: string, curHeight: string, info: any, isLocked: boolean, isGiant: boolean, cW: number, cL: number, isMobile?: boolean) => (
-    <div className={cn("space-y-6", isMobile ? "p-4 pt-1 pb-40" : "p-4")}>
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2 bg-card px-2 py-1 rounded-md shadow-sm border border-border/20">
-            <Maximize2 className="h-3.5 w-3.5 text-primary" /> {lang === 'es' ? 'Dimensiones del Póster' : 'Poster Dimensions'}
-          </h2>
-          <div className="flex items-center gap-2">
-            <Label htmlFor={isMobile ? "draft-lock" : "lock"} className="text-[8px] font-black text-muted-foreground uppercase cursor-pointer">{t.keepAspectRatio}</Label>
-            <Switch id={isMobile ? "draft-lock" : "lock"} checked={isLocked} onCheckedChange={(v) => isMobile ? setDraftLockAspect(v) : setLockAspect(v)} className="scale-75 origin-right" />
-          </div>
-        </div>
-        
-        <div className="bg-card p-4 rounded-xl border border-primary/10 shadow-sm space-y-4">
-          <div className="flex items-center justify-between px-1">
+  const renderSettings = (currentRows: number, currentCols: number, currentOverlap: number, currentMarginV: number, currentMarginH: number, currentPaperSize: string, currentOrientation: 'portrait' | 'landscape', currentShowGuides: boolean, currentShowOutline: boolean, curWidth: string, curHeight: string, info: any, isLocked: boolean, isGiant: boolean, cW: number, cL: number, isMobile?: boolean) => {
+    // Check for snaps (Letter: 215.9, A4: 210)
+    const isLetterSnap = Math.abs(cW - 215.9) < 2;
+    const isA4Snap = Math.abs(cW - 210) < 2;
+    const isSnapped = isLetterSnap || isA4Snap;
+
+    return (
+      <div className={cn("space-y-6", isMobile ? "p-4 pt-1 pb-40" : "p-4")}>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2 bg-card px-2 py-1 rounded-md shadow-sm border border-border/20">
+              <Maximize2 className="h-3.5 w-3.5 text-primary" /> {lang === 'es' ? 'Dimensiones del Póster' : 'Poster Dimensions'}
+            </h2>
             <div className="flex items-center gap-2">
-              <Expand className="h-3 w-3 text-primary" />
-              <Label htmlFor={isMobile ? "draft-giant" : "giant"} className="text-[9px] font-black uppercase text-primary tracking-widest cursor-pointer">Modo Gigantografía</Label>
+              <Label htmlFor={isMobile ? "draft-lock" : "lock"} className="text-[8px] font-black text-muted-foreground uppercase cursor-pointer">{t.keepAspectRatio}</Label>
+              <Switch id={isMobile ? "draft-lock" : "lock"} checked={isLocked} onCheckedChange={(v) => isMobile ? setDraftLockAspect(v) : setLockAspect(v)} className="scale-75 origin-right" />
             </div>
-            <Switch id={isMobile ? "draft-giant" : "giant"} checked={isGiant} onCheckedChange={(v) => isMobile ? setDraftGiantMode(v) : setIsGiantMode(v)} className="scale-75 origin-right" />
           </div>
+          
+          <div className="bg-card p-4 rounded-xl border border-primary/10 shadow-sm space-y-4">
+            <div className="flex items-center justify-between px-1">
+              <div className="flex items-center gap-2">
+                <Expand className="h-3 w-3 text-primary" />
+                <Label htmlFor={isMobile ? "draft-giant" : "giant"} className="text-[9px] font-black uppercase text-primary tracking-widest cursor-pointer">Modo Gigantografía</Label>
+              </div>
+              <Switch id={isMobile ? "draft-giant" : "giant"} checked={isGiant} onCheckedChange={(v) => isMobile ? setDraftGiantMode(v) : setIsGiantMode(v)} className="scale-75 origin-right" />
+            </div>
 
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <Label className="text-[8px] font-bold text-muted-foreground uppercase">{t.width} (cm)</Label>
-              <span className="text-xs font-black text-primary">{curWidth} cm</span>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <Label className="text-[8px] font-bold text-muted-foreground uppercase">{t.width} (cm)</Label>
+                <span className="text-xs font-black text-primary">{curWidth} cm</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <Input type="number" value={curWidth} onChange={(e) => handleWidthChange(e.target.value, !!isMobile)} min="0.1" step="0.1" className="w-20 h-8 font-black text-xs text-primary bg-primary/5 border-primary/20" />
+                <Slider value={[parseFloat(curWidth) || 0]} onValueChange={(v) => handleWidthChange(v[0].toString(), !!isMobile)} min={1} max={isGiant ? GIANT_MAX_CM : DEFAULT_MAX_CM} step={0.1} className="flex-1" />
+              </div>
             </div>
-            <div className="flex items-center gap-3">
-              <Input type="number" value={curWidth} onChange={(e) => handleWidthChange(e.target.value, !!isMobile)} min="0.1" step="0.1" className="w-20 h-8 font-black text-xs text-primary bg-primary/5 border-primary/20" />
-              <Slider value={[parseFloat(curWidth) || 0]} onValueChange={(v) => handleWidthChange(v[0].toString(), !!isMobile)} min={1} max={isGiant ? GIANT_MAX_CM : DEFAULT_MAX_CM} step={0.1} className="flex-1" />
-            </div>
-          </div>
 
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <Label className="text-[8px] font-bold text-muted-foreground uppercase">{t.height} (cm)</Label>
-              <span className="text-xs font-black text-primary">{curHeight} cm</span>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <Label className="text-[8px] font-bold text-muted-foreground uppercase">{t.height} (cm)</Label>
+                <span className="text-xs font-black text-primary">{curHeight} cm</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <Input type="number" value={curHeight} onChange={(e) => handleHeightChange(e.target.value, !!isMobile)} min="0.1" step="0.1" className="w-20 h-8 font-black text-xs text-primary bg-primary/5 border-primary/20" />
+                <Slider value={[parseFloat(curHeight) || 0]} onValueChange={(v) => handleHeightChange(v[0].toString(), !!isMobile)} min={1} max={isGiant ? GIANT_MAX_CM : DEFAULT_MAX_CM} step={0.1} className="flex-1" />
+              </div>
             </div>
-            <div className="flex items-center gap-3">
-              <Input type="number" value={curHeight} onChange={(e) => handleHeightChange(e.target.value, !!isMobile)} min="0.1" step="0.1" className="w-20 h-8 font-black text-xs text-primary bg-primary/5 border-primary/20" />
-              <Slider value={[parseFloat(curHeight) || 0]} onValueChange={(v) => handleHeightChange(v[0].toString(), !!isMobile)} min={1} max={isGiant ? GIANT_MAX_CM : DEFAULT_MAX_CM} step={0.1} className="flex-1" />
-            </div>
+            <p className="text-[9px] text-muted-foreground font-medium leading-tight">
+              {isGiant 
+                ? (lang === 'es' ? 'Límite extendido a 5 metros. Desliza con cuidado para ajustes finos.' : 'Extended limit to 5 meters. Slide carefully for fine adjustments.')
+                : (lang === 'es' ? 'Límite estándar de 2 metros para mayor precisión. Activa Modo Gigantografía para más tamaño.' : 'Standard 2-meter limit for better precision. Enable Giant Mode for more size.')
+              }
+            </p>
           </div>
-          <p className="text-[9px] text-muted-foreground font-medium leading-tight">
-            {isGiant 
-              ? (lang === 'es' ? 'Límite extendido a 5 metros. Desliza con cuidado para ajustes finos.' : 'Extended limit to 5 meters. Slide carefully for fine adjustments.')
-              : (lang === 'es' ? 'Límite estándar de 2 metros para mayor precisión. Activa Modo Gigantografía para más tamaño.' : 'Standard 2-meter limit for better precision. Enable Giant Mode for more size.')
-            }
-          </p>
         </div>
-      </div>
 
-      <Separator className="bg-border/40" />
-
-      <div className="space-y-4">
-        <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2 bg-card px-2 py-1 rounded-md shadow-sm border border-border/20">
-          <Settings2 className="h-3.5 w-3.5 text-amber-600" /> {lang === 'es' ? 'Configuración de Impresión' : 'Print Configuration'}
-        </h2>
+        <Separator className="bg-border/40" />
 
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label className="text-[10px] font-black uppercase text-muted-foreground">{t.paperSize}</Label>
-              <Select value={currentPaperSize} onValueChange={(v) => { if (isMobile) setDraftPaperSize(v); else setPaperSize(v); setTimeout(() => syncGridFromTechnicalSettings(!!isMobile), 0); }}>
-                <SelectTriggerUI className="h-8 rounded-lg text-xs font-bold bg-card border-border/10"><SelectValue /></SelectTriggerUI>
-                <SelectContent>{Object.keys(PAPER_DIMENSIONS).map(key => <SelectItem key={key} value={key} className="text-xs font-bold">{key}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            {!currentPaperSize.includes('Personalizado') && (
+          <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2 bg-card px-2 py-1 rounded-md shadow-sm border border-border/20">
+            <Settings2 className="h-3.5 w-3.5 text-amber-600" /> {lang === 'es' ? 'Configuración de Impresión' : 'Print Configuration'}
+          </h2>
+
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label className="text-[10px] font-black uppercase text-muted-foreground">{t.orientation}</Label>
-                <Select value={currentOrientation} onValueChange={(v: any) => { if (isMobile) setDraftOrientation(v); else setOrientation(v); setTimeout(() => syncGridFromTechnicalSettings(!!isMobile), 0); }}>
+                <Label className="text-[10px] font-black uppercase text-muted-foreground">{t.paperSize}</Label>
+                <Select value={currentPaperSize} onValueChange={(v) => { if (isMobile) setDraftPaperSize(v); else setPaperSize(v); setTimeout(() => syncGridFromTechnicalSettings(!!isMobile), 0); }}>
                   <SelectTriggerUI className="h-8 rounded-lg text-xs font-bold bg-card border-border/10"><SelectValue /></SelectTriggerUI>
-                  <SelectContent>
-                    <SelectItem value="portrait" className="text-xs font-bold">{t.portrait}</SelectItem>
-                    <SelectItem value="landscape" className="text-xs font-bold">{t.landscape}</SelectItem>
-                  </SelectContent>
+                  <SelectContent>{Object.keys(PAPER_DIMENSIONS).map(key => <SelectItem key={key} value={key} className="text-xs font-bold">{key}</SelectItem>)}</SelectContent>
                 </Select>
+              </div>
+              {!currentPaperSize.includes('Personalizado') && (
+                <div className="space-y-1">
+                  <Label className="text-[10px] font-black uppercase text-muted-foreground">{t.orientation}</Label>
+                  <Select value={currentOrientation} onValueChange={(v: any) => { if (isMobile) setDraftOrientation(v); else setOrientation(v); setTimeout(() => syncGridFromTechnicalSettings(!!isMobile), 0); }}>
+                    <SelectTriggerUI className="h-8 rounded-lg text-xs font-bold bg-card border-border/10"><SelectValue /></SelectTriggerUI>
+                    <SelectContent>
+                      <SelectItem value="portrait" className="text-xs font-bold">{t.portrait}</SelectItem>
+                      <SelectItem value="landscape" className="text-xs font-bold">{t.landscape}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+
+            {currentPaperSize.includes('Personalizado') && (
+              <div className={cn(
+                "p-4 rounded-xl border transition-all space-y-4 shadow-sm",
+                isSnapped ? "bg-primary/10 border-primary/40 ring-4 ring-primary/5" : "bg-amber-500/5 border-amber-500/10"
+              )}>
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-2">
+                    <ScrollText className={cn("h-3.5 w-3.5", isSnapped ? "text-primary" : "text-amber-600")} />
+                    <span className={cn("text-[10px] font-black uppercase tracking-widest", isSnapped ? "text-primary" : "text-amber-700")}>
+                      {lang === 'es' ? 'Ajustes de Rollo' : 'Roll Settings'}
+                    </span>
+                  </div>
+                  {isSnapped && (
+                    <Badge variant="outline" className="bg-primary text-white border-none font-black text-[7px] uppercase tracking-tighter flex gap-1 px-1.5 py-0.5 rounded-sm">
+                      <Anchor className="h-2 w-2" />
+                      {isLetterSnap ? 'Carta Snap' : 'A4 Snap'}
+                    </Badge>
+                  )}
+                </div>
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <div className="flex justify-between">
+                      <Label className="text-[8px] font-bold text-muted-foreground uppercase">{t.rollWidth}</Label>
+                      <span className={cn("text-[10px] font-black", isSnapped ? "text-primary" : "text-amber-600")}>{(cW/10).toFixed(1)} cm</span>
+                    </div>
+                    <Slider 
+                      value={[cW]} 
+                      onValueChange={(v) => { 
+                        let val = v[0];
+                        // Snap logic: help user find exact 210 (A4) or 215.9 (Letter)
+                        if (Math.abs(val - 210) < 3) val = 210;
+                        if (Math.abs(val - 215.9) < 3) val = 215.9;
+
+                        if (isMobile) setDraftCustomRollWidth(val); 
+                        else setCustomRollWidth(val); 
+                        syncGridFromTechnicalSettings(!!isMobile); 
+                      }} 
+                      min={100} 
+                      max={1600} 
+                      step={0.1} 
+                      className={cn(isSnapped && "[&_[role=slider]]:bg-primary [&_[role=slider]]:border-primary")}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex justify-between">
+                      <Label className="text-[8px] font-bold text-muted-foreground uppercase">{lang === 'es' ? 'Largo Automático' : 'Auto Length'}</Label>
+                      <span className="text-[10px] font-black text-muted-foreground">{(cL/10).toFixed(1)} cm</span>
+                    </div>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden border">
+                      <div className="h-full bg-primary/40" style={{ width: `${(cL/MAX_ROLL_LENGTH_MM)*100}%` }} />
+                    </div>
+                  </div>
+                </div>
+                <p className="text-[8px] text-muted-foreground font-medium leading-tight">
+                  {lang === 'es' 
+                    ? 'El sistema ajusta el largo automáticamente para minimizar el número de hojas y aprovechar la hoja continua del rollo.' 
+                    : 'The system automatically adjusts length to minimize pages and utilize the continuous roll sheet.'}
+                </p>
               </div>
             )}
           </div>
 
-          {currentPaperSize.includes('Personalizado') && (
-            <div className="bg-amber-500/5 p-4 rounded-xl border border-amber-500/10 space-y-4">
-              <div className="flex items-center gap-2 mb-1">
-                <ScrollText className="h-3.5 w-3.5 text-amber-600" />
-                <span className="text-[10px] font-black text-amber-700 uppercase tracking-widest">{lang === 'es' ? 'Ajustes de Rollo' : 'Roll Settings'}</span>
-              </div>
-              <div className="space-y-3">
-                <div className="space-y-1">
-                  <div className="flex justify-between"><Label className="text-[8px] font-bold text-muted-foreground uppercase">{t.rollWidth}</Label><span className="text-[10px] font-black text-amber-600">{cW/10} cm</span></div>
-                  <Slider value={[cW]} onValueChange={(v) => { if (isMobile) setDraftCustomRollWidth(v[0]); else setCustomRollWidth(v[0]); syncGridFromTechnicalSettings(!!isMobile); }} min={100} max={1600} step={1} />
-                </div>
-                <div className="space-y-1">
-                  <div className="flex justify-between"><Label className="text-[8px] font-bold text-muted-foreground uppercase">{t.rollLength}</Label><span className="text-[10px] font-black text-amber-600">{cL/10} cm</span></div>
-                  <Slider value={[cL]} onValueChange={(v) => { if (isMobile) setDraftCustomRollLength(v[0]); else setCustomRollLength(v[0]); syncGridFromTechnicalSettings(!!isMobile); }} min={100} max={5000} step={1} />
-                </div>
-              </div>
-              <p className="text-[8px] text-amber-600/80 font-medium leading-tight">
-                {t.rollDesc}
-              </p>
-            </div>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <div className="flex justify-between items-center">
-            <Label className="text-[10px] font-black uppercase text-muted-foreground"><Scissors className="h-3 w-3 inline mr-1" /> {t.overlap}</Label>
-            <span className="text-xs font-black text-amber-600">{currentOverlap} cm</span>
-          </div>
-          <Slider value={[currentOverlap]} onValueChange={(v) => { if (isMobile) setDraftOverlap(v[0]); else setOverlap(v[0]); syncGridFromTechnicalSettings(!!isMobile); }} min={0} max={10} step={0.1} />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4 pt-2">
-          <div className="flex items-center justify-between">
-            <Label className="text-[10px] font-black uppercase text-muted-foreground cursor-pointer" htmlFor={isMobile ? "draft-guides" : "guides"}>{t.guides}</Label>
-            <Switch id={isMobile ? "draft-guides" : "guides"} checked={currentShowGuides} onCheckedChange={isMobile ? setDraftShowGuides : setShowGuides} className="bg-muted scale-75" />
-          </div>
-          <div className="flex items-center justify-between">
-            <Label className="text-[10px] font-black uppercase text-muted-foreground cursor-pointer" htmlFor={isMobile ? "draft-outline" : "outline"}>{t.outline}</Label>
-            <Switch id={isMobile ? "draft-outline" : "outline"} checked={currentShowOutline} onCheckedChange={isMobile ? setDraftShowOutline : setShowOutline} className="bg-muted scale-75" />
-          </div>
-        </div>
-      </div>
-
-      {info && (
-        <div className="p-4 bg-card/90 rounded-xl border border-border shadow-md space-y-3">
-          <div className="flex items-center gap-2"><Ruler className="h-3 w-3 text-muted-foreground" /><span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{lang === 'es' ? 'Resumen de Impresión' : 'Print Summary'}</span></div>
-          <div className="grid grid-cols-2 gap-3">
-            <div><span className="text-[8px] font-bold text-muted-foreground uppercase block">{lang === 'es' ? 'Imagen Final' : 'Final Image'}</span><span className="text-xs font-black text-primary">{info.imgW} x {info.imgH} cm</span></div>
-            <div><span className="text-[8px] font-bold text-muted-foreground uppercase block">Distribución</span><span className="text-xs font-black text-foreground">{currentRows}x{currentCols} Hojas</span></div>
-          </div>
-          <Separator className="opacity-20" />
-          <div className="flex justify-between items-center"><span className="text-[8px] font-bold text-muted-foreground uppercase">{t.blankSpace}</span><span className={cn("text-[10px] font-black", Number(info.blankW) > 0 || Number(info.blankH) > 0 ? "text-amber-600" : "text-muted-foreground")}>+{info.blankW}w / +{info.blankH}h cm</span></div>
-        </div>
-      )}
-
-      <Collapsible open={isInfoOpen} onOpenChange={setIsInfoOpen} className="mt-8">
-        <CollapsibleTrigger asChild>
-          <Button variant="ghost" className="w-full flex items-center justify-between p-4 bg-primary/5 hover:bg-primary/10 rounded-xl transition-all">
-            <div className="flex items-center gap-2">
-              <Info className="h-4 w-4 text-primary" />
-              <span className="text-[10px] font-black uppercase tracking-widest">{isInfoOpen ? t.closeInfo : t.learnMore}</span>
-            </div>
-            <ChevronDown className={cn("h-4 w-4 text-primary transition-transform", isInfoOpen ? "rotate-180" : "rotate-0")} />
-          </Button>
-        </CollapsibleTrigger>
-        <CollapsibleContent className="space-y-6 pt-4 text-left">
           <div className="space-y-2">
-            <h3 className="text-sm font-black text-foreground uppercase tracking-tight">{t.posterSeoTitle}</h3>
-            <p className="text-xs text-muted-foreground leading-relaxed font-medium">{t.posterSeoIntro}</p>
+            <div className="flex justify-between items-center">
+              <Label className="text-[10px] font-black uppercase text-muted-foreground"><Scissors className="h-3 w-3 inline mr-1" /> {t.overlap}</Label>
+              <span className="text-xs font-black text-amber-600">{currentOverlap} cm</span>
+            </div>
+            <Slider value={[currentOverlap]} onValueChange={(v) => { if (isMobile) setDraftOverlap(v[0]); else setOverlap(v[0]); syncGridFromTechnicalSettings(!!isMobile); }} min={0} max={10} step={0.1} />
           </div>
-          <div className="grid gap-4">
-            <div className="p-3 bg-card border rounded-xl space-y-1"><h4 className="text-[10px] font-black text-primary uppercase">{t.posterSeoStep1Title}</h4><p className="text-[10px] text-muted-foreground font-medium">{t.posterSeoStep1Desc}</p></div>
-            <div className="p-3 bg-card border rounded-xl space-y-1"><h4 className="text-[10px] font-black text-primary uppercase">{t.posterSeoStep2Title}</h4><p className="text-[10px] text-muted-foreground font-medium">{t.posterSeoStep2Desc}</p></div>
-            <div className="p-3 bg-card border rounded-xl space-y-1"><h4 className="text-[10px] font-black text-primary uppercase">{t.posterSeoStep3Title}</h4><p className="text-[10px] text-muted-foreground font-medium">{t.posterSeoStep3Desc}</p></div>
-            <div className="p-3 bg-card border rounded-xl space-y-1"><h4 className="text-[10px] font-black text-primary uppercase">{t.posterSeoStep4Title}</h4><p className="text-[10px] text-muted-foreground font-medium">{t.posterSeoStep4Desc}</p></div>
-            <div className="p-3 bg-amber-500/5 border border-amber-500/20 rounded-xl space-y-1">
-              <h4 className="text-[10px] font-black text-amber-700 uppercase">Modo Rollo (Plotter)</h4>
-              <p className="text-[10px] text-muted-foreground font-medium">{lang === 'es' ? 'Define el ancho de tu rollo y el largo deseado. El sistema rota la hoja automáticamente según la imagen y añade tiras de papel si el ancho es insuficiente.' : 'Define your roll width and desired length. The system automatically rotates the sheet and adds strips if the width is exceeded.'}</p>
+
+          <div className="grid grid-cols-2 gap-4 pt-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-[10px] font-black uppercase text-muted-foreground cursor-pointer" htmlFor={isMobile ? "draft-guides" : "guides"}>{t.guides}</Label>
+              <Switch id={isMobile ? "draft-guides" : "guides"} checked={currentShowGuides} onCheckedChange={isMobile ? setDraftShowGuides : setShowGuides} className="bg-muted scale-75" />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label className="text-[10px] font-black uppercase text-muted-foreground cursor-pointer" htmlFor={isMobile ? "draft-outline" : "outline"}>{t.outline}</Label>
+              <Switch id={isMobile ? "draft-outline" : "outline"} checked={currentShowOutline} onCheckedChange={isMobile ? setDraftShowOutline : setShowOutline} className="bg-muted scale-75" />
             </div>
           </div>
-        </CollapsibleContent>
-      </Collapsible>
-    </div>
-  );
+        </div>
+
+        {info && (
+          <div className="p-4 bg-card/90 rounded-xl border border-border shadow-md space-y-3">
+            <div className="flex items-center gap-2"><Ruler className="h-3 w-3 text-muted-foreground" /><span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{lang === 'es' ? 'Resumen de Impresión' : 'Print Summary'}</span></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><span className="text-[8px] font-bold text-muted-foreground uppercase block">{lang === 'es' ? 'Imagen Final' : 'Final Image'}</span><span className="text-xs font-black text-primary">{info.imgW} x {info.imgH} cm</span></div>
+              <div><span className="text-[8px] font-bold text-muted-foreground uppercase block">Distribución</span><span className="text-xs font-black text-foreground">{currentRows}x{currentCols} Hojas</span></div>
+            </div>
+            <Separator className="opacity-20" />
+            <div className="flex justify-between items-center"><span className="text-[8px] font-bold text-muted-foreground uppercase">{t.blankSpace}</span><span className={cn("text-[10px] font-black", Number(info.blankW) > 0 || Number(info.blankH) > 0 ? "text-amber-600" : "text-muted-foreground")}>+{info.blankW}w / +{info.blankH}h cm</span></div>
+          </div>
+        )}
+
+        <Collapsible open={isInfoOpen} onOpenChange={setIsInfoOpen} className="mt-8">
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" className="w-full flex items-center justify-between p-4 bg-primary/5 hover:bg-primary/10 rounded-xl transition-all">
+              <div className="flex items-center gap-2">
+                <Info className="h-4 w-4 text-primary" />
+                <span className="text-[10px] font-black uppercase tracking-widest">{isInfoOpen ? t.closeInfo : t.learnMore}</span>
+              </div>
+              <ChevronDown className={cn("h-4 w-4 text-primary transition-transform", isInfoOpen ? "rotate-180" : "rotate-0")} />
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-6 pt-4 text-left">
+            <div className="space-y-2">
+              <h3 className="text-sm font-black text-foreground uppercase tracking-tight">{t.posterSeoTitle}</h3>
+              <p className="text-xs text-muted-foreground leading-relaxed font-medium">{t.posterSeoIntro}</p>
+            </div>
+            <div className="grid gap-4">
+              <div className="p-3 bg-card border rounded-xl space-y-1"><h4 className="text-[10px] font-black text-primary uppercase">{t.posterSeoStep1Title}</h4><p className="text-[10px] text-muted-foreground font-medium">{t.posterSeoStep1Desc}</p></div>
+              <div className="p-3 bg-card border rounded-xl space-y-1"><h4 className="text-[10px] font-black text-primary uppercase">{t.posterSeoStep2Title}</h4><p className="text-[10px] text-muted-foreground font-medium">{t.posterSeoStep2Desc}</p></div>
+              <div className="p-3 bg-card border rounded-xl space-y-1"><h4 className="text-[10px] font-black text-primary uppercase">{t.posterSeoStep3Title}</h4><p className="text-[10px] text-muted-foreground font-medium">{t.posterSeoStep3Desc}</p></div>
+              <div className="p-3 bg-card border rounded-xl space-y-1"><h4 className="text-[10px] font-black text-primary uppercase">{t.posterSeoStep4Title}</h4><p className="text-[10px] text-muted-foreground font-medium">{t.posterSeoStep4Desc}</p></div>
+              <div className="p-3 bg-amber-500/5 border border-amber-500/20 rounded-xl space-y-1">
+                <h4 className="text-[10px] font-black text-amber-700 uppercase">Modo Rollo (Plotter)</h4>
+                <p className="text-[10px] text-muted-foreground font-medium">{lang === 'es' ? 'Define el ancho de tu rollo y el largo deseado. El sistema rota la hoja automáticamente según la imagen y añade tiras de papel si el ancho es insuficiente.' : 'Define your roll width and desired length. The system automatically rotates the sheet and adds strips if the width is exceeded.'}</p>
+              </div>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      </div>
+    );
+  };
 
   if (!mounted) return null;
 
@@ -724,3 +802,4 @@ export default function PosterGridEditor() {
     </div>
   );
 }
+
