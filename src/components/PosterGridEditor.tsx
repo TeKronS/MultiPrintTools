@@ -26,7 +26,7 @@ import {
   ChevronDown,
   Expand,
   ScrollText,
-  Anchor,
+  Maximize,
   FileText
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -398,7 +398,9 @@ export default function PosterGridEditor() {
           pdf.text(footerText, appliedMH * 10, paperH - (appliedMV * 5));
         }
       }
-      pdf.save(`poster-grid-${Date.now()}.pdf`);
+      
+      const fileName = `PosterGrid_${activeTargetW}x${activeTargetH}cm_${activePaperSize.replace(/\s/g, '')}_MultiPrint.pdf`;
+      pdf.save(fileName);
       toast({ title: t.export, description: "Documento exportado en alta resolución." });
     } catch (e) {
       console.error(e);
@@ -552,6 +554,22 @@ export default function PosterGridEditor() {
             <Slider value={[overlap]} onValueChange={(v) => { setOverlap(v[0]); setTimeout(() => syncGrid(), 0); }} min={0} max={10} step={0.1} />
           </div>
 
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <Label className="text-[10px] font-black uppercase text-muted-foreground"><Maximize className="h-3 w-3 inline mr-1" /> {t.marginsVertical}</Label>
+              <span className="text-xs font-black text-primary">{marginV} cm</span>
+            </div>
+            <Slider value={[marginV]} onValueChange={(v) => { setMarginV(v[0]); setTimeout(() => syncGrid(), 0); }} min={0} max={5} step={0.1} />
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <Label className="text-[10px] font-black uppercase text-muted-foreground"><Maximize className="h-3 w-3 inline mr-1" /> {t.marginsHorizontal}</Label>
+              <span className="text-xs font-black text-primary">{marginH} cm</span>
+            </div>
+            <Slider value={[marginH]} onValueChange={(v) => { setMarginH(v[0]); setTimeout(() => syncGrid(), 0); }} min={0} max={5} step={0.1} />
+          </div>
+
           <div className="grid grid-cols-2 gap-4 pt-2">
             <div className="flex items-center justify-between"><Label className="text-[10px] font-black uppercase text-muted-foreground cursor-pointer" htmlFor="g">{t.guides}</Label><Switch id="g" checked={showGuides} onCheckedChange={setShowGuides} className="bg-muted scale-75" /></div>
             <div className="flex items-center justify-between"><Label className="text-[10px] font-black uppercase text-muted-foreground cursor-pointer" htmlFor="o">{t.outline}</Label><Switch id="o" checked={showOutline} onCheckedChange={setShowOutline} className="bg-muted scale-75" /></div>
@@ -568,8 +586,35 @@ export default function PosterGridEditor() {
               <ChevronDown className={cn("h-4 w-4 text-primary transition-transform", isInfoOpen ? "rotate-180" : "rotate-0")} />
             </Button>
           </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-4 pt-4 text-left">
-            <p className="text-xs text-muted-foreground font-medium leading-relaxed">{t.posterSeoIntro}</p>
+          <CollapsibleContent className="space-y-6 pt-6 text-left">
+            <div className="space-y-2">
+              <h3 className="text-sm font-black text-foreground uppercase tracking-tight">{t.posterSeoTitle}</h3>
+              <p className="text-xs text-muted-foreground font-medium leading-relaxed">{t.posterSeoIntro}</p>
+            </div>
+            
+            <div className="grid gap-4">
+              <div className="p-3 bg-card border rounded-xl space-y-1">
+                <h4 className="text-[10px] font-black text-primary uppercase">{t.posterSeoStep1Title}</h4>
+                <p className="text-[10px] text-muted-foreground font-medium">{t.posterSeoStep1Desc}</p>
+              </div>
+              <div className="p-3 bg-card border rounded-xl space-y-1">
+                <h4 className="text-[10px] font-black text-primary uppercase">{t.posterSeoStep2Title}</h4>
+                <p className="text-[10px] text-muted-foreground font-medium">{t.posterSeoStep2Desc}</p>
+              </div>
+              <div className="p-3 bg-card border rounded-xl space-y-1">
+                <h4 className="text-[10px] font-black text-primary uppercase">{t.posterSeoStep3Title}</h4>
+                <p className="text-[10px] text-muted-foreground font-medium">{t.posterSeoStep3Desc}</p>
+              </div>
+              <div className="p-3 bg-card border rounded-xl space-y-1">
+                <h4 className="text-[10px] font-black text-primary uppercase">{t.posterSeoStep4Title}</h4>
+                <p className="text-[10px] text-muted-foreground font-medium">{t.posterSeoStep4Desc}</p>
+              </div>
+            </div>
+
+            <div className="p-4 bg-muted/50 rounded-2xl border border-dashed">
+              <h4 className="text-xs font-black text-foreground uppercase mb-1">{t.posterSeoWhyTitle}</h4>
+              <p className="text-[10px] text-muted-foreground leading-relaxed">{t.posterSeoWhyDesc}</p>
+            </div>
           </CollapsibleContent>
         </Collapsible>
       </div>
