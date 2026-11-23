@@ -153,48 +153,42 @@ export default function PosterGridEditor() {
     const targetH_mm = h_cm * 10;
     const overlap_mm = ov_cm * 10;
 
-    const calcForOrientation = (orient: 'portrait' | 'landscape') => {
-      let paper;
-      let calculatedLength = 0;
+    if (pSize.includes('Personalizado')) {
+      const rollWidth = cW_mm || 215.9;
+      // Determinar orientación basada en la imagen para aprovechar el rollo
+      const isLandscapeImage = targetW_mm > targetH_mm;
+      const finalOrient = isLandscapeImage ? 'landscape' : 'portrait';
       
-      if (pSize.includes('Personalizado')) {
-        const rollWidth = cW_mm || 215.9;
-        // Determine natural orientation based on image dimensions for roll
-        const isLandscapeImage = targetW_mm > targetH_mm;
-        
-        // If the user hasn't explicitly chosen, we force orientation to fit best
-        const finalOrient = isLandscapeImage ? 'landscape' : 'portrait';
-        
-        if (finalOrient === 'landscape') {
-          paper = { width: MAX_ROLL_LENGTH_MM, height: rollWidth };
-        } else {
-          paper = { width: rollWidth, height: MAX_ROLL_LENGTH_MM };
-        }
+      const { appliedMH, appliedMV } = getAppliedMargins(finalOrient, mV_cm, mH_cm);
+      
+      // En modo rollo, el lado "fijo" es el ancho del rollo. 
+      // El lado "variable" crece hasta el máximo técnico (5m).
+      const fixedDimPrintable = rollWidth - ( (finalOrient === 'landscape' ? appliedMV : appliedMH) * 20);
+      const variableDimPrintable = MAX_ROLL_LENGTH_MM - ( (finalOrient === 'landscape' ? appliedMH : appliedMV) * 20);
+      
+      const effectiveFixed = fixedDimPrintable - overlap_mm;
+      const effectiveVariable = variableDimPrintable - overlap_mm;
 
-        const { appliedMH, appliedMV } = getAppliedMargins(finalOrient, mV_cm, mH_cm);
-        const printableW = (finalOrient === 'landscape' ? paper.width : paper.width) - (appliedMH * 20);
-        const printableH = (finalOrient === 'landscape' ? paper.height : paper.height) - (appliedMV * 20);
-        
-        const effectiveW = printableW - overlap_mm;
-        const effectiveH = printableH - overlap_mm;
+      // Paneles en la dimensión fija del rollo
+      const fixedPanels = Math.ceil(( (finalOrient === 'landscape' ? targetH_mm : targetW_mm) - overlap_mm) / effectiveFixed);
+      // Paneles en la dimensión larga del rollo (variable)
+      const variablePanels = Math.ceil(( (finalOrient === 'landscape' ? targetW_mm : targetH_mm) - overlap_mm) / effectiveVariable);
 
-        // How many panels in the 'fixed width' dimension?
-        const crossPanels = Math.ceil(( (finalOrient === 'landscape' ? targetH_mm : targetW_mm) - overlap_mm) / ( (finalOrient === 'landscape' ? printableH : printableW) - overlap_mm));
-        // How many panels in the 'variable length' dimension?
-        const longPanels = Math.ceil(( (finalOrient === 'landscape' ? targetW_mm : targetH_mm) - overlap_mm) / ( (finalOrient === 'landscape' ? printableW : printableH) - overlap_mm));
+      // Calcular largo de corte dinámico
+      const neededLength = ( (finalOrient === 'landscape' ? targetW_mm : targetH_mm) ) + ( (finalOrient === 'landscape' ? appliedMH : appliedMV) * 20) + overlap_mm;
+      const finalLength = Math.min(MAX_ROLL_LENGTH_MM, Math.max(100, neededLength));
 
-        calculatedLength = Math.min(MAX_ROLL_LENGTH_MM, (isLandscapeImage ? targetW_mm : targetH_mm) + (appliedMV * 20) + overlap_mm);
-        
-        return { 
-          rows: finalOrient === 'landscape' ? crossPanels : longPanels, 
-          cols: finalOrient === 'landscape' ? longPanels : crossPanels, 
-          total: crossPanels * longPanels, 
-          orientation: finalOrient, 
-          dynamicLength: calculatedLength 
-        };
-      } else {
+      return { 
+        rows: finalOrient === 'landscape' ? Math.max(1, fixedPanels) : Math.max(1, variablePanels), 
+        cols: finalOrient === 'landscape' ? Math.max(1, variablePanels) : Math.max(1, fixedPanels), 
+        total: Math.max(1, fixedPanels) * Math.max(1, variablePanels), 
+        orientation: finalOrient, 
+        dynamicLength: finalLength 
+      };
+    } else {
+      const calcForOrientation = (orient: 'portrait' | 'landscape') => {
         const paperBase = PAPER_DIMENSIONS[pSize];
-        paper = orient === 'portrait' 
+        const paper = orient === 'portrait' 
           ? { width: Math.min(paperBase.width, paperBase.height), height: Math.max(paperBase.width, paperBase.height) }
           : { width: Math.max(paperBase.width, paperBase.height), height: Math.min(paperBase.width, paperBase.height) };
         
@@ -207,17 +201,9 @@ export default function PosterGridEditor() {
         const c = Math.ceil((targetW_mm - overlap_mm) / effectiveW);
         const r = Math.ceil((targetH_mm - overlap_mm) / effectiveH);
         
-        return { rows: Math.max(1, r), cols: Math.max(1, c), total: r * c, orientation: orient };
-      }
-    };
+        return { rows: Math.max(1, r), cols: Math.max(1, c), total: Math.max(1, r) * Math.max(1, c), orientation: orient };
+      };
 
-    if (pSize.includes('Personalizado')) {
-       const res = calcForOrientation('portrait'); // Internal logic handles best fit
-       if (res.dynamicLength) {
-         if (isMenuOpen) setDraftCustomRollLength(res.dynamicLength); else setCustomRollLength(res.dynamicLength);
-       }
-       return res;
-    } else {
       const pResults = calcForOrientation('portrait');
       const lResults = calcForOrientation('landscape');
       return pResults.total <= lResults.total ? pResults : lResults;
@@ -239,20 +225,23 @@ export default function PosterGridEditor() {
     if (isDraft) { 
       setDraftRows(opt.rows); 
       setDraftCols(opt.cols); 
-      setDraftOrientation(opt.orientation); 
+      setDraftOrientation(opt.orientation);
+      if (opt.dynamicLength) setDraftCustomRollLength(opt.dynamicLength);
     } else { 
       setRows(opt.rows); 
       setCols(opt.cols); 
       setOrientation(opt.orientation); 
+      if (opt.dynamicLength) setCustomRollLength(opt.dynamicLength);
     }
   };
 
   const handleWidthChange = (val: string, isDraft: boolean) => {
     if (!image) return;
-    const num = Math.max(0.1, parseFloat(val));
+    const num = parseFloat(val);
     const isLocked = isDraft ? draftLockAspect : lockAspect;
     const pSize = isDraft ? draftPaperSize : paperSize;
     const cW = isDraft ? draftCustomRollWidth : customRollWidth;
+    
     const setW = isDraft ? setDraftTargetWidth : setTargetWidth;
     const setH = isDraft ? setDraftTargetHeight : setTargetHeight;
     const setR = isDraft ? setDraftRows : setRows;
@@ -265,23 +254,26 @@ export default function PosterGridEditor() {
       const aspect = image.width / image.height;
       const newHeight = num / aspect;
       setW(num.toString()); 
-      setH(newHeight.toFixed(1));
+      setH(newHeight.toFixed(2));
       const opt = calculateOptimizedGrid(num, newHeight, pSize, isDraft ? draftOverlap : overlap, isDraft ? draftMarginV : marginV, isDraft ? draftMarginH : marginH, cW);
       setR(opt.rows); setC(opt.cols); setO(opt.orientation);
+      if (opt.dynamicLength) isDraft ? setDraftCustomRollLength(opt.dynamicLength) : setCustomRollLength(opt.dynamicLength);
     } else {
       setW(num.toString());
       const curH = parseFloat(isDraft ? draftTargetHeight : targetHeight);
       const opt = calculateOptimizedGrid(num, curH, pSize, isDraft ? draftOverlap : overlap, isDraft ? draftMarginV : marginV, isDraft ? draftMarginH : marginH, cW);
       setR(opt.rows); setC(opt.cols); setO(opt.orientation);
+      if (opt.dynamicLength) isDraft ? setDraftCustomRollLength(opt.dynamicLength) : setCustomRollLength(opt.dynamicLength);
     }
   };
 
   const handleHeightChange = (val: string, isDraft: boolean) => {
     if (!image) return;
-    const num = Math.max(0.1, parseFloat(val));
+    const num = parseFloat(val);
     const isLocked = isDraft ? draftLockAspect : lockAspect;
     const pSize = isDraft ? draftPaperSize : paperSize;
     const cW = isDraft ? draftCustomRollWidth : customRollWidth;
+    
     const setW = isDraft ? setDraftTargetWidth : setTargetWidth;
     const setH = isDraft ? setDraftTargetHeight : setTargetHeight;
     const setR = isDraft ? setDraftRows : setRows;
@@ -294,14 +286,16 @@ export default function PosterGridEditor() {
       const aspect = image.width / image.height;
       const newWidth = num * aspect;
       setH(num.toString()); 
-      setW(newWidth.toFixed(1));
+      setW(newWidth.toFixed(2));
       const opt = calculateOptimizedGrid(newWidth, num, pSize, isDraft ? draftOverlap : overlap, isDraft ? draftMarginV : marginV, isDraft ? draftMarginH : marginH, cW);
       setR(opt.rows); setC(opt.cols); setO(opt.orientation);
+      if (opt.dynamicLength) isDraft ? setDraftCustomRollLength(opt.dynamicLength) : setCustomRollLength(opt.dynamicLength);
     } else {
       setH(num.toString());
       const curW = parseFloat(isDraft ? draftTargetWidth : targetWidth);
       const opt = calculateOptimizedGrid(curW, num, pSize, isDraft ? draftOverlap : overlap, isDraft ? draftMarginV : marginV, isDraft ? draftMarginH : marginH, cW);
       setR(opt.rows); setC(opt.cols); setO(opt.orientation);
+      if (opt.dynamicLength) isDraft ? setDraftCustomRollLength(opt.dynamicLength) : setCustomRollLength(opt.dynamicLength);
     }
   };
 
@@ -346,14 +340,16 @@ export default function PosterGridEditor() {
       const aPS = isMenuOpen ? draftPaperSize : paperSize; const aOrient = isMenuOpen ? draftOrientation : orientation;
       const aTW = parseFloat(isMenuOpen ? draftTargetWidth : targetWidth); const aTH = parseFloat(isMenuOpen ? draftTargetHeight : targetHeight);
       const aSO = isMenuOpen ? draftShowOutline : showOutline; const aCW = isMenuOpen ? draftCustomRollWidth : customRollWidth; const aCL = isMenuOpen ? draftCustomRollLength : customRollLength;
+      
       let paper; let pdfFormat;
       if (aPS.includes('Personalizado')) {
-        if (aTW <= aTH) { paper = { width: aCW, height: aCL }; } else { paper = { width: aCL, height: aCW }; }
+        if (aOrient === 'portrait') { paper = { width: aCW, height: aCL }; } else { paper = { width: aCL, height: aCW }; }
         pdfFormat = [paper.width, paper.height];
       } else {
         const pB = PAPER_DIMENSIONS[aPS]; pdfFormat = ['letter', 'a4', 'a3', 'legal'].includes(pB.format) ? pB.format : [pB.width, pB.height];
         paper = aOrient === 'portrait' ? { width: Math.min(pB.width, pB.height), height: Math.max(pB.width, pB.height) } : { width: Math.max(pB.width, pB.height), height: Math.min(pB.width, pB.height) };
       }
+      
       const pdf = new jsPDF({ orientation: aOrient === 'portrait' ? 'p' : 'l', unit: 'mm', format: pdfFormat as any });
       const { appliedMH, appliedMV } = getAppliedMargins(aOrient, aMV, aMH);
       const printableW = paper.width - (appliedMH * 20); const printableH = paper.height - (appliedMV * 20);
@@ -362,6 +358,7 @@ export default function PosterGridEditor() {
       const finalW_mm = aTW * 10; const finalH_mm = aTH * 10;
       const offsetX = (totalGridW - finalW_mm) / 2; const offsetY = (totalGridH - finalH_mm) / 2;
       const outPxMm = 300 / 25.4; const sPxMmX = img.width / finalW_mm; const sPxMmY = img.height / finalH_mm;
+      
       const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d')!;
       for (let r = 0; r < aR; r++) {
         for (let c = 0; c < aC; c++) {
@@ -373,6 +370,7 @@ export default function PosterGridEditor() {
           const sx = Math.max(0, (sLeft - offsetX) * sPxMmX); const sy = Math.max(0, (sTop - offsetY) * sPxMmY);
           const sw = vW * sPxMmX; const sh = vH * sPxMmY;
           const dw = vW * outPxMm; const dh = vH * outPxMm;
+          
           if (sw > 0 && sh > 0) {
             canvas.width = Math.max(1, dw); canvas.height = Math.max(1, dh);
             ctx.fillStyle = "white"; ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -400,8 +398,12 @@ export default function PosterGridEditor() {
   function getMeasures(r: number, c: number, ov: number, mV: number, mH: number, pS: string, orient: 'portrait' | 'landscape', tW: string, tH: string, cW: number, cL: number) {
     if (!image) return null;
     let paper; const twMm = parseFloat(tW) * 10; const thMm = parseFloat(tH) * 10;
-    if (pS.includes('Personalizado')) { if (twMm <= thMm) { paper = { width: cW, height: cL }; } else { paper = { width: cL, height: cW }; } }
-    else { const pB = PAPER_DIMENSIONS[pS]; paper = orient === 'portrait' ? { width: Math.min(pB.width, pB.height), height: Math.max(pB.width, pB.height) } : { width: Math.max(pB.width, pB.height), height: Math.min(pB.width, pB.height) }; }
+    if (pS.includes('Personalizado')) { 
+      if (orient === 'portrait') { paper = { width: cW, height: cL }; } else { paper = { width: cL, height: cW }; } 
+    } else { 
+      const pB = PAPER_DIMENSIONS[pS]; 
+      paper = orient === 'portrait' ? { width: Math.min(pB.width, pB.height), height: Math.max(pB.width, pB.height) } : { width: Math.max(pB.width, pB.height), height: Math.min(pB.width, pB.height) }; 
+    }
     const { appliedMH, appliedMV } = getAppliedMargins(orient, mV, mH);
     const pW = paper.width - (appliedMH * 20); const pH = paper.height - (appliedMV * 20);
     const ovMm = ov * 10; const eW = pW - ovMm; const eH = pH - ovMm;
@@ -624,7 +626,7 @@ export default function PosterGridEditor() {
           <Button size="icon" className="h-14 w-14 rounded-full shadow-2xl bg-primary text-white border-4 border-white" onClick={() => handleMenuOpenChange(true)}>
             <Settings2 className="h-6 w-6" />
           </Button>
-          <SheetContent side="right" className="w-[85%] sm:w-[400px] p-0 bg-background/95 backdrop-blur-xl shadow-2xl overflow-hidden flex flex-col z-[50]">
+          <SheetContent side="right" className="w-[85%] sm:w-[400px] p-0 bg-background/95 backdrop-blur-xl shadow-2xl overflow-hidden flex flex-col z-[150]">
             <SheetHeader className="sr-only"><SheetTitle>Ajustes</SheetTitle></SheetHeader>
             <div className="p-3 bg-primary/5 flex flex-col gap-3">
               <Button className="w-full h-12 bg-primary text-white font-black rounded-xl" onClick={handleExport} disabled={!image || isExporting}>
@@ -647,4 +649,3 @@ export default function PosterGridEditor() {
     </div>
   );
 }
-
