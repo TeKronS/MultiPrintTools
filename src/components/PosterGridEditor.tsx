@@ -26,7 +26,8 @@ import {
   ChevronDown,
   Expand,
   ScrollText,
-  Anchor
+  Anchor,
+  FileText
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -238,11 +239,12 @@ export default function PosterGridEditor() {
     }
   };
 
-  const syncGrid = () => {
+  const syncGrid = (targetPaperSize?: string) => {
     if (!image) return;
     const w = parseNum(targetWidth);
     const h = parseNum(targetHeight);
-    const opt = calculateOptimizedGrid(w, h, paperSize, overlap, marginV, marginH, customRollWidth);
+    const pSize = targetPaperSize || paperSize;
+    const opt = calculateOptimizedGrid(w, h, pSize, overlap, marginV, marginH, customRollWidth);
     setRows(opt.rows);
     setCols(opt.cols);
     setOrientation(opt.orientation);
@@ -504,7 +506,7 @@ export default function PosterGridEditor() {
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-[10px] font-black uppercase text-muted-foreground">{t.paperSize}</Label>
-              <Select value={paperSize} onValueChange={(v) => { setPaperSize(v); setTimeout(syncGrid, 0); }}>
+              <Select value={paperSize} onValueChange={(v) => { setPaperSize(v); syncGrid(v); }}>
                 <SelectTriggerUI className="h-8 rounded-lg text-xs font-bold bg-card border-border/10"><SelectValue /></SelectTriggerUI>
                 <SelectContent className="z-[1000]">{Object.keys(PAPER_DIMENSIONS).map(key => <SelectItem key={key} value={key} className="text-xs font-bold">{key}</SelectItem>)}</SelectContent>
               </Select>
@@ -512,7 +514,7 @@ export default function PosterGridEditor() {
             {!paperSize.includes('Personalizado') && (
               <div className="space-y-1">
                 <Label className="text-[10px] font-black uppercase text-muted-foreground">{t.orientation}</Label>
-                <Select value={orientation} onValueChange={(v: any) => { setOrientation(v); setTimeout(syncGrid, 0); }}>
+                <Select value={orientation} onValueChange={(v: any) => { setOrientation(v); setTimeout(() => syncGrid(), 0); }}>
                   <SelectTriggerUI className="h-8 rounded-lg text-xs font-bold bg-card border-border/10"><SelectValue /></SelectTriggerUI>
                   <SelectContent className="z-[1000]"><SelectItem value="portrait" className="text-xs font-bold">{t.portrait}</SelectItem><SelectItem value="landscape" className="text-xs font-bold">{t.landscape}</SelectItem></SelectContent>
                 </Select>
@@ -532,7 +534,7 @@ export default function PosterGridEditor() {
               <div className="space-y-3">
                 <div className="space-y-1">
                   <div className="flex justify-between"><Label className="text-[8px] font-bold text-muted-foreground uppercase">{t.rollWidth}</Label><span className={cn("text-[10px] font-black", isSnapped ? "text-primary" : "text-amber-600")}>{(customRollWidth/10).toFixed(1)} cm</span></div>
-                  <Slider value={[customRollWidth]} onValueChange={(v) => { let val = v[0]; if (Math.abs(val-210)<3) val=210; if (Math.abs(val-215.9)<3) val=215.9; setCustomRollWidth(val); setTimeout(syncGrid, 0); }} min={100} max={1600} step={0.1} />
+                  <Slider value={[customRollWidth]} onValueChange={(v) => { let val = v[0]; if (Math.abs(val-210)<3) val=210; if (Math.abs(val-215.9)<3) val=215.9; setCustomRollWidth(val); setTimeout(() => syncGrid(), 0); }} min={100} max={1600} step={0.1} />
                 </div>
                 <div className="space-y-1">
                   <div className="flex justify-between"><Label className="text-[8px] font-bold text-muted-foreground uppercase">Largo Automático</Label><span className="text-[10px] font-black text-muted-foreground">{(customRollLength/10).toFixed(1)} cm</span></div>
@@ -547,7 +549,7 @@ export default function PosterGridEditor() {
               <Label className="text-[10px] font-black uppercase text-muted-foreground"><Scissors className="h-3 w-3 inline mr-1" /> {t.overlap}</Label>
               <span className="text-xs font-black text-amber-600">{overlap} cm</span>
             </div>
-            <Slider value={[overlap]} onValueChange={(v) => { setOverlap(v[0]); setTimeout(syncGrid, 0); }} min={0} max={10} step={0.1} />
+            <Slider value={[overlap]} onValueChange={(v) => { setOverlap(v[0]); setTimeout(() => syncGrid(), 0); }} min={0} max={10} step={0.1} />
           </div>
 
           <div className="grid grid-cols-2 gap-4 pt-2">
@@ -631,9 +633,17 @@ export default function PosterGridEditor() {
                       </div>
                       <Separator orientation="vertical" className="h-6 lg:h-8 opacity-50" />
                       <div className="flex flex-col">
+                        <span className="text-[6px] lg:text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">{t.paperSize}</span>
+                        <div className="flex items-center gap-1.5 lg:gap-2">
+                          <FileText className="h-2.5 w-2.5 lg:h-3.5 lg:w-3.5 text-amber-600" />
+                          <span className="text-xs lg:text-base font-black text-foreground uppercase">{paperSize}</span>
+                        </div>
+                      </div>
+                      <Separator orientation="vertical" className="h-6 lg:h-8 opacity-50" />
+                      <div className="flex flex-col">
                         <span className="text-[6px] lg:text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">Paneles</span>
                         <div className="flex items-center gap-1.5 lg:gap-2">
-                          <Layers className="h-2.5 w-2.5 lg:h-3.5 lg:w-3.5 text-amber-500" />
+                          <Layers className="h-2.5 w-2.5 lg:h-3.5 lg:w-3.5 text-primary" />
                           <span className="text-xs lg:text-base font-black text-foreground">{rows * cols} <span className="hidden sm:inline">{lang === 'es' ? 'HOJAS' : 'SHEETS'}</span></span>
                         </div>
                       </div>
