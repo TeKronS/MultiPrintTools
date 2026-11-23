@@ -111,17 +111,9 @@ export default function PosterGridEditor() {
 
   const t = translations[lang];
 
-  // Helper para parsear números manejando puntos o comas
   const parseNum = (val: string): number => {
     const normalized = val.replace(',', '.');
     return parseFloat(normalized) || 0;
-  };
-
-  const getAppliedMargins = (orient: 'portrait' | 'landscape', mV: number, mH: number) => {
-    return {
-      appliedMH: orient === 'portrait' ? mH : mV,
-      appliedMV: orient === 'portrait' ? mV : mH
-    };
   };
 
   const calculateOptimizedGrid = (
@@ -143,7 +135,8 @@ export default function PosterGridEditor() {
       const isLandscapeImage = targetW_mm > targetH_mm;
       const finalOrient = isLandscapeImage ? 'landscape' : 'portrait';
       
-      const { appliedMH, appliedMV } = getAppliedMargins(finalOrient, mV_cm, mH_cm);
+      const appliedMH = finalOrient === 'portrait' ? mH_cm : mV_cm;
+      const appliedMV = finalOrient === 'portrait' ? mV_cm : mH_cm;
       
       const fixedDimPrintable = rollWidth - ( (finalOrient === 'landscape' ? appliedMV : appliedMH) * 20);
       const variableDimPrintable = MAX_ROLL_LENGTH_MM - ( (finalOrient === 'landscape' ? appliedMH : appliedMV) * 20);
@@ -171,7 +164,9 @@ export default function PosterGridEditor() {
           ? { width: Math.min(paperBase.width, paperBase.height), height: Math.max(paperBase.width, paperBase.height) }
           : { width: Math.max(paperBase.width, paperBase.height), height: Math.min(paperBase.width, paperBase.height) };
         
-        const { appliedMH, appliedMV } = getAppliedMargins(orient, mV_cm, mH_cm);
+        const appliedMH = orient === 'portrait' ? mH_cm : mV_cm;
+        const appliedMV = orient === 'portrait' ? mV_cm : mH_cm;
+        
         const printableW = paper.width - (appliedMH * 20);
         const printableH = paper.height - (appliedMV * 20);
         const effectiveW = printableW - overlap_mm;
@@ -260,7 +255,7 @@ export default function PosterGridEditor() {
     img.onload = () => {
       setImage({ file, url, width: img.width, height: img.height });
       const aspect = img.width / img.height;
-      const initialW = 40; // Base inicial de 40cm
+      const initialW = 40; 
       const initialH = initialW / aspect;
       
       setTargetWidth(initialW.toString());
@@ -272,6 +267,143 @@ export default function PosterGridEditor() {
       setOrientation(opt.orientation);
       if (opt.dynamicLength) setCustomRollLength(opt.dynamicLength);
     };
+  };
+
+  const handleExport = async () => {
+    if (!image) return;
+    setIsExporting(true);
+    try {
+      const img = new window.Image();
+      img.src = image.url;
+      await new Promise((resolve) => img.onload = resolve);
+
+      const activeRows = rows;
+      const activeCols = cols;
+      const activeOverlap = overlap;
+      const activeMarginV = marginV;
+      const activeMarginH = marginH;
+      const activePaperSize = paperSize;
+      const activeOrientation = orientation;
+      const activeTargetW = parseNum(targetWidth);
+      const activeTargetH = parseNum(targetHeight);
+
+      const paperBase = PAPER_DIMENSIONS[activePaperSize];
+      const isRoll = activePaperSize.includes('Personalizado');
+      
+      const standardFormats = ['letter', 'a4', 'a3', 'legal'];
+      let pdfFormat;
+      let paperW, paperH;
+
+      if (isRoll) {
+        paperW = activeOrientation === 'portrait' ? customRollWidth : customRollLength;
+        paperH = activeOrientation === 'portrait' ? customRollLength : customRollWidth;
+        pdfFormat = [paperW, paperH];
+      } else {
+        pdfFormat = standardFormats.includes(paperBase.format) ? paperBase.format : [paperBase.width, paperBase.height];
+        paperW = activeOrientation === 'portrait' ? Math.min(paperBase.width, paperBase.height) : Math.max(paperBase.width, paperBase.height);
+        paperH = activeOrientation === 'portrait' ? Math.max(paperBase.width, paperBase.height) : Math.min(paperBase.width, paperBase.height);
+      }
+
+      const pdf = new jsPDF({
+        orientation: activeOrientation === 'portrait' ? 'p' : 'l',
+        unit: 'mm',
+        format: pdfFormat as any
+      });
+
+      const appliedMH = activeOrientation === 'portrait' ? activeMarginH : activeMarginV;
+      const appliedMV = activeOrientation === 'portrait' ? activeMarginV : activeMarginH;
+
+      const printableW = paperW - (appliedMH * 20);
+      const printableH = paperH - (appliedMV * 20);
+      const overlapMm = activeOverlap * 10;
+      const effectiveSheetW = printableW - overlapMm;
+      const effectiveSheetH = printableH - overlapMm;
+
+      const totalGridW = (activeCols * effectiveSheetW) + overlapMm;
+      const totalGridH = (activeRows * effectiveSheetH) + overlapMm;
+
+      const finalW_mm = activeTargetW * 10;
+      const finalH_mm = activeTargetH * 10;
+      const offsetX_mm = (totalGridW - finalW_mm) / 2;
+      const offsetY_mm = (totalGridH - finalH_mm) / 2;
+
+      const targetDPI = 300;
+      const outputPxPerMm = targetDPI / 25.4;
+      const sourcePxPerMm = img.width / finalW_mm;
+
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error("Canvas fail");
+
+      for (let r = 0; r < activeRows; r++) {
+        for (let c = 0; c < activeCols; c++) {
+          if (r > 0 || c > 0) {
+            pdf.addPage(pdfFormat as any, activeOrientation === 'portrait' ? 'p' : 'l');
+          }
+          
+          const sheetLeft_mm = c * effectiveSheetW;
+          const sheetTop_mm = r * effectiveSheetH;
+          
+          const drawInSheetX_mm = Math.max(0, offsetX_mm - sheetLeft_mm);
+          const drawInSheetY_mm = Math.max(0, offsetY_mm - sheetTop_mm);
+          
+          const visibleW_mm = Math.min(effectiveSheetW + overlapMm - drawInSheetX_mm, finalW_mm - Math.max(0, sheetLeft_mm - offsetX_mm));
+          const visibleH_mm = Math.min(effectiveSheetH + overlapMm - drawInSheetY_mm, finalH_mm - Math.max(0, sheetTop_mm - offsetY_mm));
+
+          const sx = Math.max(0, (sheetLeft_mm - offsetX_mm) * sourcePxPerMm);
+          const sy = Math.max(0, (sheetTop_mm - offsetY_mm) * sourcePxPerMm);
+          const sw = visibleW_mm * sourcePxPerMm;
+          const sh = visibleH_mm * sourcePxPerMm;
+
+          const dw = visibleW_mm * outputPxPerMm;
+          const dh = visibleH_mm * outputPxPerMm;
+
+          if (sw > 0 && sh > 0) {
+            canvas.width = Math.max(1, dw);
+            canvas.height = Math.max(1, dh);
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.fillStyle = "white";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, sx, sy, sw, sh, 0, 0, dw, dh);
+            
+            pdf.addImage(
+              canvas.toDataURL('image/jpeg', 0.95), 
+              'JPEG', 
+              (appliedMH * 10) + drawInSheetX_mm, 
+              (appliedMV * 10) + drawInSheetY_mm, 
+              visibleW_mm, 
+              visibleH_mm
+            );
+          }
+
+          if (showGuides) {
+            pdf.setDrawColor(220);
+            pdf.setLineDashPattern([2, 2], 0);
+            if (c < activeCols - 1) {
+              const gx = (appliedMH * 10) + (printableW - overlapMm);
+              pdf.line(gx, appliedMV * 10, gx, appliedMV * 10 + printableH);
+            }
+            if (r < activeRows - 1) {
+              const gy = (appliedMV * 10) + (printableH - overlapMm);
+              pdf.line(appliedMH * 10, gy, appliedMH * 10 + printableW, gy);
+            }
+          }
+          
+          pdf.setFontSize(7);
+          pdf.setTextColor(180);
+          const footerText = `MULTIPRINTTOOLS | ${t.muralisTitle.toUpperCase()} | PANEL ${r+1}-${c+1} | ${activePaperSize} (${activeOrientation === 'portrait' ? 'P' : 'L'})`;
+          pdf.text(footerText, appliedMH * 10, paperH - (appliedMV * 5));
+        }
+      }
+      pdf.save(`poster-grid-${Date.now()}.pdf`);
+      toast({ title: t.export, description: "Documento exportado en alta resolución." });
+    } catch (e) {
+      console.error(e);
+      toast({ variant: "destructive", title: "Error", description: "No se pudo generar el PDF." });
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const physicalInfo = useMemo(() => {
@@ -290,7 +422,9 @@ export default function PosterGridEditor() {
         : { width: Math.max(pB.width, pB.height), height: Math.min(pB.width, pB.height) }; 
     }
 
-    const { appliedMH, appliedMV } = getAppliedMargins(orientation, marginV, marginH);
+    const appliedMH = orientation === 'portrait' ? marginH : marginV;
+    const appliedMV = orientation === 'portrait' ? marginV : marginH;
+    
     const pW = paper.width - (appliedMH * 20); 
     const pH = paper.height - (appliedMV * 20);
     const ovMm = overlap * 10; 
@@ -313,9 +447,6 @@ export default function PosterGridEditor() {
     const isLetterSnap = Math.abs(customRollWidth - 215.9) < 2;
     const isA4Snap = Math.abs(customRollWidth - 210) < 2;
     const isSnapped = isLetterSnap || isA4Snap;
-
-    const curW = targetWidth;
-    const curH = targetHeight;
 
     return (
       <div className={cn("space-y-6", isMobileView ? "p-4 pt-1 pb-40" : "p-4")}>
@@ -342,22 +473,22 @@ export default function PosterGridEditor() {
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <Label className="text-[8px] font-bold text-muted-foreground uppercase">{t.width} (cm)</Label>
-                <span className="text-xs font-black text-primary">{curW} cm</span>
+                <span className="text-xs font-black text-primary">{targetWidth} cm</span>
               </div>
               <div className="flex items-center gap-3">
-                <Input value={curW} onChange={(e) => handleWidthChange(e.target.value)} className="w-20 h-8 font-black text-xs text-primary bg-primary/5 border-primary/20" />
-                <Slider value={[parseNum(curW)]} onValueChange={(v) => handleWidthChange(v[0].toString())} min={1} max={isGiantMode ? GIANT_MAX_CM : DEFAULT_MAX_CM} step={0.1} className="flex-1" />
+                <Input value={targetWidth} onChange={(e) => handleWidthChange(e.target.value)} className="w-20 h-8 font-black text-xs text-primary bg-primary/5 border-primary/20" />
+                <Slider value={[parseNum(targetWidth)]} onValueChange={(v) => handleWidthChange(v[0].toString())} min={1} max={isGiantMode ? GIANT_MAX_CM : DEFAULT_MAX_CM} step={0.1} className="flex-1" />
               </div>
             </div>
 
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <Label className="text-[8px] font-bold text-muted-foreground uppercase">{t.height} (cm)</Label>
-                <span className="text-xs font-black text-primary">{curH} cm</span>
+                <span className="text-xs font-black text-primary">{targetHeight} cm</span>
               </div>
               <div className="flex items-center gap-3">
-                <Input value={curH} onChange={(e) => handleHeightChange(e.target.value)} className="w-20 h-8 font-black text-xs text-primary bg-primary/5 border-primary/20" />
-                <Slider value={[parseNum(curH)]} onValueChange={(v) => handleHeightChange(v[0].toString())} min={1} max={isGiantMode ? GIANT_MAX_CM : DEFAULT_MAX_CM} step={0.1} className="flex-1" />
+                <Input value={targetHeight} onChange={(e) => handleHeightChange(e.target.value)} className="w-20 h-8 font-black text-xs text-primary bg-primary/5 border-primary/20" />
+                <Slider value={[parseNum(targetHeight)]} onValueChange={(v) => handleHeightChange(v[0].toString())} min={1} max={isGiantMode ? GIANT_MAX_CM : DEFAULT_MAX_CM} step={0.1} className="flex-1" />
               </div>
             </div>
           </div>
@@ -561,7 +692,7 @@ export default function PosterGridEditor() {
             {isExporting ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileDown className="h-5 w-5" />}
           </Button>
         )}
-        <Sheet open={isMenuOpen} onOpenChange={handleMenuOpenChange}>
+        <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
           <Button size="icon" className="h-14 w-14 rounded-full shadow-2xl bg-primary text-white border-4 border-white" onClick={() => setIsMenuOpen(true)}>
             <Settings2 className="h-6 w-6" />
           </Button>
