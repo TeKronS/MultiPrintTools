@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useDeferredValue, useMemo } from "react";
@@ -156,6 +157,7 @@ export default function PosterGridEditor() {
 
     if (pSize.includes('Personalizado')) {
       const rollWidth = cW_mm || 215.9;
+      // Detect based on image shape to minimize pages
       const isLandscapeImage = targetW_mm > targetH_mm;
       const finalOrient = isLandscapeImage ? 'landscape' : 'portrait';
       
@@ -171,6 +173,7 @@ export default function PosterGridEditor() {
       const fixedPanels = Math.ceil(((finalOrient === 'landscape' ? targetH_mm : targetW_mm) - overlap_mm) / effectiveFixed);
       const variablePanels = Math.ceil(((finalOrient === 'landscape' ? targetW_mm : targetH_mm) - overlap_mm) / effectiveVariable);
 
+      // Auto length
       const neededLength = ((finalOrient === 'landscape' ? targetW_mm : targetH_mm)) + ((finalOrient === 'landscape' ? appliedMH : appliedMV) * 20) + overlap_mm;
       const finalLength = Math.min(MAX_ROLL_LENGTH_MM, Math.max(100, neededLength));
 
@@ -373,16 +376,11 @@ export default function PosterGridEditor() {
       const paperBase = PAPER_DIMENSIONS[activePaperSize];
       const isRoll = activePaperSize.includes('Personalizado');
       
-      let pdfFormat;
       let paperW, paperH;
-
       if (isRoll) {
         paperW = activeOrientation === 'portrait' ? activeRollW : activeRollL;
         paperH = activeOrientation === 'portrait' ? activeRollL : activeRollW;
-        pdfFormat = [paperW, paperH];
       } else {
-        const standardFormats = ['letter', 'a4', 'a3', 'legal'];
-        pdfFormat = standardFormats.includes(paperBase.format) ? paperBase.format : [paperBase.width, paperBase.height];
         paperW = activeOrientation === 'portrait' ? Math.min(paperBase.width, paperBase.height) : Math.max(paperBase.width, paperBase.height);
         paperH = activeOrientation === 'portrait' ? Math.max(paperBase.width, paperBase.height) : Math.min(paperBase.width, paperBase.height);
       }
@@ -390,7 +388,7 @@ export default function PosterGridEditor() {
       const pdf = new jsPDF({
         orientation: activeOrientation === 'portrait' ? 'p' : 'l',
         unit: 'mm',
-        format: pdfFormat as any
+        format: [paperW, paperH]
       });
 
       const appliedMH = activeOrientation === 'portrait' ? activeMarginH : activeMarginV;
@@ -410,8 +408,11 @@ export default function PosterGridEditor() {
       const offsetX_mm = (totalGridW - finalW_mm) / 2;
       const offsetY_mm = (totalGridH - finalH_mm) / 2;
 
+      // Quality settings
       const targetDPI = 300;
       const outputPxPerMm = targetDPI / 25.4;
+      
+      // Calculate independent scales for high fidelity distorsion (if ratio lock is off)
       const sourcePxPerMmW = img.width / finalW_mm;
       const sourcePxPerMmH = img.height / finalH_mm;
 
@@ -422,11 +423,12 @@ export default function PosterGridEditor() {
       for (let r = 0; r < activeRows; r++) {
         for (let c = 0; c < activeCols; c++) {
           if (r > 0 || c > 0) {
-            pdf.addPage(pdfFormat as any, activeOrientation === 'portrait' ? 'p' : 'l');
+            pdf.addPage([paperW, paperH], activeOrientation === 'portrait' ? 'p' : 'l');
           }
           
           const sheetLeft_mm = c * effectiveSheetW;
           const sheetTop_mm = r * effectiveSheetH;
+          
           const drawInSheetX_mm = Math.max(0, offsetX_mm - sheetLeft_mm);
           const drawInSheetY_mm = Math.max(0, offsetY_mm - sheetTop_mm);
           
@@ -767,7 +769,7 @@ export default function PosterGridEditor() {
               <ImageUploader onImageUpload={handleImageUpload} language={lang} t={t} />
               <div className="space-y-2">
                 <h2 className="text-2xl lg:text-3xl font-headline font-black tracking-tighter">Preparar poster</h2>
-                <p className="text-muted-foreground font-medium text-sm lg:text-base">Sube una imagen de alta resolución.</p>
+                <p className="text-muted-foreground font-medium text-sm lg:text-base">Sube una imagen de alta resolución para generar tu cuadrícula técnica.</p>
               </div>
             </div>
           ) : (
