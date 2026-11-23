@@ -100,6 +100,23 @@ export default function PosterGridEditor() {
   const [targetWidth, setTargetWidth] = useState<string>('0');
   const [targetHeight, setTargetHeight] = useState<string>('0');
 
+  // Draft states for mobile menu
+  const [draftRows, setDraftRows] = useState(2);
+  const [draftCols, setDraftCols] = useState(2);
+  const [draftOverlap, setDraftOverlap] = useState(0.3);
+  const [draftMarginV, setDraftMarginV] = useState(0.7);
+  const [draftMarginH, setDraftMarginH] = useState(0.7);
+  const [draftPaperSize, setDraftPaperSize] = useState('Carta');
+  const [draftOrientation, setDraftOrientation] = useState<'portrait' | 'landscape'>('portrait');
+  const [draftShowGuides, setDraftShowGuides] = useState(true);
+  const [draftShowOutline, setDraftShowOutline] = useState(false);
+  const [draftLockAspect, setDraftLockAspect] = useState(true);
+  const [draftIsGiantMode, setDraftIsGiantMode] = useState(false);
+  const [draftTargetWidth, setDraftTargetWidth] = useState<string>('0');
+  const [draftTargetHeight, setDraftTargetHeight] = useState<string>('0');
+  const [draftCustomRollWidth, setDraftCustomRollWidth] = useState(215.9);
+  const [draftCustomRollLength, setDraftCustomRollLength] = useState(1000);
+
   const [isExporting, setIsExporting] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { toast } = useToast();
@@ -109,6 +126,16 @@ export default function PosterGridEditor() {
     const savedLang = localStorage.getItem('pref-lang') as Language;
     if (savedLang === 'en' || savedLang === 'es') setLang(savedLang);
   }, []);
+
+  // Mobile navigation history handling
+  useEffect(() => {
+    if (isMenuOpen) {
+      window.history.pushState({ menuOpen: true }, '');
+    }
+    const handlePopState = () => { if (isMenuOpen) setIsMenuOpen(false); };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [isMenuOpen]);
 
   const t = translations[lang];
 
@@ -139,16 +166,16 @@ export default function PosterGridEditor() {
       const appliedMH = finalOrient === 'portrait' ? mH_cm : mV_cm;
       const appliedMV = finalOrient === 'portrait' ? mV_cm : mH_cm;
       
-      const fixedDimPrintable = rollWidth - ( (finalOrient === 'landscape' ? appliedMV : appliedMH) * 20);
-      const variableDimPrintable = MAX_ROLL_LENGTH_MM - ( (finalOrient === 'landscape' ? appliedMH : appliedMV) * 20);
+      const fixedDimPrintable = rollWidth - ((finalOrient === 'landscape' ? appliedMV : appliedMH) * 20);
+      const variableDimPrintable = MAX_ROLL_LENGTH_MM - ((finalOrient === 'landscape' ? appliedMH : appliedMV) * 20);
       
       const effectiveFixed = fixedDimPrintable - overlap_mm;
       const effectiveVariable = variableDimPrintable - overlap_mm;
 
-      const fixedPanels = Math.ceil(( (finalOrient === 'landscape' ? targetH_mm : targetW_mm) - overlap_mm) / effectiveFixed);
-      const variablePanels = Math.ceil(( (finalOrient === 'landscape' ? targetW_mm : targetH_mm) - overlap_mm) / effectiveVariable);
+      const fixedPanels = Math.ceil(((finalOrient === 'landscape' ? targetH_mm : targetW_mm) - overlap_mm) / effectiveFixed);
+      const variablePanels = Math.ceil(((finalOrient === 'landscape' ? targetW_mm : targetH_mm) - overlap_mm) / effectiveVariable);
 
-      const neededLength = ( (finalOrient === 'landscape' ? targetW_mm : targetH_mm) ) + ( (finalOrient === 'landscape' ? appliedMH : appliedMV) * 20) + overlap_mm;
+      const neededLength = ((finalOrient === 'landscape' ? targetW_mm : targetH_mm)) + ((finalOrient === 'landscape' ? appliedMH : appliedMV) * 20) + overlap_mm;
       const finalLength = Math.min(MAX_ROLL_LENGTH_MM, Math.max(100, neededLength));
 
       return { 
@@ -187,68 +214,73 @@ export default function PosterGridEditor() {
     }
   };
 
-  const handleWidthChange = (val: string) => {
+  const syncGrid = (targetPaperSize?: string, isDraftMode?: boolean) => {
+    if (!image) return;
+    const curWVal = isDraftMode ? draftTargetWidth : targetWidth;
+    const curHVal = isDraftMode ? draftTargetHeight : targetHeight;
+    const w = parseNum(curWVal);
+    const h = parseNum(curHVal);
+    const pSize = targetPaperSize || (isDraftMode ? draftPaperSize : paperSize);
+    const ov = isDraftMode ? draftOverlap : overlap;
+    const mV = isDraftMode ? draftMarginV : marginV;
+    const mH = isDraftMode ? draftMarginH : marginH;
+    const cW = isDraftMode ? draftCustomRollWidth : customRollWidth;
+
+    const opt = calculateOptimizedGrid(w, h, pSize, ov, mV, mH, cW);
+    
+    if (isDraftMode) {
+      setDraftRows(opt.rows);
+      setDraftCols(opt.cols);
+      setDraftOrientation(opt.orientation);
+      if (opt.dynamicLength) setDraftCustomRollLength(opt.dynamicLength);
+    } else {
+      setRows(opt.rows);
+      setCols(opt.cols);
+      setOrientation(opt.orientation);
+      if (opt.dynamicLength) setCustomRollLength(opt.dynamicLength);
+    }
+  };
+
+  const handleWidthChange = (val: string, isDraftMode?: boolean) => {
     if (!image) return;
     const num = parseNum(val);
-    if (isNaN(num)) { setTargetWidth(val); return; }
+    const setW = isDraftMode ? setDraftTargetWidth : setTargetWidth;
+    const setH = isDraftMode ? setDraftTargetHeight : setTargetHeight;
+    const isLocked = isDraftMode ? draftLockAspect : lockAspect;
 
-    if (lockAspect) {
+    if (isNaN(num)) { setW(val); return; }
+
+    if (isLocked) {
       const aspect = image.width / image.height;
       const newHeight = num / aspect;
-      setTargetWidth(num.toString());
-      setTargetHeight(newHeight.toFixed(2).replace('.', ','));
-      
-      const opt = calculateOptimizedGrid(num, newHeight, paperSize, overlap, marginV, marginH, customRollWidth);
-      setRows(opt.rows);
-      setCols(opt.cols);
-      setOrientation(opt.orientation);
-      if (opt.dynamicLength) setCustomRollLength(opt.dynamicLength);
+      setW(num.toString());
+      setH(newHeight.toFixed(2).replace('.', ','));
+      setTimeout(() => syncGrid(undefined, isDraftMode), 0);
     } else {
-      setTargetWidth(num.toString());
-      const curH = parseNum(targetHeight);
-      const opt = calculateOptimizedGrid(num, curH, paperSize, overlap, marginV, marginH, customRollWidth, orientation);
-      setRows(opt.rows);
-      setCols(opt.cols);
-      if (opt.dynamicLength) setCustomRollLength(opt.dynamicLength);
+      setW(num.toString());
+      setTimeout(() => syncGrid(undefined, isDraftMode), 0);
     }
   };
 
-  const handleHeightChange = (val: string) => {
+  const handleHeightChange = (val: string, isDraftMode?: boolean) => {
     if (!image) return;
     const num = parseNum(val);
-    if (isNaN(num)) { setTargetHeight(val); return; }
+    const setW = isDraftMode ? setDraftTargetWidth : setTargetWidth;
+    const setH = isDraftMode ? setDraftTargetHeight : setTargetHeight;
+    const isLocked = isDraftMode ? draftLockAspect : lockAspect;
 
-    if (lockAspect) {
+    if (isNaN(num)) { setH(val); return; }
+
+    if (isLocked) {
       const aspect = image.width / image.height;
       const newWidth = num * aspect;
-      setTargetHeight(num.toString());
-      setTargetWidth(newWidth.toFixed(2).replace('.', ','));
-      
-      const opt = calculateOptimizedGrid(newWidth, num, paperSize, overlap, marginV, marginH, customRollWidth);
-      setRows(opt.rows);
-      setCols(opt.cols);
-      setOrientation(opt.orientation);
-      if (opt.dynamicLength) setCustomRollLength(opt.dynamicLength);
+      setH(num.toString());
+      setW(newWidth.toFixed(2).replace('.', ','));
+      setTimeout(() => syncGrid(undefined, isDraftMode), 0);
     } else {
-      setTargetHeight(num.toString());
-      const curW = parseNum(targetWidth);
-      const opt = calculateOptimizedGrid(curW, num, paperSize, overlap, marginV, marginH, customRollWidth, orientation);
-      setRows(opt.rows);
-      setCols(opt.cols);
-      if (opt.dynamicLength) setCustomRollLength(opt.dynamicLength);
+      setH(num.toString());
+      setTimeout(() => syncGrid(undefined, isDraftMode), 0);
     }
-  };
-
-  const syncGrid = (targetPaperSize?: string) => {
-    if (!image) return;
-    const w = parseNum(targetWidth);
-    const h = parseNum(targetHeight);
-    const pSize = targetPaperSize || paperSize;
-    const opt = calculateOptimizedGrid(w, h, pSize, overlap, marginV, marginH, customRollWidth);
-    setRows(opt.rows);
-    setCols(opt.cols);
-    setOrientation(opt.orientation);
-    if (opt.dynamicLength) setCustomRollLength(opt.dynamicLength);
   };
 
   const handleImageUpload = (file: File, url: string) => {
@@ -271,6 +303,27 @@ export default function PosterGridEditor() {
     };
   };
 
+  const handleMenuOpenChange = (open: boolean) => {
+    if (open) {
+      setDraftRows(rows); setDraftCols(cols); setDraftOverlap(overlap);
+      setDraftMarginV(marginV); setDraftMarginH(marginH); setDraftPaperSize(paperSize);
+      setDraftOrientation(orientation); setDraftShowGuides(showGuides);
+      setDraftShowOutline(showOutline); setDraftLockAspect(lockAspect);
+      setDraftIsGiantMode(isGiantMode); setDraftTargetWidth(targetWidth);
+      setDraftTargetHeight(targetHeight); setDraftCustomRollWidth(customRollWidth);
+      setDraftCustomRollLength(customRollLength);
+    } else {
+      setRows(draftRows); setCols(draftCols); setOverlap(draftOverlap);
+      setMarginV(draftMarginV); setMarginH(draftMarginH); setPaperSize(draftPaperSize);
+      setOrientation(draftOrientation); setShowGuides(draftShowGuides);
+      setShowOutline(draftShowOutline); setLockAspect(draftLockAspect);
+      setIsGiantMode(draftIsGiantMode); setTargetWidth(draftTargetWidth);
+      setTargetHeight(draftTargetHeight); setCustomRollWidth(draftCustomRollWidth);
+      setCustomRollLength(draftCustomRollLength);
+    }
+    setIsMenuOpen(open);
+  };
+
   const handleExport = async () => {
     if (!image) return;
     setIsExporting(true);
@@ -279,15 +332,17 @@ export default function PosterGridEditor() {
       img.src = image.url;
       await new Promise((resolve) => img.onload = resolve);
 
-      const activeRows = rows;
-      const activeCols = cols;
-      const activeOverlap = overlap;
-      const activeMarginV = marginV;
-      const activeMarginH = marginH;
-      const activePaperSize = paperSize;
-      const activeOrientation = orientation;
-      const activeTargetW = parseNum(targetWidth);
-      const activeTargetH = parseNum(targetHeight);
+      const activeRows = isMenuOpen ? draftRows : rows;
+      const activeCols = isMenuOpen ? draftCols : cols;
+      const activeOverlap = isMenuOpen ? draftOverlap : overlap;
+      const activeMarginV = isMenuOpen ? draftMarginV : marginV;
+      const activeMarginH = isMenuOpen ? draftMarginH : marginH;
+      const activePaperSize = isMenuOpen ? draftPaperSize : paperSize;
+      const activeOrientation = isMenuOpen ? draftOrientation : orientation;
+      const activeTargetW = parseNum(isMenuOpen ? draftTargetWidth : targetWidth);
+      const activeTargetH = parseNum(isMenuOpen ? draftTargetHeight : targetHeight);
+      const activeRollW = isMenuOpen ? draftCustomRollWidth : customRollWidth;
+      const activeRollL = isMenuOpen ? draftCustomRollLength : customRollLength;
 
       const paperBase = PAPER_DIMENSIONS[activePaperSize];
       const isRoll = activePaperSize.includes('Personalizado');
@@ -297,8 +352,8 @@ export default function PosterGridEditor() {
       let paperW, paperH;
 
       if (isRoll) {
-        paperW = activeOrientation === 'portrait' ? customRollWidth : customRollLength;
-        paperH = activeOrientation === 'portrait' ? customRollLength : customRollWidth;
+        paperW = activeOrientation === 'portrait' ? activeRollW : activeRollL;
+        paperH = activeOrientation === 'portrait' ? activeRollL : activeRollW;
         pdfFormat = [paperW, paperH];
       } else {
         pdfFormat = standardFormats.includes(paperBase.format) ? paperBase.format : [paperBase.width, paperBase.height];
@@ -331,7 +386,10 @@ export default function PosterGridEditor() {
 
       const targetDPI = 300;
       const outputPxPerMm = targetDPI / 25.4;
-      const sourcePxPerMm = img.width / finalW_mm;
+      
+      // Calculate source ratios independently to support distorted images
+      const sourcePxPerMmW = img.width / finalW_mm;
+      const sourcePxPerMmH = img.height / finalH_mm;
 
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
@@ -352,10 +410,11 @@ export default function PosterGridEditor() {
           const visibleW_mm = Math.min(effectiveSheetW + overlapMm - drawInSheetX_mm, finalW_mm - Math.max(0, sheetLeft_mm - offsetX_mm));
           const visibleH_mm = Math.min(effectiveSheetH + overlapMm - drawInSheetY_mm, finalH_mm - Math.max(0, sheetTop_mm - offsetY_mm));
 
-          const sx = Math.max(0, (sheetLeft_mm - offsetX_mm) * sourcePxPerMm);
-          const sy = Math.max(0, (sheetTop_mm - offsetY_mm) * sourcePxPerMm);
-          const sw = visibleW_mm * sourcePxPerMm;
-          const sh = visibleH_mm * sourcePxPerMm;
+          // Use independent ratios for sx, sy, sw, sh to handle distortion
+          const sx = Math.max(0, (sheetLeft_mm - offsetX_mm) * sourcePxPerMmW);
+          const sy = Math.max(0, (sheetTop_mm - offsetY_mm) * sourcePxPerMmH);
+          const sw = visibleW_mm * sourcePxPerMmW;
+          const sh = visibleH_mm * sourcePxPerMmH;
 
           const dw = visibleW_mm * outputPxPerMm;
           const dh = visibleH_mm * outputPxPerMm;
@@ -379,7 +438,7 @@ export default function PosterGridEditor() {
             );
           }
 
-          if (showGuides) {
+          if (isMenuOpen ? draftShowGuides : showGuides) {
             pdf.setDrawColor(220);
             pdf.setLineDashPattern([2, 2], 0);
             if (c < activeCols - 1) {
@@ -415,13 +474,13 @@ export default function PosterGridEditor() {
     const tw = parseNum(targetWidth);
     const th = parseNum(targetHeight);
     
-    let paper;
+    let p;
     if (paperSize.includes('Personalizado')) { 
-      if (orientation === 'portrait') { paper = { width: customRollWidth, height: customRollLength }; } 
-      else { paper = { width: customRollLength, height: customRollWidth }; } 
+      if (orientation === 'portrait') { p = { width: customRollWidth, height: customRollLength }; } 
+      else { p = { width: customRollLength, height: customRollWidth }; } 
     } else { 
       const pB = PAPER_DIMENSIONS[paperSize]; 
-      paper = orientation === 'portrait' 
+      p = orientation === 'portrait' 
         ? { width: Math.min(pB.width, pB.height), height: Math.max(pB.width, pB.height) } 
         : { width: Math.max(pB.width, pB.height), height: Math.min(pB.width, pB.height) }; 
     }
@@ -429,8 +488,8 @@ export default function PosterGridEditor() {
     const appliedMH = orientation === 'portrait' ? marginH : marginV;
     const appliedMV = orientation === 'portrait' ? marginV : marginH;
     
-    const pW = paper.width - (appliedMH * 20); 
-    const pH = paper.height - (appliedMV * 20);
+    const pW = p.width - (appliedMH * 20); 
+    const pH = p.height - (appliedMV * 20);
     const ovMm = overlap * 10; 
     const eW = pW - ovMm; 
     const eH = pH - ovMm;
@@ -440,6 +499,7 @@ export default function PosterGridEditor() {
     return { 
       imgW: tw.toFixed(1), 
       imgH: th.toFixed(1), 
+      paperName: paperSize,
       printableW: (pW / 10).toFixed(1), 
       printableH: (pH / 10).toFixed(1), 
       blankW: Math.max(0, (tGW - (tw * 10)) / 10).toFixed(1), 
@@ -448,9 +508,22 @@ export default function PosterGridEditor() {
   }, [image, rows, cols, overlap, marginV, marginH, paperSize, orientation, targetWidth, targetHeight, customRollWidth, customRollLength]);
 
   const renderSettings = (isMobileView?: boolean) => {
-    const isLetterSnap = Math.abs(customRollWidth - 215.9) < 2;
-    const isA4Snap = Math.abs(customRollWidth - 210) < 2;
+    const cW = isMobileView ? draftCustomRollWidth : customRollWidth;
+    const cL = isMobileView ? draftCustomRollLength : customRollLength;
+    const isLetterSnap = Math.abs(cW - 215.9) < 2;
+    const isA4Snap = Math.abs(cW - 210) < 2;
     const isSnapped = isLetterSnap || isA4Snap;
+    const pS = isMobileView ? draftPaperSize : paperSize;
+    const orient = isMobileView ? draftOrientation : orientation;
+    const tW = isMobileView ? draftTargetWidth : targetWidth;
+    const tH = isMobileView ? draftTargetHeight : targetHeight;
+    const isLocked = isMobileView ? draftLockAspect : lockAspect;
+    const isGiant = isMobileView ? draftIsGiantMode : isGiantMode;
+    const ov = isMobileView ? draftOverlap : overlap;
+    const mV = isMobileView ? draftMarginV : marginV;
+    const mH = isMobileView ? draftMarginH : marginH;
+    const sG = isMobileView ? draftShowGuides : showGuides;
+    const sO = isMobileView ? draftShowOutline : showOutline;
 
     return (
       <div className={cn("space-y-6", isMobileView ? "p-4 pt-1 pb-40" : "p-4")}>
@@ -461,7 +534,7 @@ export default function PosterGridEditor() {
             </h2>
             <div className="flex items-center gap-2">
               <Label htmlFor="lock" className="text-[8px] font-black text-muted-foreground uppercase cursor-pointer">{t.keepAspectRatio}</Label>
-              <Switch id="lock" checked={lockAspect} onCheckedChange={setLockAspect} className="scale-75 origin-right" />
+              <Switch id="lock" checked={isLocked} onCheckedChange={(v) => { if (isMobileView) setDraftLockAspect(v); else setLockAspect(v); }} className="scale-75 origin-right" />
             </div>
           </div>
 
@@ -471,28 +544,28 @@ export default function PosterGridEditor() {
                 <Expand className="h-3 w-3 text-primary" />
                 <Label htmlFor="giant" className="text-[9px] font-black uppercase text-primary tracking-widest cursor-pointer">Gigantografía</Label>
               </div>
-              <Switch id="giant" checked={isGiantMode} onCheckedChange={setIsGiantMode} className="scale-75 origin-right" />
+              <Switch id="giant" checked={isGiant} onCheckedChange={(v) => { if (isMobileView) setDraftIsGiantMode(v); else setIsGiantMode(v); }} className="scale-75 origin-right" />
             </div>
 
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <Label className="text-[8px] font-bold text-muted-foreground uppercase">{t.width} (cm)</Label>
-                <span className="text-xs font-black text-primary">{targetWidth} cm</span>
+                <span className="text-xs font-black text-primary">{tW} cm</span>
               </div>
               <div className="flex items-center gap-3">
-                <Input value={targetWidth} onChange={(e) => handleWidthChange(e.target.value)} className="w-20 h-8 font-black text-xs text-primary bg-primary/5 border-primary/20" />
-                <Slider value={[parseNum(targetWidth)]} onValueChange={(v) => handleWidthChange(v[0].toString())} min={1} max={isGiantMode ? GIANT_MAX_CM : DEFAULT_MAX_CM} step={0.1} className="flex-1" />
+                <Input value={tW} onChange={(e) => handleWidthChange(e.target.value, !!isMobileView)} className="w-20 h-8 font-black text-xs text-primary bg-primary/5 border-primary/20" />
+                <Slider value={[parseNum(tW)]} onValueChange={(v) => handleWidthChange(v[0].toString(), !!isMobileView)} min={1} max={isGiant ? GIANT_MAX_CM : DEFAULT_MAX_CM} step={0.1} className="flex-1" />
               </div>
             </div>
 
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <Label className="text-[8px] font-bold text-muted-foreground uppercase">{t.height} (cm)</Label>
-                <span className="text-xs font-black text-primary">{targetHeight} cm</span>
+                <span className="text-xs font-black text-primary">{tH} cm</span>
               </div>
               <div className="flex items-center gap-3">
-                <Input value={targetHeight} onChange={(e) => handleHeightChange(e.target.value)} className="w-20 h-8 font-black text-xs text-primary bg-primary/5 border-primary/20" />
-                <Slider value={[parseNum(targetHeight)]} onValueChange={(v) => handleHeightChange(v[0].toString())} min={1} max={isGiantMode ? GIANT_MAX_CM : DEFAULT_MAX_CM} step={0.1} className="flex-1" />
+                <Input value={tH} onChange={(e) => handleHeightChange(e.target.value, !!isMobileView)} className="w-20 h-8 font-black text-xs text-primary bg-primary/5 border-primary/20" />
+                <Slider value={[parseNum(tH)]} onValueChange={(v) => handleHeightChange(v[0].toString(), !!isMobileView)} min={1} max={isGiant ? GIANT_MAX_CM : DEFAULT_MAX_CM} step={0.1} className="flex-1" />
               </div>
             </div>
           </div>
@@ -508,15 +581,15 @@ export default function PosterGridEditor() {
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-[10px] font-black uppercase text-muted-foreground">{t.paperSize}</Label>
-              <Select value={paperSize} onValueChange={(v) => { setPaperSize(v); syncGrid(v); }}>
+              <Select value={pS} onValueChange={(v) => { if (isMobileView) setDraftPaperSize(v); else setPaperSize(v); syncGrid(v, !!isMobileView); }}>
                 <SelectTriggerUI className="h-8 rounded-lg text-xs font-bold bg-card border-border/10"><SelectValue /></SelectTriggerUI>
                 <SelectContent className="z-[1000]">{Object.keys(PAPER_DIMENSIONS).map(key => <SelectItem key={key} value={key} className="text-xs font-bold">{key}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            {!paperSize.includes('Personalizado') && (
+            {!pS.includes('Personalizado') && (
               <div className="space-y-1">
                 <Label className="text-[10px] font-black uppercase text-muted-foreground">{t.orientation}</Label>
-                <Select value={orientation} onValueChange={(v: any) => { setOrientation(v); setTimeout(() => syncGrid(), 0); }}>
+                <Select value={orient} onValueChange={(v: any) => { if (isMobileView) setDraftOrientation(v); else setOrientation(v); setTimeout(() => syncGrid(undefined, !!isMobileView), 0); }}>
                   <SelectTriggerUI className="h-8 rounded-lg text-xs font-bold bg-card border-border/10"><SelectValue /></SelectTriggerUI>
                   <SelectContent className="z-[1000]"><SelectItem value="portrait" className="text-xs font-bold">{t.portrait}</SelectItem><SelectItem value="landscape" className="text-xs font-bold">{t.landscape}</SelectItem></SelectContent>
                 </Select>
@@ -524,7 +597,7 @@ export default function PosterGridEditor() {
             )}
           </div>
 
-          {paperSize.includes('Personalizado') && (
+          {pS.includes('Personalizado') && (
             <div className={cn("p-4 rounded-xl border transition-all space-y-4 shadow-sm", isSnapped ? "bg-primary/10 border-primary/40 ring-4 ring-primary/5" : "bg-amber-500/5 border-amber-500/10")}>
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2">
@@ -535,12 +608,12 @@ export default function PosterGridEditor() {
               </div>
               <div className="space-y-3">
                 <div className="space-y-1">
-                  <div className="flex justify-between"><Label className="text-[8px] font-bold text-muted-foreground uppercase">{t.rollWidth}</Label><span className={cn("text-[10px] font-black", isSnapped ? "text-primary" : "text-amber-600")}>{(customRollWidth/10).toFixed(1)} cm</span></div>
-                  <Slider value={[customRollWidth]} onValueChange={(v) => { let val = v[0]; if (Math.abs(val-210)<3) val=210; if (Math.abs(val-215.9)<3) val=215.9; setCustomRollWidth(val); setTimeout(() => syncGrid(), 0); }} min={100} max={1600} step={0.1} />
+                  <div className="flex justify-between"><Label className="text-[8px] font-bold text-muted-foreground uppercase">{t.rollWidth}</Label><span className={cn("text-[10px] font-black", isSnapped ? "text-primary" : "text-amber-600")}>{(cW/10).toFixed(1)} cm</span></div>
+                  <Slider value={[cW]} onValueChange={(v) => { let val = v[0]; if (Math.abs(val-210)<3) val=210; if (Math.abs(val-215.9)<3) val=215.9; if (isMobileView) setDraftCustomRollWidth(val); else setCustomRollWidth(val); setTimeout(() => syncGrid(undefined, !!isMobileView), 0); }} min={100} max={1600} step={0.1} />
                 </div>
                 <div className="space-y-1">
-                  <div className="flex justify-between"><Label className="text-[8px] font-bold text-muted-foreground uppercase">Largo Automático</Label><span className="text-[10px] font-black text-muted-foreground">{(customRollLength/10).toFixed(1)} cm</span></div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden border"><div className="h-full bg-primary/40" style={{ width: `${(customRollLength/MAX_ROLL_LENGTH_MM)*100}%` }} /></div>
+                  <div className="flex justify-between"><Label className="text-[8px] font-bold text-muted-foreground uppercase">Largo Automático</Label><span className="text-[10px] font-black text-muted-foreground">{(cL/10).toFixed(1)} cm</span></div>
+                  <div className="h-2 bg-muted rounded-full overflow-hidden border"><div className="h-full bg-primary/40" style={{ width: `${(cL/MAX_ROLL_LENGTH_MM)*100}%` }} /></div>
                 </div>
               </div>
             </div>
@@ -549,30 +622,30 @@ export default function PosterGridEditor() {
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <Label className="text-[10px] font-black uppercase text-muted-foreground"><Scissors className="h-3 w-3 inline mr-1" /> {t.overlap}</Label>
-              <span className="text-xs font-black text-amber-600">{overlap} cm</span>
+              <span className="text-xs font-black text-amber-600">{ov} cm</span>
             </div>
-            <Slider value={[overlap]} onValueChange={(v) => { setOverlap(v[0]); setTimeout(() => syncGrid(), 0); }} min={0} max={10} step={0.1} />
+            <Slider value={[ov]} onValueChange={(v) => { if (isMobileView) setDraftOverlap(v[0]); else setOverlap(v[0]); setTimeout(() => syncGrid(undefined, !!isMobileView), 0); }} min={0} max={10} step={0.1} />
           </div>
 
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <Label className="text-[10px] font-black uppercase text-muted-foreground"><Maximize className="h-3 w-3 inline mr-1" /> {t.marginsVertical}</Label>
-              <span className="text-xs font-black text-primary">{marginV} cm</span>
+              <span className="text-xs font-black text-primary">{mV} cm</span>
             </div>
-            <Slider value={[marginV]} onValueChange={(v) => { setMarginV(v[0]); setTimeout(() => syncGrid(), 0); }} min={0} max={5} step={0.1} />
+            <Slider value={[mV]} onValueChange={(v) => { if (isMobileView) setDraftMarginV(v[0]); else setMarginV(v[0]); setTimeout(() => syncGrid(undefined, !!isMobileView), 0); }} min={0} max={5} step={0.1} />
           </div>
 
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <Label className="text-[10px] font-black uppercase text-muted-foreground"><Maximize className="h-3 w-3 inline mr-1" /> {t.marginsHorizontal}</Label>
-              <span className="text-xs font-black text-primary">{marginH} cm</span>
+              <span className="text-xs font-black text-primary">{mH} cm</span>
             </div>
-            <Slider value={[marginH]} onValueChange={(v) => { setMarginH(v[0]); setTimeout(() => syncGrid(), 0); }} min={0} max={5} step={0.1} />
+            <Slider value={[mH]} onValueChange={(v) => { if (isMobileView) setDraftMarginH(v[0]); else setMarginH(v[0]); setTimeout(() => syncGrid(undefined, !!isMobileView), 0); }} min={0} max={5} step={0.1} />
           </div>
 
           <div className="grid grid-cols-2 gap-4 pt-2">
-            <div className="flex items-center justify-between"><Label className="text-[10px] font-black uppercase text-muted-foreground cursor-pointer" htmlFor="g">{t.guides}</Label><Switch id="g" checked={showGuides} onCheckedChange={setShowGuides} className="bg-muted scale-75" /></div>
-            <div className="flex items-center justify-between"><Label className="text-[10px] font-black uppercase text-muted-foreground cursor-pointer" htmlFor="o">{t.outline}</Label><Switch id="o" checked={showOutline} onCheckedChange={setShowOutline} className="bg-muted scale-75" /></div>
+            <div className="flex items-center justify-between"><Label className="text-[10px] font-black uppercase text-muted-foreground cursor-pointer" htmlFor="g">{t.guides}</Label><Switch id="g" checked={sG} onCheckedChange={(v) => { if (isMobileView) setDraftShowGuides(v); else setShowGuides(v); }} className="bg-muted scale-75" /></div>
+            <div className="flex items-center justify-between"><Label className="text-[10px] font-black uppercase text-muted-foreground cursor-pointer" htmlFor="o">{t.outline}</Label><Switch id="o" checked={sO} onCheckedChange={(v) => { if (isMobileView) setDraftShowOutline(v); else setShowOutline(v); }} className="bg-muted scale-75" /></div>
           </div>
         </div>
         
@@ -681,7 +754,7 @@ export default function PosterGridEditor() {
                         <span className="text-[6px] lg:text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">{t.paperSize}</span>
                         <div className="flex items-center gap-1.5 lg:gap-2">
                           <FileText className="h-2.5 w-2.5 lg:h-3.5 lg:w-3.5 text-amber-600" />
-                          <span className="text-xs lg:text-base font-black text-foreground uppercase">{paperSize}</span>
+                          <span className="text-xs lg:text-base font-black text-foreground uppercase">{physicalInfo.paperName}</span>
                         </div>
                       </div>
                       <Separator orientation="vertical" className="h-6 lg:h-8 opacity-50" />
@@ -747,8 +820,8 @@ export default function PosterGridEditor() {
             {isExporting ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileDown className="h-5 w-5" />}
           </Button>
         )}
-        <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-          <Button size="icon" className="h-14 w-14 rounded-full shadow-2xl bg-primary text-white border-4 border-white" onClick={() => setIsMenuOpen(true)}>
+        <Sheet open={isMenuOpen} onOpenChange={handleMenuOpenChange}>
+          <Button size="icon" className="h-14 w-14 rounded-full shadow-2xl bg-primary text-white border-4 border-white" onClick={() => handleMenuOpenChange(true)}>
             <Settings2 className="h-6 w-6" />
           </Button>
           <SheetContent side="right" className="w-[85%] sm:w-[400px] p-0 bg-background/95 backdrop-blur-xl shadow-2xl overflow-hidden flex flex-col z-[150]">
@@ -763,7 +836,7 @@ export default function PosterGridEditor() {
               <Button 
                 size="icon" 
                 className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-2xl bg-primary text-white z-[210] border-4 border-white" 
-                onClick={() => setIsMenuOpen(false)}
+                onClick={() => handleMenuOpenChange(false)}
               >
                 <Settings2 className="h-6 w-6" />
               </Button>
