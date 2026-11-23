@@ -56,7 +56,9 @@ export const MuralCanvas = memo(function MuralCanvas({
 
   const paper = useMemo(() => {
     if (paperSize.includes('Personalizado') && customPaperWidth && customPaperHeight) {
-      return { width: customPaperWidth, height: customPaperHeight };
+      return orientation === 'portrait'
+        ? { width: customPaperWidth, height: customPaperHeight }
+        : { width: customPaperHeight, height: customPaperWidth };
     }
     const paperBase = PAPER_DIMENSIONS[paperSize] || PAPER_DIMENSIONS['Carta'];
     return orientation === 'portrait' 
@@ -102,7 +104,7 @@ export const MuralCanvas = memo(function MuralCanvas({
       const container = containerRef.current;
       if (!container) return;
 
-      const padding = 60; 
+      const padding = 100; 
       const availableW = container.clientWidth - padding;
       const availableH = container.clientHeight - padding;
       
@@ -113,7 +115,7 @@ export const MuralCanvas = memo(function MuralCanvas({
       const scaleH = availableH / contentH;
       const fitScale = Math.min(scaleW, scaleH);
       
-      setZoom(Math.min(fitScale * 0.9, 3.0));
+      setZoom(Math.min(fitScale * 0.95, 3.0));
       setOffset({ x: 0, y: 0 });
     };
 
@@ -179,7 +181,7 @@ export const MuralCanvas = memo(function MuralCanvas({
             <img 
               src={imageUrl} 
               alt="Poster Grid" 
-              className="w-full h-full object-fill block" 
+              className="w-full h-full object-contain block" 
               draggable={false}
             />
           </div>
