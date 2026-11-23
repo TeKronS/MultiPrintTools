@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useDeferredValue, useMemo } from "react";
@@ -15,8 +14,6 @@ import {
   Scissors,
   Loader2,
   RefreshCcw,
-  Plus,
-  Minus,
   ChevronLeft,
   Maximize2,
   Ruler,
@@ -127,7 +124,6 @@ export default function PosterGridEditor() {
     if (savedLang === 'en' || savedLang === 'es') setLang(savedLang);
   }, []);
 
-  // Mobile navigation history handling
   useEffect(() => {
     if (isMenuOpen) {
       window.history.pushState({ menuOpen: true }, '');
@@ -140,7 +136,7 @@ export default function PosterGridEditor() {
   const t = translations[lang];
 
   const parseNum = (val: string): number => {
-    const normalized = val.replace(',', '.');
+    const normalized = val.toString().replace(',', '.');
     return parseFloat(normalized) || 0;
   };
 
@@ -250,15 +246,30 @@ export default function PosterGridEditor() {
 
     if (isNaN(num)) { setW(val); return; }
 
+    let finalW = num;
+    let finalH = parseNum(isDraftMode ? draftTargetHeight : targetHeight);
+
     if (isLocked) {
       const aspect = image.width / image.height;
-      const newHeight = num / aspect;
-      setW(num.toString());
-      setH(newHeight.toFixed(2).replace('.', ','));
-      setTimeout(() => syncGrid(undefined, isDraftMode), 0);
+      finalH = num / aspect;
+      setH(finalH.toFixed(2).replace('.', ','));
+    }
+    setW(num.toString());
+
+    const pSize = isDraftMode ? draftPaperSize : paperSize;
+    const ov = isDraftMode ? draftOverlap : overlap;
+    const mV = isDraftMode ? draftMarginV : marginV;
+    const mH = isDraftMode ? draftMarginH : marginH;
+    const cW = isDraftMode ? draftCustomRollWidth : customRollWidth;
+
+    const opt = calculateOptimizedGrid(finalW, finalH, pSize, ov, mV, mH, cW);
+    
+    if (isDraftMode) {
+      setDraftRows(opt.rows); setDraftCols(opt.cols); setDraftOrientation(opt.orientation);
+      if (opt.dynamicLength) setDraftCustomRollLength(opt.dynamicLength);
     } else {
-      setW(num.toString());
-      setTimeout(() => syncGrid(undefined, isDraftMode), 0);
+      setRows(opt.rows); setCols(opt.cols); setOrientation(opt.orientation);
+      if (opt.dynamicLength) setCustomRollLength(opt.dynamicLength);
     }
   };
 
@@ -271,15 +282,30 @@ export default function PosterGridEditor() {
 
     if (isNaN(num)) { setH(val); return; }
 
+    let finalH = num;
+    let finalW = parseNum(isDraftMode ? draftTargetWidth : targetWidth);
+
     if (isLocked) {
       const aspect = image.width / image.height;
-      const newWidth = num * aspect;
-      setH(num.toString());
-      setW(newWidth.toFixed(2).replace('.', ','));
-      setTimeout(() => syncGrid(undefined, isDraftMode), 0);
+      finalW = num * aspect;
+      setW(finalW.toFixed(2).replace('.', ','));
+    }
+    setH(num.toString());
+
+    const pSize = isDraftMode ? draftPaperSize : paperSize;
+    const ov = isDraftMode ? draftOverlap : overlap;
+    const mV = isDraftMode ? draftMarginV : marginV;
+    const mH = isDraftMode ? draftMarginH : marginH;
+    const cW = isDraftMode ? draftCustomRollWidth : customRollWidth;
+
+    const opt = calculateOptimizedGrid(finalW, finalH, pSize, ov, mV, mH, cW);
+    
+    if (isDraftMode) {
+      setDraftRows(opt.rows); setDraftCols(opt.cols); setDraftOrientation(opt.orientation);
+      if (opt.dynamicLength) setDraftCustomRollLength(opt.dynamicLength);
     } else {
-      setH(num.toString());
-      setTimeout(() => syncGrid(undefined, isDraftMode), 0);
+      setRows(opt.rows); setCols(opt.cols); setOrientation(opt.orientation);
+      if (opt.dynamicLength) setCustomRollLength(opt.dynamicLength);
     }
   };
 
@@ -293,7 +319,7 @@ export default function PosterGridEditor() {
       const initialH = initialW / aspect;
       
       setTargetWidth(initialW.toString());
-      setTargetHeight(initialH.toFixed(1).replace('.', ','));
+      setTargetHeight(initialH.toFixed(2).replace('.', ','));
       
       const opt = calculateOptimizedGrid(initialW, initialH, paperSize, overlap, marginV, marginH, customRollWidth);
       setRows(opt.rows);
@@ -347,7 +373,6 @@ export default function PosterGridEditor() {
       const paperBase = PAPER_DIMENSIONS[activePaperSize];
       const isRoll = activePaperSize.includes('Personalizado');
       
-      const standardFormats = ['letter', 'a4', 'a3', 'legal'];
       let pdfFormat;
       let paperW, paperH;
 
@@ -356,6 +381,7 @@ export default function PosterGridEditor() {
         paperH = activeOrientation === 'portrait' ? activeRollL : activeRollW;
         pdfFormat = [paperW, paperH];
       } else {
+        const standardFormats = ['letter', 'a4', 'a3', 'legal'];
         pdfFormat = standardFormats.includes(paperBase.format) ? paperBase.format : [paperBase.width, paperBase.height];
         paperW = activeOrientation === 'portrait' ? Math.min(paperBase.width, paperBase.height) : Math.max(paperBase.width, paperBase.height);
         paperH = activeOrientation === 'portrait' ? Math.max(paperBase.width, paperBase.height) : Math.min(paperBase.width, paperBase.height);
@@ -386,8 +412,6 @@ export default function PosterGridEditor() {
 
       const targetDPI = 300;
       const outputPxPerMm = targetDPI / 25.4;
-      
-      // Calculate source ratios independently to support distorted images
       const sourcePxPerMmW = img.width / finalW_mm;
       const sourcePxPerMmH = img.height / finalH_mm;
 
@@ -403,14 +427,12 @@ export default function PosterGridEditor() {
           
           const sheetLeft_mm = c * effectiveSheetW;
           const sheetTop_mm = r * effectiveSheetH;
-          
           const drawInSheetX_mm = Math.max(0, offsetX_mm - sheetLeft_mm);
           const drawInSheetY_mm = Math.max(0, offsetY_mm - sheetTop_mm);
           
           const visibleW_mm = Math.min(effectiveSheetW + overlapMm - drawInSheetX_mm, finalW_mm - Math.max(0, sheetLeft_mm - offsetX_mm));
           const visibleH_mm = Math.min(effectiveSheetH + overlapMm - drawInSheetY_mm, finalH_mm - Math.max(0, sheetTop_mm - offsetY_mm));
 
-          // Use independent ratios for sx, sy, sw, sh to handle distortion
           const sx = Math.max(0, (sheetLeft_mm - offsetX_mm) * sourcePxPerMmW);
           const sy = Math.max(0, (sheetTop_mm - offsetY_mm) * sourcePxPerMmH);
           const sw = visibleW_mm * sourcePxPerMmW;
@@ -553,7 +575,13 @@ export default function PosterGridEditor() {
                 <span className="text-xs font-black text-primary">{tW} cm</span>
               </div>
               <div className="flex items-center gap-3">
-                <Input value={tW} onChange={(e) => handleWidthChange(e.target.value, !!isMobileView)} className="w-20 h-8 font-black text-xs text-primary bg-primary/5 border-primary/20" />
+                <Input 
+                  type="number" 
+                  step="0.1" 
+                  value={tW.toString().replace(',', '.')} 
+                  onChange={(e) => handleWidthChange(e.target.value, !!isMobileView)} 
+                  className="w-24 h-9 font-black text-sm text-primary bg-primary/5 border-primary/20" 
+                />
                 <Slider value={[parseNum(tW)]} onValueChange={(v) => handleWidthChange(v[0].toString(), !!isMobileView)} min={1} max={isGiant ? GIANT_MAX_CM : DEFAULT_MAX_CM} step={0.1} className="flex-1" />
               </div>
             </div>
@@ -564,7 +592,13 @@ export default function PosterGridEditor() {
                 <span className="text-xs font-black text-primary">{tH} cm</span>
               </div>
               <div className="flex items-center gap-3">
-                <Input value={tH} onChange={(e) => handleHeightChange(e.target.value, !!isMobileView)} className="w-20 h-8 font-black text-xs text-primary bg-primary/5 border-primary/20" />
+                <Input 
+                  type="number" 
+                  step="0.1" 
+                  value={tH.toString().replace(',', '.')} 
+                  onChange={(e) => handleHeightChange(e.target.value, !!isMobileView)} 
+                  className="w-24 h-9 font-black text-sm text-primary bg-primary/5 border-primary/20" 
+                />
                 <Slider value={[parseNum(tH)]} onValueChange={(v) => handleHeightChange(v[0].toString(), !!isMobileView)} min={1} max={isGiant ? GIANT_MAX_CM : DEFAULT_MAX_CM} step={0.1} className="flex-1" />
               </div>
             </div>
