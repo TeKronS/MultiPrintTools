@@ -660,7 +660,7 @@ export default function PosterGridEditor() {
                         if (isMobileView) setDraftCustomRollWidth(215.9); else setCustomRollWidth(215.9);
                         setTimeout(() => syncGrid(undefined, !!isMobileView), 0);
                       }}
-                    >CARTA</Button>
+                    >CARTA (21.6cm)</Button>
                     <Button 
                       variant={(!isSnapped) ? "default" : "outline"} 
                       size="sm" 
@@ -675,18 +675,16 @@ export default function PosterGridEditor() {
                   </div>
                 </div>
 
-                {!isSnapped && (
-                  <div className="space-y-1 animate-in slide-in-from-top-1 duration-200">
-                    <div className="flex justify-between">
-                      <Label className="text-[8px] font-bold text-muted-foreground uppercase">Ancho Personalizado</Label>
-                      <span className="text-[10px] font-black text-primary">{(cW/10).toFixed(1)} cm</span>
-                    </div>
-                    <Slider value={[cW]} onValueChange={(v) => { 
-                      if (isMobileView) setDraftCustomRollWidth(v[0]); else setCustomRollWidth(v[0]); 
-                      setTimeout(() => syncGrid(undefined, !!isMobileView), 0); 
-                    }} min={100} max={1600} step={0.1} />
+                <div className="space-y-1 animate-in slide-in-from-top-1 duration-200">
+                  <div className="flex justify-between">
+                    <Label className="text-[8px] font-bold text-muted-foreground uppercase">Ancho del Rollo</Label>
+                    <span className="text-[10px] font-black text-primary">{(cW/10).toFixed(1)} cm</span>
                   </div>
-                )}
+                  <Slider value={[cW]} onValueChange={(v) => { 
+                    if (isMobileView) setDraftCustomRollWidth(v[0]); else setCustomRollWidth(v[0]); 
+                    setTimeout(() => syncGrid(undefined, !!isMobileView), 0); 
+                  }} min={100} max={1600} step={0.1} />
+                </div>
 
                 <div className="p-3 bg-primary/10 rounded-lg border border-primary/20 space-y-1.5">
                   <div className="flex justify-between items-center">
