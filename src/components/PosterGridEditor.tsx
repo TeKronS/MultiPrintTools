@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useDeferredValue, useMemo } from "react";
@@ -92,7 +91,7 @@ export default function PosterGridEditor() {
   const [isGiantMode, setIsGiantMode] = useState(false);
   const [isInfoOpen, setIsInfoOpen] = useState(false);
 
-  const [customRollWidth, setCustomRollWidth] = useState(215.9);
+  const [customRollWidth, setCustomRollWidth] = useState(210); // A4 por defecto (210mm)
   const [customRollLength, setCustomRollLength] = useState(1000);
 
   const [targetWidth, setTargetWidth] = useState<string>('0');
@@ -112,7 +111,7 @@ export default function PosterGridEditor() {
   const [draftIsGiantMode, setDraftIsGiantMode] = useState(false);
   const [draftTargetWidth, setDraftTargetWidth] = useState<string>('0');
   const [draftTargetHeight, setDraftTargetHeight] = useState<string>('0');
-  const [draftCustomRollWidth, setDraftCustomRollWidth] = useState(215.9);
+  const [draftCustomRollWidth, setDraftCustomRollWidth] = useState(210);
   const [draftCustomRollLength, setDraftCustomRollLength] = useState(1000);
 
   const [isExporting, setIsExporting] = useState(false);
@@ -156,7 +155,7 @@ export default function PosterGridEditor() {
     const overlap_mm = ov_cm * 10;
 
     if (pSize.includes('Personalizado')) {
-      const rollWidth = cW_mm || 215.9;
+      const rollWidth = cW_mm || 210;
       // Detect based on image shape to minimize pages
       const isLandscapeImage = targetW_mm > targetH_mm;
       const finalOrient = isLandscapeImage ? 'landscape' : 'portrait';
@@ -534,8 +533,8 @@ export default function PosterGridEditor() {
   const renderSettings = (isMobileView?: boolean) => {
     const cW = isMobileView ? draftCustomRollWidth : customRollWidth;
     const cL = isMobileView ? draftCustomRollLength : customRollLength;
-    const isLetterSnap = Math.abs(cW - 215.9) < 2;
-    const isA4Snap = Math.abs(cW - 210) < 2;
+    const isLetterSnap = Math.abs(cW - 215.9) < 1;
+    const isA4Snap = Math.abs(cW - 210) < 1;
     const isSnapped = isLetterSnap || isA4Snap;
     const pS = isMobileView ? draftPaperSize : paperSize;
     const orient = isMobileView ? draftOrientation : orientation;
@@ -634,22 +633,72 @@ export default function PosterGridEditor() {
           </div>
 
           {pS.includes('Personalizado') && (
-            <div className={cn("p-4 rounded-xl border transition-all space-y-4 shadow-sm", isSnapped ? "bg-primary/10 border-primary/40 ring-4 ring-primary/5" : "bg-amber-500/5 border-amber-500/10")}>
-              <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-2">
-                  <ScrollText className={cn("h-3.5 w-3.5", isSnapped ? "text-primary" : "text-amber-600")} />
-                  <span className={cn("text-[10px] font-black uppercase tracking-widest", isSnapped ? "text-primary" : "text-amber-700")}>{lang === 'es' ? 'Ajustes de Rollo' : 'Roll Settings'}</span>
-                </div>
-                {isSnapped && (<Badge className="bg-primary text-white text-[7px] px-1.5 py-0.5 rounded-sm">{isLetterSnap ? 'Carta Snap' : 'A4 Snap'}</Badge>)}
+            <div className={cn("p-4 rounded-xl border transition-all space-y-4 shadow-sm bg-primary/5 border-primary/20")}>
+              <div className="flex items-center gap-2 mb-1">
+                <ScrollText className="h-3.5 w-3.5 text-primary" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-primary">{lang === 'es' ? 'Ajustes de Rollo' : 'Roll Settings'}</span>
               </div>
+              
               <div className="space-y-3">
-                <div className="space-y-1">
-                  <div className="flex justify-between"><Label className="text-[8px] font-bold text-muted-foreground uppercase">{t.rollWidth}</Label><span className={cn("text-[10px] font-black", isSnapped ? "text-primary" : "text-amber-600")}>{(cW/10).toFixed(1)} cm</span></div>
-                  <Slider value={[cW]} onValueChange={(v) => { let val = v[0]; if (Math.abs(val-210)<3) val=210; if (Math.abs(val-215.9)<3) val=215.9; if (isMobileView) setDraftCustomRollWidth(val); else setCustomRollWidth(val); setTimeout(() => syncGrid(undefined, !!isMobileView), 0); }} min={100} max={1600} step={0.1} />
+                <div className="space-y-2">
+                  <Label className="text-[8px] font-bold text-muted-foreground uppercase">Ancho del Material</Label>
+                  <div className="grid grid-cols-3 gap-1">
+                    <Button 
+                      variant={isA4Snap ? "default" : "outline"} 
+                      size="sm" 
+                      className="h-7 text-[9px] font-black rounded-lg"
+                      onClick={() => {
+                        if (isMobileView) setDraftCustomRollWidth(210); else setCustomRollWidth(210);
+                        setTimeout(() => syncGrid(undefined, !!isMobileView), 0);
+                      }}
+                    >A4 (21cm)</Button>
+                    <Button 
+                      variant={isLetterSnap ? "default" : "outline"} 
+                      size="sm" 
+                      className="h-7 text-[9px] font-black rounded-lg"
+                      onClick={() => {
+                        if (isMobileView) setDraftCustomRollWidth(215.9); else setCustomRollWidth(215.9);
+                        setTimeout(() => syncGrid(undefined, !!isMobileView), 0);
+                      }}
+                    >CARTA</Button>
+                    <Button 
+                      variant={(!isSnapped) ? "default" : "outline"} 
+                      size="sm" 
+                      className="h-7 text-[9px] font-black rounded-lg"
+                      onClick={() => {
+                        if (isSnapped) {
+                           if (isMobileView) setDraftCustomRollWidth(300); else setCustomRollWidth(300);
+                        }
+                        setTimeout(() => syncGrid(undefined, !!isMobileView), 0);
+                      }}
+                    >OTRO</Button>
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <div className="flex justify-between"><Label className="text-[8px] font-bold text-muted-foreground uppercase">Largo Automático</Label><span className="text-[10px] font-black text-muted-foreground">{(cL/10).toFixed(1)} cm</span></div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden border"><div className="h-full bg-primary/40" style={{ width: `${(cL/MAX_ROLL_LENGTH_MM)*100}%` }} /></div>
+
+                {!isSnapped && (
+                  <div className="space-y-1 animate-in slide-in-from-top-1 duration-200">
+                    <div className="flex justify-between">
+                      <Label className="text-[8px] font-bold text-muted-foreground uppercase">Ancho Personalizado</Label>
+                      <span className="text-[10px] font-black text-primary">{(cW/10).toFixed(1)} cm</span>
+                    </div>
+                    <Slider value={[cW]} onValueChange={(v) => { 
+                      if (isMobileView) setDraftCustomRollWidth(v[0]); else setCustomRollWidth(v[0]); 
+                      setTimeout(() => syncGrid(undefined, !!isMobileView), 0); 
+                    }} min={100} max={1600} step={0.1} />
+                  </div>
+                )}
+
+                <div className="p-3 bg-primary/10 rounded-lg border border-primary/20 space-y-1.5">
+                  <div className="flex justify-between items-center">
+                    <Label className="text-[8px] font-bold text-primary uppercase">Largo de Corte</Label>
+                    <Badge className="bg-primary text-white text-[10px] font-black px-2 py-0.5 border-none shadow-sm">{(cL/10).toFixed(1)} cm</Badge>
+                  </div>
+                  <p className="text-[8px] text-muted-foreground font-medium leading-tight">
+                    {lang === 'es' 
+                      ? `Corta tiras de este largo para cada panel. El sistema generará ${isMobileView ? (draftRows * draftCols) : (rows * cols)} ${ (isMobileView ? (draftRows * draftCols) : (rows * cols)) === 1 ? 'tira' : 'tiras' }.` 
+                      : `Cut strips of this length for each panel. System will generate ${isMobileView ? (draftRows * draftCols) : (rows * cols)} ${ (isMobileView ? (draftRows * draftCols) : (rows * cols)) === 1 ? 'strip' : 'strips' }.`
+                    }
+                  </p>
                 </div>
               </div>
             </div>
