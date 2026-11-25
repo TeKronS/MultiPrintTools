@@ -207,6 +207,11 @@ export const translations = {
     textSeoFeature1: 'Sentence Case: Automatically adds capital letters after periods.',
     textSeoFeature2: 'Spreadsheet Ready: The converter preserves tab and line breaks, making it perfect for processing entire columns from Excel or Google Sheets and pasting them back while maintaining the grid structure.',
     textSeoFeature3: 'Productivity: Ideal for copy centers, students, and writers who need to fix long texts quickly.',
+    // Accessibility
+    ariaChangeImage: 'Change current image',
+    ariaSettings: 'Open settings panel',
+    ariaExport: 'Download high resolution PDF',
+    ariaClose: 'Close current panel',
     // About & Contact
     aboutTitle: 'About MultiPrintTools',
     aboutDesc: 'A specialized digital toolkit for printing and office professionals. Our goal is to facilitate everyday tasks such as poster grids and PDF management. We prioritize local browser-side processing for most tools, guaranteeing privacy and independence, and we use secure cloud services only for complex conversions when necessary.',
@@ -420,6 +425,11 @@ export const translations = {
     textSeoFeature1: 'Tipo Oración: Añade mayúsculas después de los puntos automáticamente.',
     textSeoFeature2: 'Ideal para Excel y Hojas de Cálculo: Nuestra herramienta respeta los saltos de línea y tabulaciones, permitiéndote procesar columnas enteras de datos y volver a pegarlas manteniendo cada dato en su celda original.',
     textSeoFeature3: 'Productivity: Ideal para imprentas, estudiantes y redactores que necesitan arreglar textos largos rápido.',
+    // Accessibility
+    ariaChangeImage: 'Cambiar imagen actual',
+    ariaSettings: 'Abrir panel de ajustes',
+    ariaExport: 'Descargar PDF en alta resolución',
+    ariaClose: 'Cerrar panel actual',
     // About & Contact
     aboutTitle: 'Sobre MultiPrintTools',
     aboutDesc: 'Una suite de herramientas digitales especializada para profesionales de la impresión y oficinas. Nuestro objetivo es facilitar tareas del trabajo como cuadrículas para pósters y gestión de PDFs. Priorizamos el procesamiento local en el navegador para la mayoría de herramientas, garantizando privacidad e independencia, y utilizamos servicios seguros en la nube solo para conversiones complejas cuando es necesario.',
