@@ -1,17 +1,17 @@
-
 import type { Metadata } from "next";
 import PosterGridEditor from "@/components/PosterGridEditor";
 
 export const metadata: Metadata = {
-  title: "Split Image for Poster Printing | Dividir Imagen para Imprimir Gratis",
-  description: "The best professional tool to split image for poster printing on multiple sheets. Automate tiled printing for Carta, A4 or Legal paper with technical overlaps. Dividir imagen en varias hojas automáticamente con resultados de alta resolución.",
+  title: "Dividir Imagen para Imprimir en Múltiples Hojas | Crear Poster Gigante",
+  description: "La mejor herramienta para dividir imagen para imprimir en múltiples hojas A4, Carta o Rollo. Crea posters gigantes, murales y gigantografías automáticamente con solapes técnicos precisos. Gratis y privado.",
+  alternates: {
+    canonical: '/poster',
+  },
   keywords: [
-    "split image for poster printing", "tiled printing automation", "divide photo into multiple pages",
-    "dividir imagen para imprimir", "dividir imagen en varias hojas", "crear poster gigante", 
-    "dividir fotos para imprimir", "poster wall maker", "printable poster grid",
-    "imprimir fotos grandes en casa", "dividir fotos en hojas carta automático", 
-    "hojas oficio impresión poster", "reprografía digital avanzada", "imprimir gigantografía casa",
-    "mosaico de fotos para pared gratis", "tiled pdf maker", "poster printer online"
+    "dividir imagen para imprimir en múltiples hojas", "imprimir poster en varias hojas",
+    "dividir foto en varias hojas a4", "crear gigantografías gratis", "tiled printing online",
+    "dividir imagen para imprimir a4", "mosaico de fotos para pared", "poster wall maker",
+    "dividir fotos para imprimir carta", "imprimir imagen grande en varias hojas"
   ],
 };
 

@@ -1,4 +1,3 @@
-
 import type {Metadata} from 'next';
 import './globals.css';
 import { ThemeProvider } from '@/components/ThemeProvider';
@@ -6,20 +5,16 @@ import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.multiprinttools.com'),
-  alternates: {
-    canonical: '/',
-  },
   title: {
-    default: 'MultiPrintTools | Suite Digital de Impresión e Independencia Técnica',
+    default: 'MultiPrintTools | Dividir Imagen para Imprimir en Varias Hojas',
     template: '%s | MultiPrintTools'
   },
-  description: 'Herramientas digitales para expertos en impresión y oficinas. Automatiza cuadrículas para pósters y gestión de PDF con procesamiento local y privacidad garantizada.',
+  description: 'Herramientas profesionales para imprimir posters gigantes. Dividir imagen para imprimir en múltiples hojas (A4, Carta, Rollo) con solapes técnicos y procesamiento local privado.',
   keywords: [
-    'split image for poster printing', 'tiled printing automation', 'dividir imagen para imprimir', 
-    'dividir imagen en varias hojas', 'reprography automation', 'poster grid maker',
-    'cuadrícula para poster gigante', 'reprografía profesional', 'dividir foto en hojas a4',
-    'herramientas para imprentas', 'crear gigantografías rápido', 'unir pdf sin internet', 
-    'poster maker professional', 'mosaico de fotos para pared'
+    'dividir imagen para imprimir en múltiples hojas', 'imprimir poster en varias hojas', 
+    'split image for poster printing', 'crear poster gigante', 'tiled printing automation',
+    'dividir fotos para imprimir', 'poster grid maker', 'reprografía profesional',
+    'imprimir gigantografías casa', 'mosaico de fotos para pared'
   ],
   authors: [{ name: 'Tekron Web Studio' }],
   creator: 'Tekron Web Studio',
@@ -43,7 +38,7 @@ export const metadata: Metadata = {
     locale: 'es_ES',
     url: 'https://www.multiprinttools.com',
     siteName: 'MultiPrintTools',
-    title: 'MultiPrintTools | Split Image for Poster Printing',
+    title: 'MultiPrintTools | Dividir Imagen para Imprimir',
     description: 'La suite definitiva para automatizar tareas de impresión. Crea cuadrículas técnicas para posters gigantes con total privacidad.',
     images: [
       {
@@ -56,7 +51,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary',
-    title: 'Split Image for Poster Printing | MultiPrintTools',
+    title: 'Dividir Imagen para Imprimir | MultiPrintTools',
     description: 'Divide fotos en múltiples hojas automáticamente con procesamiento local y privacidad total.',
     images: ['/icono.png'],
   },

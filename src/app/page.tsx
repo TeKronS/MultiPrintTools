@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -48,8 +47,8 @@ export default function Home() {
 
   const tools = [
     {
-      title: t.muralisTitle,
-      description: t.muralisDesc,
+      title: lang === 'es' ? 'Dividir Imagen para Imprimir' : t.muralisTitle,
+      description: lang === 'es' ? 'La mejor forma de dividir imagen para imprimir en múltiples hojas automáticamente.' : t.muralisDesc,
       icon: <Layers className="h-8 w-8 text-white" />,
       href: "/poster",
       status: "active",
@@ -151,10 +150,10 @@ export default function Home() {
             <Zap className="h-3 w-3" /> {t.heroBadge}
           </Badge>
           <h1 className="text-4xl md:text-6xl font-headline font-black tracking-tighter leading-[1] md:leading-[0.9] text-foreground">
-            {t.heroTitlePrefix}<span className="text-primary">{t.heroTitleSuffix}</span>
+            {lang === 'es' ? 'Dividir imagen para imprimir en ' : t.heroTitlePrefix}<span className="text-primary">{lang === 'es' ? 'múltiples hojas' : t.heroTitleSuffix}</span>
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground font-medium leading-relaxed max-w-2xl mx-auto sm:mx-0">
-            {t.heroDesc}
+            {lang === 'es' ? 'La suite profesional para automatizar la creación de posters gigantes, gigantografías y gestión de PDF con procesamiento 100% local.' : t.heroDesc}
           </p>
         </div>
 
