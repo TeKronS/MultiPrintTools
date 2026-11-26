@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useDeferredValue, useMemo } from "react";
@@ -18,7 +19,6 @@ import {
   Maximize2,
   Ruler,
   Zap,
-  Square,
   Info,
   ChevronDown,
   Expand,
@@ -97,7 +97,6 @@ export default function PosterGridEditor() {
   const [targetWidth, setTargetWidth] = useState<string>('0');
   const [targetHeight, setTargetHeight] = useState<string>('0');
 
-  // Deferred values to improve performance (Core Web Vitals)
   const deferredRows = useDeferredValue(rows);
   const deferredCols = useDeferredValue(cols);
   const deferredWidth = useDeferredValue(targetWidth);
@@ -421,7 +420,7 @@ export default function PosterGridEditor() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2 bg-card px-2 py-1 rounded-md shadow-sm border border-border/20">
-              <Maximize2 className="h-3.5 w-3.5 text-primary" /> Dimensiones
+              <Maximize2 className="h-3.5 w-3.5 text-primary" /> {t.physicalDimensions}
             </h2>
             <div className="flex items-center gap-2">
               <Label htmlFor="lock" className="text-[8px] font-black text-muted-foreground uppercase cursor-pointer">{t.keepAspectRatio}</Label>
@@ -480,7 +479,7 @@ export default function PosterGridEditor() {
 
         <div className="space-y-4">
           <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2 bg-card px-2 py-1 rounded-md shadow-sm border border-border/20">
-            <Settings2 className="h-3.5 w-3.5 text-amber-600" /> Impresión
+            <Settings2 className="h-3.5 w-3.5 text-amber-600" /> {t.gridSettings}
           </h2>
 
           <div className="grid grid-cols-2 gap-3">
@@ -507,7 +506,7 @@ export default function PosterGridEditor() {
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2">
                   <ScrollText className={cn("h-3.5 w-3.5", isSnapped ? "text-primary" : "text-amber-600")} />
-                  <span className={cn("text-[10px] font-black uppercase tracking-widest", isSnapped ? "text-primary" : "text-amber-700")}>Ancho del Rollo</span>
+                  <span className={cn("text-[10px] font-black uppercase tracking-widest", isSnapped ? "text-primary" : "text-amber-700")}>{t.rollWidthLabel}</span>
                 </div>
                 {isSnapped && (<Badge className="bg-primary text-white text-[7px] px-1.5 py-0.5 rounded-sm">{isLetterSnap ? 'Carta' : 'A4'}</Badge>)}
               </div>
@@ -516,7 +515,7 @@ export default function PosterGridEditor() {
                 <div className="grid grid-cols-3 gap-1">
                   <Button variant={isA4Snap ? "default" : "outline"} size="sm" className="h-7 text-[9px] font-black rounded-lg" onClick={() => { setCustomRollWidth(210); setTimeout(() => syncGrid(), 0); }}>A4 (21cm)</Button>
                   <Button variant={isLetterSnap ? "default" : "outline"} size="sm" className="h-7 text-[9px] font-black rounded-lg" onClick={() => { setCustomRollWidth(215.9); setTimeout(() => syncGrid(), 0); }}>CARTA (21.6cm)</Button>
-                  <Button variant={(!isSnapped) ? "default" : "outline"} size="sm" className="h-7 text-[9px] font-black rounded-lg" onClick={() => { if (isSnapped) setCustomRollWidth(300); setTimeout(() => syncGrid(), 0); }}>OTRO</Button>
+                  <Button variant={(!isSnapped) ? "default" : "outline"} size="sm" className="h-7 text-[9px] font-black rounded-lg" onClick={() => { if (isSnapped) setCustomRollWidth(300); setTimeout(() => syncGrid(), 0); }}>{lang === 'es' ? 'OTRO' : 'OTHER'}</Button>
                 </div>
 
                 <div className="space-y-1">
@@ -529,10 +528,10 @@ export default function PosterGridEditor() {
 
                 <div className="p-3 bg-primary/10 rounded-lg border border-primary/20 space-y-1">
                   <div className="flex justify-between items-center">
-                    <Label className="text-[8px] font-bold text-primary uppercase">Largo de Corte</Label>
+                    <Label className="text-[8px] font-bold text-primary uppercase">{t.cutLengthLabel}</Label>
                     <Badge className="bg-primary text-white text-[10px] font-black px-2 py-0.5 border-none shadow-sm">{(customRollLength/10).toFixed(1)} cm</Badge>
                   </div>
-                  <p className="text-[8px] text-muted-foreground font-medium leading-tight">Corta tiras de este largo para cada panel.</p>
+                  <p className="text-[8px] text-muted-foreground font-medium leading-tight">{t.cutLengthDesc}</p>
                 </div>
               </div>
             </div>
@@ -616,14 +615,14 @@ export default function PosterGridEditor() {
           <Link href="/">
             <Button aria-label="Inicio" variant="ghost" size="sm" className="gap-2 font-bold text-muted-foreground px-2">
               <ChevronLeft className="h-4 w-4" /> 
-              <span className="hidden lg:inline">Inicio</span>
+              <span className="hidden lg:inline">{lang === 'es' ? 'Inicio' : 'Home'}</span>
             </Button>
           </Link>
           <div className="flex items-center gap-2 lg:gap-3">
             <div className="w-6 h-6 lg:w-8 lg:h-8 relative overflow-hidden rounded-lg shadow-sm bg-white border border-border/10">
               <Image src={logo} alt="Logo" fill className="object-contain" priority />
             </div>
-            <h1 className="text-lg lg:text-xl font-headline font-black tracking-tighter text-primary uppercase">POSTER GRID</h1>
+            <h1 className="text-lg lg:text-xl font-headline font-black tracking-tighter text-primary uppercase">{t.title}</h1>
           </div>
         </div>
         <div className="flex items-center gap-2 lg:gap-4">
@@ -645,8 +644,8 @@ export default function PosterGridEditor() {
             <div className="max-w-lg w-full px-6 lg:p-8 animate-fade-in text-center flex flex-col gap-6 lg:gap-8">
               <ImageUploader onImageUpload={handleImageUpload} language={lang} t={t} />
               <div className="space-y-2">
-                <h2 className="text-2xl lg:text-3xl font-headline font-black tracking-tighter">Preparar poster</h2>
-                <p className="text-muted-foreground font-medium text-sm lg:text-base">Sube una imagen de alta resolución para generar tu cuadrícula técnica.</p>
+                <h2 className="text-2xl lg:text-3xl font-headline font-black tracking-tighter">{t.preparePoster}</h2>
+                <p className="text-muted-foreground font-medium text-sm lg:text-base">{t.preparePosterDesc}</p>
               </div>
             </div>
           ) : (
@@ -664,7 +663,7 @@ export default function PosterGridEditor() {
                       </div>
                       <Separator orientation="vertical" className="h-6 lg:h-8 opacity-50" />
                       <div className="flex flex-col">
-                        <span className="text-[6px] lg:text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">Papel</span>
+                        <span className="text-[6px] lg:text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">{t.paper}</span>
                         <div className="flex items-center gap-1.5 lg:gap-2">
                           <FileText className="h-2.5 w-2.5 lg:h-3.5 lg:w-3.5 text-amber-600" />
                           <span className="text-xs lg:text-base font-black text-foreground uppercase">{physicalInfo.paperName}</span>
@@ -672,16 +671,16 @@ export default function PosterGridEditor() {
                       </div>
                       <Separator orientation="vertical" className="h-6 lg:h-8 opacity-50" />
                       <div className="flex flex-col">
-                        <span className="text-[6px] lg:text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">Paneles</span>
+                        <span className="text-[6px] lg:text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">{t.panels}</span>
                         <div className="flex items-center gap-1.5 lg:gap-2">
                           <Layers className="h-2.5 w-2.5 lg:h-3.5 lg:w-3.5 text-primary" />
-                          <span className="text-xs lg:text-base font-black text-foreground">{physicalInfo.panels} <span className="hidden sm:inline">{lang === 'es' ? 'HOJAS' : 'SHEETS'}</span></span>
+                          <span className="text-xs lg:text-base font-black text-foreground">{physicalInfo.panels} <span className="hidden sm:inline">{t.sheets}</span></span>
                         </div>
                       </div>
                     </div>
-                    <Button aria-label="Cambiar imagen" variant="secondary" size="sm" onClick={() => setImage(null)} className="h-8 lg:h-10 text-[10px] lg:text-xs font-black uppercase gap-2 rounded-xl border border-border/50 shadow-sm pointer-events-auto">
+                    <Button aria-label={t.ariaChangeImage} variant="secondary" size="sm" onClick={() => setImage(null)} className="h-8 lg:h-10 text-[10px] lg:text-xs font-black uppercase gap-2 rounded-xl border border-border/50 shadow-sm pointer-events-auto">
                       <RefreshCcw className="h-3.5 w-3.5" />
-                      <span className="hidden xs:inline">Cambiar</span>
+                      <span className="hidden xs:inline">{t.change}</span>
                     </Button>
                   </div>
                 </div>
@@ -717,27 +716,27 @@ export default function PosterGridEditor() {
 
       <div className="lg:hidden fixed bottom-6 right-6 z-40 pointer-events-auto flex gap-3">
         {image && (
-          <Button aria-label="Descargar PDF" className="h-14 bg-primary hover:bg-primary/90 text-white font-black rounded-2xl shadow-2xl px-8" onClick={handleExport} disabled={isExporting}>
+          <Button aria-label={t.ariaExport} className="h-14 bg-primary hover:bg-primary/90 text-white font-black rounded-2xl shadow-2xl px-8" onClick={handleExport} disabled={isExporting}>
             {isExporting ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileDown className="h-6 w-6" />}
           </Button>
         )}
         <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-          <Button aria-label="Ajustes" size="icon" className="h-14 w-14 rounded-full shadow-2xl bg-primary text-white border-4 border-white" onClick={() => setIsMenuOpen(true)}>
+          <Button aria-label={t.ariaSettings} size="icon" className="h-14 w-14 rounded-full shadow-2xl bg-primary text-white border-4 border-white" onClick={() => setIsMenuOpen(true)}>
             <Settings2 className="h-6 w-6" />
           </Button>
           <SheetContent side="right" className="w-[85%] sm:w-[400px] p-0 bg-background/95 backdrop-blur-xl shadow-2xl overflow-hidden flex flex-col z-[150]">
             <SheetHeader className="sr-only">
-              <SheetTitle>Ajustes</SheetTitle>
-              <SheetDescription>Configura tu póster</SheetDescription>
+              <SheetTitle>{t.gridSettings}</SheetTitle>
+              <SheetDescription>{t.savePrompt}</SheetDescription>
             </SheetHeader>
             <div className="p-3 bg-primary/5 shrink-0">
-              <Button aria-label="Exportar" className="w-full h-12 bg-primary text-white font-black rounded-xl" onClick={handleExport} disabled={!image || isExporting}>
-                {isExporting ? "Generando..." : t.export}
+              <Button aria-label={t.export} className="w-full h-12 bg-primary text-white font-black rounded-xl" onClick={handleExport} disabled={!image || isExporting}>
+                {isExporting ? "..." : t.export}
               </Button>
             </div>
             <div className="flex-1 overflow-y-auto relative">
               {renderSettings()}
-              <Button aria-label="Cerrar" size="icon" className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-2xl bg-primary text-white z-[210] border-4 border-white animate-in fade-in zoom-in-95 duration-200" onClick={() => setIsMenuOpen(false)}>
+              <Button aria-label={t.ariaClose} size="icon" className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-2xl bg-primary text-white z-[210] border-4 border-white animate-in fade-in zoom-in-95 duration-200" onClick={() => setIsMenuOpen(false)}>
                 <Settings2 className="h-6 w-6" />
               </Button>
             </div>

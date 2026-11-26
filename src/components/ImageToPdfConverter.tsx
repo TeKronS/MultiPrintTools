@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, useMemo, useEffect, useDeferredValue } from "react";
@@ -85,7 +86,7 @@ export default function ImageToPdfConverter() {
   const [paperSize, setPaperSize] = useState('Carta');
   const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait');
   const [margin, setMargin] = useState(1);
-  const [spacing, setSpacing] = useState(0.2); // Separación entre imágenes por defecto 2mm
+  const [spacing, setSpacing] = useState(0.2); 
   const [fitMode, setFitMode] = useState<'fit' | 'fill'>('fit');
   const [imagesPerPage, setImagesPerPage] = useState('1');
   const [isExporting, setIsExporting] = useState(false);
@@ -150,7 +151,7 @@ export default function ImageToPdfConverter() {
       }));
 
     if (newImages.length === 0) {
-      toast({ variant: "destructive", title: "Error", description: "Por favor selecciona archivos de imagen válidos." });
+      toast({ variant: "destructive", title: "Error", description: t.dragDrop });
       return;
     }
 
@@ -336,7 +337,7 @@ export default function ImageToPdfConverter() {
     <div className="space-y-4">
       <div className="flex items-center gap-2 mb-1">
         <Settings2 className="h-4 w-4 text-primary" />
-        <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Configuración</h2>
+        <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t.gridSettings}</h2>
       </div>
 
       <div className="space-y-4">
@@ -430,7 +431,7 @@ export default function ImageToPdfConverter() {
         <div className="space-y-2">
           <div className="flex justify-between items-center">
             <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-wider flex items-center gap-1.5">
-              <Grid3X3 className="h-3 w-3" /> Separación
+              <Grid3X3 className="h-3 w-3" /> {lang === 'es' ? 'Separación' : 'Spacing'}
             </Label>
             <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">{spacing.toFixed(2)} cm</span>
           </div>
@@ -505,11 +506,11 @@ export default function ImageToPdfConverter() {
 
       <div className="bg-muted p-2 rounded-xl border border-border space-y-0.5">
         <div className="flex justify-between items-center">
-          <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Originales</span>
+          <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">{lang === 'es' ? 'Originales' : 'Originals'}</span>
           <span className="text-[10px] font-black text-primary">#{images.length}</span>
         </div>
         <div className="flex justify-between items-center">
-          <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Hojas Totales</span>
+          <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">{lang === 'es' ? 'Hojas Totales' : 'Total Sheets'}</span>
           <span className="text-[10px] font-black text-foreground">{pages.length}</span>
         </div>
       </div>
@@ -534,7 +535,7 @@ export default function ImageToPdfConverter() {
           <Link href="/">
             <Button variant="ghost" size="sm" className="gap-2 font-bold text-muted-foreground px-2">
               <ChevronLeft className="h-4 w-4" /> 
-              <span className="hidden sm:inline text-xs">Inicio</span>
+              <span className="hidden sm:inline text-xs">{lang === 'es' ? 'Inicio' : 'Home'}</span>
             </Button>
           </Link>
           <div className="flex items-center gap-3">
@@ -542,7 +543,7 @@ export default function ImageToPdfConverter() {
               <Image src={logo} alt="Logo" fill className="object-contain" />
             </div>
             <h1 className="text-xl font-headline font-black tracking-tighter text-primary uppercase">
-              IMAGEN A PDF
+              {t.imgToPdfTitle}
             </h1>
           </div>
         </div>
@@ -563,7 +564,7 @@ export default function ImageToPdfConverter() {
       <main className="flex-1 flex overflow-hidden relative">
         <aside className="hidden md:flex w-[80px] bg-card border-r border-border flex-col items-center py-4 gap-4 overflow-y-auto shrink-0 shadow-inner z-10 scrollbar-hide">
           <div className="flex flex-col gap-4 w-full items-center">
-            <span className="text-[8px] font-black text-muted-foreground uppercase text-center px-1">Páginas</span>
+            <span className="text-[8px] font-black text-muted-foreground uppercase text-center px-1">{t.pages}</span>
             {pages.map((page, idx) => {
                const { rows, cols } = getGridConfig(parseInt(imagesPerPage), orientation);
                return (
@@ -650,9 +651,9 @@ export default function ImageToPdfConverter() {
                     >
                       <div className="mb-4 flex items-center justify-between px-2">
                         <Badge variant="outline" className="bg-white/80 dark:bg-slate-800 border-primary/20 text-[10px] font-black px-3 py-1">
-                          PÁGINA {pageIdx + 1} / {pages.length}
+                          {t.page} {pageIdx + 1} / {pages.length}
                         </Badge>
-                        <span className="text-[9px] font-bold text-muted-foreground uppercase">{currentOrient === 'portrait' ? 'Vertical' : 'Horizontal'}</span>
+                        <span className="text-[9px] font-bold text-muted-foreground uppercase">{currentOrient === 'portrait' ? t.portrait : t.landscape}</span>
                       </div>
 
                       <div 
@@ -700,7 +701,7 @@ export default function ImageToPdfConverter() {
                                   {img.orientation === 'landscape' ? <Smartphone className="h-3 w-3" /> : <Monitor className="h-3 w-3" />}
                                 </Button>
                                 <div className="bg-white/90 px-1.5 h-6 rounded-md flex items-center shadow-lg border border-border">
-                                  <span className="text-[9px] font-black text-primary">QTY: {img.quantity}</span>
+                                  <span className="text-[9px] font-black text-primary">{t.quantityShort}: {img.quantity}</span>
                                 </div>
                               </div>
                             </div>
@@ -728,7 +729,7 @@ export default function ImageToPdfConverter() {
           <div className="mb-6 bg-primary/5 p-4 rounded-2xl border border-primary/10">
             <div className="flex items-center gap-2 mb-2">
               <Layers className="h-4 w-4 text-primary" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-primary">Gestionar Originales</span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-primary">{t.manageOriginals}</span>
             </div>
             <div className="space-y-3">
               {images.map((img, idx) => (
@@ -781,8 +782,8 @@ export default function ImageToPdfConverter() {
             </div>
             <SheetContent side="right" className="w-[85%] sm:w-[400px] p-0 bg-background/80 backdrop-blur-xl shadow-2xl overflow-hidden flex flex-col z-[150]">
               <SheetHeader className="sr-only">
-                <SheetTitle>Configuración</SheetTitle>
-                <SheetDescription>Ajustes de exportación a PDF</SheetDescription>
+                <SheetTitle>{t.gridSettings}</SheetTitle>
+                <SheetDescription>{t.savePrompt}</SheetDescription>
               </SheetHeader>
               
               <div className="p-4 bg-primary/5 border-b shrink-0 flex items-center justify-between">

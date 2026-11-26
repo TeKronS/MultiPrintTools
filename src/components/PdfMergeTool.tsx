@@ -6,9 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { 
   ChevronLeft, 
-  FileStack, 
   Loader2, 
-  X,
   ShieldCheck,
   Zap,
   ArrowUp,
@@ -316,11 +314,11 @@ export default function PdfMergeTool() {
 
           <div className="bg-muted p-4 rounded-2xl border border-border space-y-3">
             <div className="flex justify-between items-center">
-              <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Archivos</span>
+              <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">{t.files}</span>
               <span className="text-xs font-black text-indigo-600">{files.length}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Peso Total</span>
+              <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">{t.totalWeight}</span>
               <span className="text-xs font-black text-foreground">
                 {(files.reduce((acc, f) => acc + f.size, 0) / 1024 / 1024).toFixed(2)} MB
               </span>
@@ -364,7 +362,7 @@ export default function PdfMergeTool() {
           <Link href="/">
             <Button variant="ghost" size="sm" className="gap-2 font-bold text-muted-foreground px-2">
               <ChevronLeft className="h-4 w-4" /> 
-              <span className="hidden sm:inline text-xs">Inicio</span>
+              <span className="hidden sm:inline text-xs">{lang === 'es' ? 'Inicio' : 'Home'}</span>
             </Button>
           </Link>
           <div className="flex items-center gap-3">
@@ -412,7 +410,7 @@ export default function PdfMergeTool() {
             ) : (
               <div className="space-y-4 animate-in fade-in duration-500 pb-32">
                 <div className="flex justify-between items-center px-4">
-                  <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">{files.length} ARCHIVOS CARGADOS</span>
+                  <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">{files.length} {t.filesLoaded}</span>
                   <Button 
                     variant="ghost" 
                     size="sm" 
@@ -440,7 +438,7 @@ export default function PdfMergeTool() {
                           size="icon" 
                           className="h-9 w-9 rounded-xl text-indigo-500 hover:bg-indigo-50"
                           onClick={() => handleIndividualPreview(file.file, file.name)}
-                          title="Ver archivo"
+                          title={t.preview}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -482,7 +480,7 @@ export default function PdfMergeTool() {
                   <AlertCircle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
                   <div className="space-y-1">
                     <p className="text-[10px] font-black text-amber-700 dark:text-amber-500 uppercase tracking-wider">{t.order}</p>
-                    <p className="text-xs text-amber-600/80 dark:text-amber-500/70 font-medium">Usa las flechas para ordenar los archivos. El PDF final se generará siguiendo este orden de arriba hacia abajo.</p>
+                    <p className="text-xs text-amber-600/80 dark:text-amber-500/70 font-medium">{lang === 'es' ? 'Usa las flechas para ordenar los archivos. El PDF final se generará siguiendo este orden de arriba hacia abajo.' : 'Use the arrows to reorder files. The final PDF will be generated following this top-to-bottom order.'}</p>
                   </div>
                 </div>
               </div>
@@ -558,8 +556,8 @@ export default function PdfMergeTool() {
               onOpenAutoFocus={(e) => e.preventDefault()}
             >
               <SheetHeader className="sr-only">
-                <SheetTitle>Ajustes de Combinación</SheetTitle>
-                <SheetDescription>Configura el PDF resultante</SheetDescription>
+                <SheetTitle>{t.gridSettings}</SheetTitle>
+                <SheetDescription>{t.savePrompt}</SheetDescription>
               </SheetHeader>
 
               <div className="p-4 bg-indigo-500/5 border-b shrink-0 flex flex-col gap-2">
@@ -569,7 +567,7 @@ export default function PdfMergeTool() {
                   disabled={files.length < 2 || isMerging}
                 >
                   {isMerging ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
-                  {isMerging ? "..." : "Combinar PDF"}
+                  {isMerging ? "..." : t.mergeAction}
                 </Button>
               </div>
               
@@ -604,7 +602,7 @@ export default function PdfMergeTool() {
             <div className="flex items-center justify-between">
               <div className="min-w-0 pr-12">
                 <DialogTitle className="text-lg md:text-xl font-headline font-black uppercase tracking-tighter truncate">{previewTitle}</DialogTitle>
-                <DialogDescription className="text-indigo-100 font-medium truncate text-xs">Revisa el documento antes de continuar</DialogDescription>
+                <DialogDescription className="text-indigo-100 font-medium truncate text-xs">{lang === 'es' ? 'Revisa el documento antes de continuar' : 'Review the document before continuing'}</DialogDescription>
               </div>
             </div>
           </DialogHeader>
@@ -613,7 +611,7 @@ export default function PdfMergeTool() {
             {isLoadingPreview ? (
               <div className="flex flex-col items-center gap-4">
                 <Loader2 className="h-10 w-10 text-indigo-600 animate-spin" />
-                <span className="text-xs font-black text-indigo-600 uppercase tracking-widest">Cargando Vista Previa...</span>
+                <span className="text-xs font-black text-indigo-600 uppercase tracking-widest">{lang === 'es' ? 'Cargando Vista Previa...' : 'Loading Preview...'}</span>
               </div>
             ) : isMobile && mobileThumbnail ? (
               <div className="w-full h-full flex flex-col items-center gap-6 animate-in fade-in duration-500">
@@ -622,14 +620,14 @@ export default function PdfMergeTool() {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
                 </div>
                 <div className="flex flex-col items-center text-center gap-4 max-w-[280px]">
-                  <p className="text-xs font-medium text-muted-foreground">La previsualización móvil muestra la primera página. Para ver el documento completo, usa el botón de abajo.</p>
+                  <p className="text-xs font-medium text-muted-foreground">{lang === 'es' ? 'La previsualización móvil muestra la primera página. Para ver el documento completo, usa el botón de abajo.' : 'Mobile preview shows the first page. To view the full document, use the button below.'}</p>
                   <Button 
                     variant="outline" 
                     className="border-2 border-indigo-600 text-indigo-600 font-black rounded-xl gap-2 h-12 px-6 uppercase text-[10px] tracking-widest w-full"
                     onClick={() => previewUrl && window.open(previewUrl, '_blank')}
                   >
                     <ExternalLink className="h-4 w-4" />
-                    Abrir Pantalla Completa
+                    {lang === 'es' ? 'Abrir Pantalla Completa' : 'Open Full Screen'}
                   </Button>
                 </div>
               </div>
@@ -646,11 +644,11 @@ export default function PdfMergeTool() {
 
           <div className="p-4 bg-background border-t border-border flex flex-col sm:flex-row justify-end gap-3 shrink-0">
             <Button variant="ghost" className="font-bold uppercase tracking-widest text-[10px] h-11" onClick={() => setIsPreviewOpen(false)}>
-              Cerrar
+              {lang === 'es' ? 'Cerrar' : 'Close'}
             </Button>
             <Button className="bg-indigo-600 hover:bg-indigo-700 text-white font-black px-8 h-11 rounded-xl gap-2 text-[10px] uppercase tracking-widest" onClick={mergeAndDownload}>
               <Download className="h-4 w-4" />
-              Descargar Ahora
+              {lang === 'es' ? 'Descargar Ahora' : 'Download Now'}
             </Button>
           </div>
         </DialogContent>
