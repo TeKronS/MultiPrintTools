@@ -20,7 +20,8 @@ import {
   ImageIcon,
   Layers,
   Info,
-  ChevronDown
+  ChevronDown,
+  Grid3X3
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -84,6 +85,7 @@ export default function ImageToPdfConverter() {
   const [paperSize, setPaperSize] = useState('Carta');
   const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait');
   const [margin, setMargin] = useState(1);
+  const [spacing, setSpacing] = useState(0.2); // Separación entre imágenes por defecto 2mm
   const [fitMode, setFitMode] = useState<'fit' | 'fill'>('fit');
   const [imagesPerPage, setImagesPerPage] = useState('1');
   const [isExporting, setIsExporting] = useState(false);
@@ -92,6 +94,7 @@ export default function ImageToPdfConverter() {
   const [isInfoOpen, setIsInfoOpen] = useState(false);
 
   const deferredMargin = useDeferredValue(margin);
+  const deferredSpacing = useDeferredValue(spacing);
 
   useEffect(() => {
     setMounted(true);
@@ -252,13 +255,17 @@ export default function ImageToPdfConverter() {
 
         const pageWidth = currentPageOrient === 'portrait' ? paper.width : paper.height;
         const pageHeight = currentPageOrient === 'portrait' ? paper.height : paper.width;
+        
         const marginMm = margin * 10;
+        const spacingMm = spacing * 10;
+        
         const usableWidth = pageWidth - (marginMm * 2);
         const usableHeight = pageHeight - (marginMm * 2);
 
         const { rows, cols } = getGridConfig(nPerPage, currentPageOrient);
-        const cellWidth = usableWidth / cols;
-        const cellHeight = usableHeight / rows;
+        
+        const cellWidth = (usableWidth - (spacingMm * (cols - 1))) / cols;
+        const cellHeight = (usableHeight - (spacingMm * (rows - 1))) / rows;
 
         for (let j = 0; j < pageImages.length; j++) {
           const imgData = pageImages[j];
@@ -292,8 +299,8 @@ export default function ImageToPdfConverter() {
             }
           }
 
-          x = marginMm + (colIdx * cellWidth) + (cellWidth - drawW) / 2;
-          y = marginMm + (rowIdx * cellHeight) + (cellHeight - drawH) / 2;
+          x = marginMm + (colIdx * (cellWidth + spacingMm)) + (cellWidth - drawW) / 2;
+          y = marginMm + (rowIdx * (cellHeight + spacingMm)) + (cellHeight - drawH) / 2;
 
           const canvas = document.createElement('canvas');
           canvas.width = htmlImg.width;
@@ -397,14 +404,14 @@ export default function ImageToPdfConverter() {
               variant="outline" 
               size="icon" 
               className="h-8 w-8 rounded-lg shrink-0 border-2" 
-              onClick={() => setMargin(prev => Math.max(0.5, parseFloat((prev - 0.1).toFixed(1))))}
+              onClick={() => setMargin(prev => Math.max(0, parseFloat((prev - 0.1).toFixed(1))))}
             >
               <Minus className="h-3 w-3" />
             </Button>
             <Slider 
               value={[margin]} 
               onValueChange={(v) => setMargin(v[0])} 
-              min={0.5} 
+              min={0} 
               max={6} 
               step={0.1} 
               className="flex-1" 
@@ -414,6 +421,41 @@ export default function ImageToPdfConverter() {
               size="icon" 
               className="h-8 w-8 rounded-lg shrink-0 border-2" 
               onClick={() => setMargin(prev => Math.min(6, parseFloat((prev + 0.1).toFixed(1))))}
+            >
+              <Plus className="h-3 w-3" />
+            </Button>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex justify-between items-center">
+            <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-wider flex items-center gap-1.5">
+              <Grid3X3 className="h-3 w-3" /> Separación
+            </Label>
+            <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">{spacing.toFixed(2)} cm</span>
+          </div>
+          <div className="flex items-center gap-3 py-1">
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className="h-8 w-8 rounded-lg shrink-0 border-2" 
+              onClick={() => setSpacing(prev => Math.max(0, parseFloat((prev - 0.05).toFixed(2))))}
+            >
+              <Minus className="h-3 w-3" />
+            </Button>
+            <Slider 
+              value={[spacing]} 
+              onValueChange={(v) => setSpacing(v[0])} 
+              min={0} 
+              max={5} 
+              step={0.01} 
+              className="flex-1" 
+            />
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className="h-8 w-8 rounded-lg shrink-0 border-2" 
+              onClick={() => setSpacing(prev => Math.min(5, parseFloat((prev + 0.05).toFixed(2))))}
             >
               <Plus className="h-3 w-3" />
             </Button>
@@ -533,10 +575,11 @@ export default function ImageToPdfConverter() {
                   }}
                 >
                   <div 
-                    className="grid h-full gap-[1px] bg-muted/20"
+                    className="grid h-full"
                     style={{
                       gridTemplateRows: `repeat(${rows}, 1fr)`,
-                      gridTemplateColumns: `repeat(${cols}, 1fr)`
+                      gridTemplateColumns: `repeat(${cols}, 1fr)`,
+                      gap: '1px'
                     }}
                   >
                     {page.map((img, i) => (
@@ -589,9 +632,13 @@ export default function ImageToPdfConverter() {
                   const paperW = currentOrient === 'portrait' ? paper.width : paper.height;
                   const paperH = currentOrient === 'portrait' ? paper.height : paper.width;
                   const aspect = paperW / paperH;
+                  
                   const marginMm = deferredMargin * 10;
+                  const spacingMm = deferredSpacing * 10;
+                  
                   const marginX = (marginMm / paperW) * 100;
                   const marginY = (marginMm / paperH) * 100;
+                  const gridGap = (spacingMm / paperW) * 100;
 
                   const { rows, cols } = getGridConfig(nPerPage, currentOrient);
 
@@ -613,11 +660,12 @@ export default function ImageToPdfConverter() {
                         style={{ aspectRatio: `${aspect}` }}
                       >
                         <div 
-                          className="absolute inset-0 grid gap-2" 
+                          className="absolute inset-0 grid" 
                           style={{ 
                             padding: `${marginY}% ${marginX}%`,
                             gridTemplateRows: `repeat(${rows}, 1fr)`,
-                            gridTemplateColumns: `repeat(${cols}, 1fr)`
+                            gridTemplateColumns: `repeat(${cols}, 1fr)`,
+                            gap: `${gridGap}%`
                           }}
                         >
                           {pageImgs.map((img, i) => (
