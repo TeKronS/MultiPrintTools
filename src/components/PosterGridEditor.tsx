@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useDeferredValue, useMemo } from "react";
@@ -190,6 +189,52 @@ export default function PosterGridEditor() {
     }
   };
 
+  const handleWidthChange = (val: string) => {
+    if (!image) return;
+    const num = parseNum(val);
+    setTargetWidth(val);
+
+    if (isNaN(num) || num <= 0) return;
+
+    let finalW = num;
+    let finalH = parseNum(targetHeight);
+
+    if (lockAspect) {
+      const aspect = image.width / image.height;
+      finalH = num / aspect;
+      setTargetHeight(finalH.toFixed(2).replace('.', ','));
+    }
+
+    const opt = calculateOptimizedGrid(finalW, finalH, paperSize, overlap, marginV, marginH, customRollWidth);
+    setRows(opt.rows);
+    setCols(opt.cols);
+    setOrientation(opt.orientation);
+    if (opt.dynamicLength) setCustomRollLength(opt.dynamicLength);
+  };
+
+  const handleHeightChange = (val: string) => {
+    if (!image) return;
+    const num = parseNum(val);
+    setTargetHeight(val);
+
+    if (isNaN(num) || num <= 0) return;
+
+    let finalH = num;
+    let finalW = parseNum(targetWidth);
+
+    if (lockAspect) {
+      const aspect = image.width / image.height;
+      finalW = num * aspect;
+      setTargetWidth(finalW.toFixed(2).replace('.', ','));
+    }
+
+    const opt = calculateOptimizedGrid(finalW, finalH, paperSize, overlap, marginV, marginH, customRollWidth);
+    setRows(opt.rows);
+    setCols(opt.cols);
+    setOrientation(opt.orientation);
+    if (opt.dynamicLength) setCustomRollLength(opt.dynamicLength);
+  };
+
   const syncGrid = (targetPaperSize?: string) => {
     if (!image) return;
     const w = parseNum(targetWidth);
@@ -201,36 +246,6 @@ export default function PosterGridEditor() {
     setCols(opt.cols);
     setOrientation(opt.orientation);
     if (opt.dynamicLength) setCustomRollLength(opt.dynamicLength);
-  };
-
-  const handleWidthChange = (val: string) => {
-    if (!image) return;
-    const num = parseNum(val);
-    if (isNaN(num)) { setTargetWidth(val); return; }
-
-    let finalH = parseNum(targetHeight);
-    if (lockAspect) {
-      const aspect = image.width / image.height;
-      finalH = num / aspect;
-      setTargetHeight(finalH.toFixed(2).replace('.', ','));
-    }
-    setTargetWidth(num.toString());
-    setTimeout(() => syncGrid(), 0);
-  };
-
-  const handleHeightChange = (val: string) => {
-    if (!image) return;
-    const num = parseNum(val);
-    if (isNaN(num)) { setTargetHeight(val); return; }
-
-    let finalW = parseNum(targetWidth);
-    if (lockAspect) {
-      const aspect = image.width / image.height;
-      finalW = num * aspect;
-      setTargetWidth(finalW.toFixed(2).replace('.', ','));
-    }
-    setTargetHeight(num.toString());
-    setTimeout(() => syncGrid(), 0);
   };
 
   const handleImageUpload = (file: File, url: string) => {
@@ -278,11 +293,11 @@ export default function PosterGridEditor() {
 
       const appliedMH = orientation === 'portrait' ? marginH : marginV;
       const appliedMV = orientation === 'portrait' ? marginV : marginH;
-      const printableW = paperW - (appliedMH * 20);
-      const printableH = paperH - (appliedMV * 20);
+      const pW = paperW - (appliedMH * 20);
+      const pH = paperH - (appliedMV * 20);
       const overlapMm = overlap * 10;
-      const effectiveSheetW = printableW - overlapMm;
-      const effectiveSheetH = printableH - overlapMm;
+      const effectiveSheetW = pW - overlapMm;
+      const effectiveSheetH = pH - overlapMm;
 
       const totalGridW = (cols * effectiveSheetW) + overlapMm;
       const totalGridH = (rows * effectiveSheetH) + overlapMm;
@@ -345,12 +360,12 @@ export default function PosterGridEditor() {
             pdf.setDrawColor(220);
             pdf.setLineDashPattern([2, 2], 0);
             if (c < cols - 1) {
-              const gx = (appliedMH * 10) + (printableW - overlapMm);
-              pdf.line(gx, appliedMV * 10, gx, appliedMV * 10 + printableH);
+              const gx = (appliedMH * 10) + (pW - overlapMm);
+              pdf.line(gx, appliedMV * 10, gx, appliedMV * 10 + pH);
             }
             if (r < rows - 1) {
-              const gy = (appliedMV * 10) + (printableH - overlapMm);
-              pdf.line(appliedMH * 10, gy, appliedMH * 10 + printableW, gy);
+              const gy = (appliedMV * 10) + (pH - overlapMm);
+              pdf.line(appliedMH * 10, gy, appliedMH * 10 + pW, gy);
             }
           }
           
@@ -485,7 +500,7 @@ export default function PosterGridEditor() {
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-[10px] font-black uppercase text-muted-foreground">{t.paperSize}</Label>
-              <Select value={paperSize} onValueChange={(v) => { setPaperSize(v); setTimeout(() => syncGrid(v), 0); }}>
+              <Select value={paperSize} onValueChange={(v) => { setPaperSize(v); syncGrid(v); }}>
                 <SelectTriggerUI className="h-8 rounded-lg text-xs font-bold bg-card border-border/10"><SelectValue /></SelectTriggerUI>
                 <SelectContent className="z-[1000]">{Object.keys(PAPER_DIMENSIONS).map(key => <SelectItem key={key} value={key} className="text-xs font-bold">{key}</SelectItem>)}</SelectContent>
               </Select>
