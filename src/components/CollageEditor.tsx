@@ -117,6 +117,7 @@ const GRADIENTS = [
 function getMosaicLayout(count: number, sectionRatio: number): CellLayout[] {
   if (count <= 1) return [{ x: 0, y: 0, w: 100, h: 100 }];
 
+  // Simple and effective: choose column/row count that minimizes aspect ratio distortion
   let bestCols = 1;
   let bestRows = count;
   let minAspectDiff = Infinity;
@@ -596,7 +597,7 @@ export default function CollageEditor() {
                       )
                     )}
 
-                    {idx < headerColumns.length - 1 && (
+                    {idx < headerColumns.length - 1 && !showConfig && (
                       <div 
                         className="absolute top-0 right-0 w-4 h-full translate-x-1/2 cursor-ew-resize z-40 flex items-center justify-center group/colsplit"
                         onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); setIsDraggingHeaderColSplitter(idx); }}
@@ -611,12 +612,14 @@ export default function CollageEditor() {
                   </div>
                 ))}
 
-                <div 
-                  className="absolute bottom-0 left-0 w-full h-4 translate-y-1/2 cursor-ns-resize z-50 flex items-center justify-center group/hsplit"
-                  onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); setIsDraggingHeaderHeightSplitter(true); }}
-                >
-                   <div className="w-8 h-0.5 bg-primary/30 group-hover/hsplit:bg-primary transition-colors rounded-full" />
-                </div>
+                {!showConfig && (
+                  <div 
+                    className="absolute bottom-0 left-0 w-full h-4 translate-y-1/2 cursor-ns-resize z-50 flex items-center justify-center group/hsplit"
+                    onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); setIsDraggingHeaderHeightSplitter(true); }}
+                  >
+                    <div className="w-8 h-0.5 bg-primary/30 group-hover/hsplit:bg-primary transition-colors rounded-full" />
+                  </div>
+                )}
               </div>
             )}
 
@@ -642,7 +645,7 @@ export default function CollageEditor() {
                             <div className="w-full h-full relative overflow-hidden bg-muted/20 rounded-[1px]">
                               <img src={img.url} alt="" className="w-full h-full object-contain transition-transform select-none" style={{ transform: `scale(${img.zoom}) translate(${img.offsetX}px, ${img.offsetY}px)` }} draggable={false} />
                             </div>
-                            {selectedImageId === img.id && (
+                            {selectedImageId === img.id && !showConfig && (
                               <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-[2px] animate-in fade-in duration-200">
                                 <div className="bg-background/95 p-2 rounded-xl shadow-2xl flex flex-col gap-3 w-[85%] pointer-events-auto">
                                    <div className="flex items-center justify-between gap-4"><span className="text-[7px] font-black uppercase text-muted-foreground">Zoom</span><Slider value={[img.zoom]} min={1} max={5} step={0.01} onValueChange={v => updateImageTransform(img.id, { zoom: v[0] })} className="flex-1" /></div>
@@ -659,7 +662,7 @@ export default function CollageEditor() {
                     </div>
                   )}
 
-                  {isActive && !selectedImageId && (
+                  {isActive && !selectedImageId && !showConfig && (
                     <div className="absolute bottom-2 right-2 flex gap-2 z-40">
                       {sectionImages.length > 0 && <Button size="icon" variant="secondary" className="h-8 w-8 rounded-full shadow-lg bg-accent text-white" onClick={(e) => { e.stopPropagation(); autoFillSection(section.id, mosaic, sectionW_px, sectionH_px); }}><Maximize2 className="h-4 w-4" /></Button>}
                       <Button size="icon" className="h-8 w-8 rounded-full shadow-lg bg-primary hover:bg-primary/90" onClick={(e) => { e.stopPropagation(); document.getElementById(`upload-${section.id}`)?.click(); }}><Plus className="h-4 w-4" /></Button>
@@ -667,7 +670,7 @@ export default function CollageEditor() {
                     </div>
                   )}
 
-                  {idx < sectionsLayout.length - 1 && (
+                  {idx < sectionsLayout.length - 1 && !showConfig && (
                     <div 
                       className="absolute bottom-0 left-0 w-full h-8 translate-y-1/2 flex items-center justify-center cursor-ns-resize z-[100] group/splitter pointer-events-auto"
                       onMouseDown={(e) => { e.preventDefault(); setIsDraggingSplitter(idx); }}
