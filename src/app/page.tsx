@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -18,7 +19,8 @@ import {
   StickyNote,
   Info,
   MessageCircle,
-  ExternalLink
+  ExternalLink,
+  Layout
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -54,6 +56,14 @@ export default function Home() {
       status: "active",
       badge: t.popular,
       featured: true
+    },
+    {
+      title: t.collageTitle,
+      description: t.collageDesc,
+      icon: <Layout className="h-8 w-8 text-indigo-500" />,
+      href: "/collage",
+      status: "active",
+      badge: "NEW"
     },
     {
       title: t.stickerSheetTitle,
@@ -144,7 +154,6 @@ export default function Home() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 md:px-8 py-8 md:py-16 space-y-24">
-        {/* Hero Section */}
         <div className="max-w-3xl space-y-3 md:space-y-4 text-center sm:text-left">
           <Badge variant="secondary" className="px-3 py-1 text-[10px] font-black uppercase tracking-widest bg-primary/10 text-primary border-none flex items-center w-fit mx-auto sm:mx-0 gap-2">
             <Zap className="h-3 w-3" /> {t.heroBadge}
@@ -157,7 +166,6 @@ export default function Home() {
           </p>
         </div>
 
-        {/* Tools Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
           {tools.map((tool) => (
             <Link 
@@ -196,7 +204,6 @@ export default function Home() {
           ))}
         </div>
 
-        {/* About Section */}
         <section className="bg-primary/5 rounded-[2.5rem] p-8 md:p-16 border border-primary/10 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full -mr-32 -mt-32 blur-3xl pointer-events-none" />
           <div className="max-w-4xl space-y-6 relative z-10">
@@ -210,7 +217,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Contact/Hire Section */}
         <section className="text-center space-y-8 py-8 border-y border-border">
           <div className="space-y-3">
             <div className="flex items-center justify-center gap-2 text-primary font-black uppercase tracking-widest text-[10px]">
@@ -238,7 +244,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Footer */}
         <div className="pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-xs md:sm text-muted-foreground font-medium text-center md:text-left">{t.footerRights}</p>
           <div className="flex items-center gap-2 text-primary">

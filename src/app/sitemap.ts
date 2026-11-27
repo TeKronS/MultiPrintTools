@@ -17,6 +17,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     'pdf-to-word',
     'muralis',
     'sticker-sheet',
+    'collage',
   ]
 
   return routes.map((route) => ({
