@@ -27,7 +27,9 @@ import {
   X,
   Maximize2,
   LayoutGrid,
-  ChevronUp
+  ChevronUp,
+  ChevronRight,
+  ChevronLeft as ChevronLeftIcon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -81,6 +83,7 @@ interface HeaderColumn {
   type: 'text' | 'image';
   content: string; 
   align: 'left' | 'center' | 'right';
+  weight: number; // Width percentage share
 }
 
 interface CellLayout {
@@ -171,6 +174,8 @@ export default function CollageEditor() {
   const [isExporting, setIsExporting] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDraggingSplitter, setIsDraggingSplitter] = useState<number | null>(null);
+  const [isDraggingHeaderColSplitter, setIsDraggingHeaderColSplitter] = useState<number | null>(null);
+  const [isDraggingHeaderHeightSplitter, setIsDraggingHeaderHeightSplitter] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -180,24 +185,41 @@ export default function CollageEditor() {
     setShowConfig(false);
     if (hasHeader && headerColumns.length === 0) {
       setHeaderColumns([
-        { id: Math.random().toString(36).substring(2, 9), type: 'text', content: 'TITULO COLLAGE', align: 'center' }
+        { id: Math.random().toString(36).substring(2, 9), type: 'text', content: 'TITULO COLLAGE', align: 'center', weight: 100 }
       ]);
     }
   };
 
   const addHeaderColumn = () => {
-    setHeaderColumns(prev => [
-      ...prev,
-      { id: Math.random().toString(36).substring(2, 9), type: 'text', content: 'Nuevo Elemento', align: 'center' }
-    ]);
+    setHeaderColumns(prev => {
+      const newWeight = 100 / (prev.length + 1);
+      const updatedPrev = prev.map(c => ({ ...c, weight: newWeight }));
+      return [
+        ...updatedPrev,
+        { id: Math.random().toString(36).substring(2, 9), type: 'text', content: 'Nuevo', align: 'center', weight: newWeight }
+      ];
+    });
   };
 
   const removeHeaderColumn = (id: string) => {
-    setHeaderColumns(prev => prev.filter(c => c.id !== id));
+    setHeaderColumns(prev => {
+      const filtered = prev.filter(c => c.id !== id);
+      const newWeight = filtered.length > 0 ? 100 / filtered.length : 100;
+      return filtered.map(c => ({ ...c, weight: newWeight }));
+    });
   };
 
   const updateHeaderColumn = (id: string, updates: Partial<HeaderColumn>) => {
-    setHeaderColumns(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
+    setHeaderColumns(prev => prev.map(c => {
+      if (c.id === id) {
+        const next = { ...c, ...updates };
+        // If type changed to image and it was text, clear content to avoid showing "Nuevo" as image src
+        if (updates.type === 'image' && c.type === 'text') next.content = '';
+        if (updates.type === 'text' && c.type === 'image') next.content = 'TEXTO';
+        return next;
+      }
+      return c;
+    }));
   };
 
   const handleHeaderImageUpload = (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
@@ -276,44 +298,69 @@ export default function CollageEditor() {
     return layout;
   }, [hasHeader, headerHeight, numSections, sectionSplits]);
 
-  const handleSplitterMouseDown = (idx: number, e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsDraggingSplitter(idx);
-  };
-
   const handleGlobalMouseMove = (e: React.MouseEvent) => {
-    if (isDraggingSplitter === null || !previewRef.current) return;
-    
+    if (!previewRef.current) return;
     const rect = previewRef.current.getBoundingClientRect();
-    const mouseY = e.clientY - rect.top;
-    const mouseYPercent = (mouseY / rect.height) * 100;
-    
-    const baseTop = hasHeader ? headerHeight : 0;
-    const availableH = 100 - baseTop;
-    
-    if (mouseYPercent <= baseTop || mouseYPercent >= 100) return;
 
-    const totalShares = sectionSplits.slice(0, numSections).reduce((a, b) => a + b, 0);
-    const h1_start = sectionsLayout[isDraggingSplitter].top;
-    const h2_end = sectionsLayout[isDraggingSplitter + 1].top + sectionsLayout[isDraggingSplitter + 1].height;
-    
-    const totalSplitAreaH = h2_end - h1_start;
-    const dragPosInArea = mouseYPercent - h1_start;
-    const ratio = Math.max(0.1, Math.min(0.9, dragPosInArea / totalSplitAreaH));
-    
-    const pairTotalShare = sectionSplits[isDraggingSplitter] + sectionSplits[isDraggingSplitter + 1];
-    const newSplits = [...sectionSplits];
-    newSplits[isDraggingSplitter] = pairTotalShare * ratio;
-    newSplits[isDraggingSplitter + 1] = pairTotalShare * (1 - ratio);
-    setSectionSplits(newSplits);
+    // 1. Dragging Header Height
+    if (isDraggingHeaderHeightSplitter) {
+      const mouseY = e.clientY - rect.top;
+      const mouseYPercent = Math.max(5, Math.min(40, (mouseY / rect.height) * 100));
+      setHeaderHeight(mouseYPercent);
+      return;
+    }
+
+    // 2. Dragging Section Splitter
+    if (isDraggingSplitter !== null) {
+      const mouseY = e.clientY - rect.top;
+      const mouseYPercent = (mouseY / rect.height) * 100;
+      const baseTop = hasHeader ? headerHeight : 0;
+      if (mouseYPercent <= baseTop || mouseYPercent >= 100) return;
+
+      const h1_start = sectionsLayout[isDraggingSplitter].top;
+      const h2_end = sectionsLayout[isDraggingSplitter + 1].top + sectionsLayout[isDraggingSplitter + 1].height;
+      const totalSplitAreaH = h2_end - h1_start;
+      const dragPosInArea = mouseYPercent - h1_start;
+      const ratio = Math.max(0.1, Math.min(0.9, dragPosInArea / totalSplitAreaH));
+      const pairTotalShare = sectionSplits[isDraggingSplitter] + sectionSplits[isDraggingSplitter + 1];
+      const newSplits = [...sectionSplits];
+      newSplits[isDraggingSplitter] = pairTotalShare * ratio;
+      newSplits[isDraggingSplitter + 1] = pairTotalShare * (1 - ratio);
+      setSectionSplits(newSplits);
+      return;
+    }
+
+    // 3. Dragging Header Column Splitter
+    if (isDraggingHeaderColSplitter !== null) {
+      const mouseX = e.clientX - rect.left;
+      const mouseXPercent = (mouseX / rect.width) * 100;
+      
+      const col1 = headerColumns[isDraggingHeaderColSplitter];
+      const col2 = headerColumns[isDraggingHeaderColSplitter + 1];
+      
+      let col1Start = 0;
+      for (let i = 0; i < isDraggingHeaderColSplitter; i++) col1Start += headerColumns[i].weight;
+      
+      const totalWeightPair = col1.weight + col2.weight;
+      const dragPosInPair = mouseXPercent - col1Start;
+      const ratio = Math.max(0.1, Math.min(0.9, dragPosInPair / totalWeightPair));
+      
+      const newCols = [...headerColumns];
+      newCols[isDraggingHeaderColSplitter].weight = totalWeightPair * ratio;
+      newCols[isDraggingHeaderColSplitter + 1].weight = totalWeightPair * (1 - ratio);
+      setHeaderColumns(newCols);
+      return;
+    }
   };
 
   const handleGlobalMouseUp = () => {
     setIsDraggingSplitter(null);
+    setIsDraggingHeaderColSplitter(null);
+    setIsDraggingHeaderHeightSplitter(false);
   };
 
   const handleExport = async () => {
-    if (images.length === 0) return;
+    if (images.length === 0 && !hasHeader) return;
     setIsExporting(true);
     try {
       const canvas = document.createElement('canvas');
@@ -339,25 +386,32 @@ export default function CollageEditor() {
 
       if (hasHeader) {
         const hHeight = (headerHeight / 100) * canvas.height;
+        let currentX = 0;
         for (const col of headerColumns) {
-          const x = col.align === 'left' ? 40 * scale : col.align === 'right' ? canvas.width - (40 * scale) : canvas.width / 2;
-          if (col.type === 'text') {
+          const colW = (col.weight / 100) * canvas.width;
+          const centerX = currentX + (colW / 2);
+          const leftX = currentX + (20 * scale);
+          const rightX = currentX + colW - (20 * scale);
+          const drawX = col.align === 'left' ? leftX : col.align === 'right' ? rightX : centerX;
+
+          if (col.type === 'text' && col.content) {
             ctx.fillStyle = (bgColor === '#000000' || activeGradient.includes('#232526')) ? 'white' : 'black';
             ctx.font = `bold ${32 * scale}px sans-serif`;
             ctx.textAlign = col.align;
             ctx.textBaseline = 'middle';
-            ctx.fillText(col.content.toUpperCase(), x, hHeight / 2);
+            ctx.fillText(col.content.toUpperCase(), drawX, hHeight / 2);
           } else if (col.type === 'image' && col.content) {
             const hImg = new window.Image();
             hImg.src = col.content;
             await new Promise(r => hImg.onload = r);
             const maxH = hHeight * 0.7;
             const aspect = hImg.width / hImg.height;
-            const drawH = maxH;
+            const drawH = Math.min(maxH, colW / aspect);
             const drawW = drawH * aspect;
-            const drawX = col.align === 'left' ? 40 * scale : col.align === 'right' ? canvas.width - drawW - (40 * scale) : (canvas.width - drawW) / 2;
-            ctx.drawImage(hImg, drawX, (hHeight - drawH) / 2, drawW, drawH);
+            const imgX = col.align === 'left' ? leftX : col.align === 'right' ? rightX - drawW : centerX - (drawW / 2);
+            ctx.drawImage(hImg, imgX, (hHeight - drawH) / 2, drawW, drawH);
           }
+          currentX += colW;
         }
       }
 
@@ -384,10 +438,12 @@ export default function CollageEditor() {
           ctx.beginPath();
           ctx.rect(cellX, cellY, cellW, cellH);
           ctx.clip();
+          
           const cellRatio = cellW / cellH;
           let drawW, drawH;
           if (imgData.aspectRatio > cellRatio) { drawW = cellW; drawH = cellW / imgData.aspectRatio; }
           else { drawH = cellH; drawW = cellH * imgData.aspectRatio; }
+          
           const finalW = drawW * imgData.zoom;
           const finalH = drawH * imgData.zoom;
           const offX = imgData.offsetX * scale;
@@ -400,7 +456,7 @@ export default function CollageEditor() {
       }
 
       const link = document.createElement('a');
-      link.download = `Collage_${Date.now()}.jpg`;
+      link.download = `CollageRapido_${Date.now()}.jpg`;
       link.href = canvas.toDataURL('image/jpeg', 0.95);
       link.click();
     } catch (e) {
@@ -437,7 +493,7 @@ export default function CollageEditor() {
         </div>
         {hasHeader && (
           <div className="space-y-3 bg-muted/50 p-3 rounded-xl">
-             <Slider value={[headerHeight]} onValueChange={v => setHeaderHeight(v[0])} min={5} max={30} />
+             <div className="space-y-1"><Label className="text-[9px] font-black uppercase text-muted-foreground">Altura Cabecera</Label><Slider value={[headerHeight]} onValueChange={v => setHeaderHeight(v[0])} min={5} max={40} /></div>
              {headerColumns.map((col) => (
                 <div key={col.id} className="p-2 bg-background rounded-lg border border-border space-y-2 relative group">
                    <button onClick={() => removeHeaderColumn(col.id)} className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><X className="h-2 w-2"/></button>
@@ -466,7 +522,7 @@ export default function CollageEditor() {
                    )}
                 </div>
              ))}
-             <Button variant="outline" className="w-full h-8 text-[9px] font-black border-dashed gap-1" onClick={addHeaderColumn}><Plus className="h-3 w-3" />Añadir Sección</Button>
+             <Button variant="outline" className="w-full h-8 text-[9px] font-black border-dashed gap-1" onClick={addHeaderColumn}><Plus className="h-3 w-3" />Añadir Columna</Button>
           </div>
         )}
       </div>
@@ -479,7 +535,6 @@ export default function CollageEditor() {
           <SelectTrigger className="h-9 font-bold rounded-xl bg-card border-2"><SelectValue /></SelectTrigger>
           <SelectContent>{[1, 2, 3, 4].map(n => <SelectItem key={n} value={n.toString()} className="font-bold">{n} Secciones</SelectItem>)}</SelectContent>
         </Select>
-        <p className="text-[9px] text-muted-foreground leading-tight italic">Puedes redimensionar cada área arrastrando las líneas en la previsualización.</p>
       </div>
 
       <Separator />
@@ -517,7 +572,7 @@ export default function CollageEditor() {
         </div>
         <div className="flex items-center gap-4">
           <ThemeToggle /><LanguageSelector language={lang} setLanguage={setLang} />
-          <Button className="hidden sm:flex bg-primary hover:bg-primary/90 text-white font-black gap-2 h-9 px-6 rounded-xl shadow-md transition-all active:scale-95 text-xs" onClick={handleExport} disabled={images.length === 0 || isExporting}>
+          <Button className="hidden sm:flex bg-primary hover:bg-primary/90 text-white font-black gap-2 h-9 px-6 rounded-xl shadow-md transition-all active:scale-95 text-xs" onClick={handleExport} disabled={(images.length === 0 && !hasHeader) || isExporting}>
             {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}{isExporting ? "..." : t.exportJpg}
           </Button>
         </div>
@@ -532,16 +587,46 @@ export default function CollageEditor() {
             style={{ width: 'min(90vw, 450px)', aspectRatio: `${aspectRatio.ratio}`, background: activeGradient !== 'none' ? activeGradient : bgColor }}
           >
             {hasHeader && (
-              <div className="absolute top-0 left-0 w-full flex items-center px-4 overflow-hidden z-30" style={{ height: `${headerHeight}%` }}>
-                {headerColumns.map(col => (
-                  <div key={col.id} className={cn("flex-1 h-full flex items-center", col.align === 'center' ? 'justify-center text-center' : col.align === 'right' ? 'justify-end text-right' : 'justify-start text-left')}>
+              <div className="absolute top-0 left-0 w-full flex items-center px-0 overflow-hidden z-30 group/header" style={{ height: `${headerHeight}%` }}>
+                {headerColumns.map((col, idx) => (
+                  <div 
+                    key={col.id} 
+                    className={cn("h-full flex items-center px-4 relative", col.align === 'center' ? 'justify-center text-center' : col.align === 'right' ? 'justify-end text-right' : 'justify-start text-left')}
+                    style={{ width: `${col.weight}%` }}
+                  >
                     {col.type === 'text' ? (
                       <span className={cn("text-[11px] font-black uppercase tracking-widest leading-none", (bgColor === '#000000' || activeGradient.includes('#232526')) ? 'text-white' : 'text-foreground')}>{col.content}</span>
                     ) : (
-                      col.content && <img src={col.content} className="max-h-[70%] w-auto object-contain" alt="H" />
+                      col.content ? (
+                        <img src={col.content} className="max-h-[70%] w-auto object-contain" alt="H" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center opacity-20 border border-dashed rounded"><ImageIcon className="h-4 w-4" /></div>
+                      )
+                    )}
+
+                    {/* Column Splitter (Horizontal) */}
+                    {idx < headerColumns.length - 1 && (
+                      <div 
+                        className="absolute top-0 right-0 w-4 h-full translate-x-1/2 cursor-ew-resize z-40 flex items-center justify-center group/colsplit"
+                        onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); setIsDraggingHeaderColSplitter(idx); }}
+                      >
+                         <div className="w-0.5 h-1/2 bg-primary/20 group-hover/colsplit:bg-primary transition-colors rounded-full" />
+                         <div className="absolute top-1/2 -translate-y-1/2 left-0 right-0 flex justify-between opacity-0 group-hover/colsplit:opacity-100">
+                           <ChevronLeftIcon className="h-2 w-2 text-primary" />
+                           <ChevronRight className="h-2 w-2 text-primary" />
+                         </div>
+                      </div>
                     )}
                   </div>
                 ))}
+
+                {/* Header Height Splitter (Bottom of header) */}
+                <div 
+                  className="absolute bottom-0 left-0 w-full h-4 translate-y-1/2 cursor-ns-resize z-50 flex items-center justify-center group/hsplit"
+                  onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); setIsDraggingHeaderHeightSplitter(true); }}
+                >
+                   <div className="w-8 h-0.5 bg-primary/30 group-hover/hsplit:bg-primary transition-colors rounded-full" />
+                </div>
               </div>
             )}
 
@@ -592,7 +677,7 @@ export default function CollageEditor() {
                     </div>
                   )}
 
-                  {/* Splitter Handle */}
+                  {/* Section Splitter (Vertical) */}
                   {idx < sectionsLayout.length - 1 && (
                     <div 
                       className="absolute bottom-0 left-0 w-full h-8 translate-y-1/2 flex items-center justify-center cursor-ns-resize z-[100] group/splitter pointer-events-auto"
@@ -617,17 +702,17 @@ export default function CollageEditor() {
 
         <aside className="hidden lg:flex w-80 bg-card border-l border-border flex-col shrink-0 shadow-2xl z-20">
           <div className="flex-1 overflow-y-auto">{renderSidebarControls()}</div>
-          <div className="p-6 border-t bg-muted/50"><Button className="w-full h-14 bg-primary hover:bg-primary/90 text-white font-black rounded-2xl shadow-xl shadow-primary/20 uppercase tracking-widest text-xs gap-3 transition-all active:scale-95" onClick={handleExport} disabled={images.length === 0 || isExporting}>{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}{isExporting ? "Generando..." : t.exportJpg}</Button></div>
+          <div className="p-6 border-t bg-muted/50"><Button className="w-full h-14 bg-primary hover:bg-primary/90 text-white font-black rounded-2xl shadow-xl shadow-primary/20 uppercase tracking-widest text-xs gap-3 transition-all active:scale-95" onClick={handleExport} disabled={(images.length === 0 && !hasHeader) || isExporting}>{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}{isExporting ? "Generando..." : t.exportJpg}</Button></div>
         </aside>
 
         {!showConfig && (
           <div className="lg:hidden fixed bottom-6 left-6 right-6 z-[100] flex gap-3 pointer-events-auto justify-end">
-            {images.length > 0 && <div className="flex-1"><Button className="w-full h-14 bg-primary hover:bg-primary/90 text-white font-black rounded-2xl shadow-xl shadow-primary/20 uppercase tracking-widest text-sm gap-3 border-4 border-white/10" onClick={handleExport} disabled={isExporting}>{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}{isExporting ? "..." : "Exportar"}</Button></div>}
+            {(images.length > 0 || hasHeader) && <div className="flex-1"><Button className="w-full h-14 bg-primary hover:bg-primary/90 text-white font-black rounded-2xl shadow-xl shadow-primary/20 uppercase tracking-widest text-sm gap-3 border-4 border-white/10" onClick={handleExport} disabled={isExporting}>{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}{isExporting ? "..." : "Exportar"}</Button></div>}
             <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
               <Button size="icon" className="h-14 w-14 shrink-0 rounded-full shadow-2xl bg-slate-800 text-white hover:bg-slate-900 transition-all active:scale-95 border-4 border-white" onClick={() => setIsMenuOpen(true)}><Settings2 className="h-6 w-6" /></Button>
               <SheetContent side="right" className="w-[85%] sm:w-[400px] p-0 bg-background/95 backdrop-blur-xl shadow-2xl overflow-hidden flex flex-col z-[200]" onOpenAutoFocus={(e) => e.preventDefault()}>
                 <SheetHeader className="sr-only"><SheetTitle>Ajustes</SheetTitle></SheetHeader>
-                <div className="p-4 bg-primary/5 border-b shrink-0"><Button className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-black rounded-xl shadow-lg transition-all active:scale-95 text-xs uppercase tracking-widest gap-2" onClick={handleExport} disabled={images.length === 0 || isExporting}>{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}{isExporting ? "..." : t.exportJpg}</Button></div>
+                <div className="p-4 bg-primary/5 border-b shrink-0"><Button className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-black rounded-xl shadow-lg transition-all active:scale-95 text-xs uppercase tracking-widest gap-2" onClick={handleExport} disabled={(images.length === 0 && !hasHeader) || isExporting}>{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}{isExporting ? "..." : t.exportJpg}</Button></div>
                 <div className="flex-1 overflow-y-auto relative">{renderSidebarControls()}</div>
               </SheetContent>
             </Sheet>
@@ -670,5 +755,9 @@ export default function CollageEditor() {
       </Dialog>
     </div>
   );
-}
 
+  function handleSplitterMouseDown(idx: number, e: React.MouseEvent) {
+    e.preventDefault();
+    setIsDraggingSplitter(idx);
+  }
+}
