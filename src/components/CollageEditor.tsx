@@ -21,7 +21,10 @@ import {
   GripVertical,
   AlignLeft,
   AlignCenter,
-  AlignRight
+  AlignRight,
+  Type,
+  ImageIcon,
+  X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -72,9 +75,8 @@ interface CollageImage {
 interface HeaderColumn {
   id: string;
   type: 'text' | 'image';
-  content: string;
+  content: string; // text string or image dataUrl
   align: 'left' | 'center' | 'right';
-  width: number; // %
 }
 
 const ASPECT_RATIOS = [
@@ -127,10 +129,33 @@ export default function CollageEditor() {
 
   const startProject = () => {
     setShowConfig(false);
-    if (hasHeader) {
+    if (hasHeader && headerColumns.length === 0) {
       setHeaderColumns([
-        { id: '1', type: 'text', content: 'TITULO COLLAGE', align: 'center', width: 100 }
+        { id: Math.random().toString(36).substring(2, 9), type: 'text', content: 'TITULO COLLAGE', align: 'center' }
       ]);
+    }
+  };
+
+  const addHeaderColumn = () => {
+    setHeaderColumns(prev => [
+      ...prev,
+      { id: Math.random().toString(36).substring(2, 9), type: 'text', content: 'Nuevo Elemento', align: 'center' }
+    ]);
+  };
+
+  const removeHeaderColumn = (id: string) => {
+    setHeaderColumns(prev => prev.filter(c => c.id !== id));
+  };
+
+  const updateHeaderColumn = (id: string, updates: Partial<HeaderColumn>) => {
+    setHeaderColumns(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
+  };
+
+  const handleHeaderImageUpload = (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      updateHeaderColumn(id, { content: url });
     }
   };
 
@@ -189,8 +214,6 @@ export default function CollageEditor() {
       canvas.width = baseW * exportScale;
       canvas.height = baseH * exportScale;
 
-      // Importante: El factor de escala entre el UI (450px) y el Canvas (2160px)
-      // para que los desplazamientos coincidan exactamente.
       const uiBaseWidth = 450; 
       const uiToCanvasRatio = canvas.width / uiBaseWidth;
 
@@ -207,17 +230,30 @@ export default function CollageEditor() {
       }
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // 2. Cabecera
+      // 2. Cabecera Modular
       if (hasHeader) {
         const hHeight = (headerHeight / 100) * canvas.height;
         for (const col of headerColumns) {
+          const x = col.align === 'left' ? 40 * exportScale : col.align === 'right' ? canvas.width - (40 * exportScale) : canvas.width / 2;
+          
           if (col.type === 'text') {
             ctx.fillStyle = (bgColor === '#000000' || activeGradient.includes('#232526')) ? 'white' : 'black';
-            ctx.font = `black ${45 * exportScale}px sans-serif`;
+            ctx.font = `black ${40 * exportScale}px sans-serif`;
             ctx.textAlign = col.align;
             ctx.textBaseline = 'middle';
-            const x = col.align === 'left' ? 40 * exportScale : col.align === 'right' ? canvas.width - (40 * exportScale) : canvas.width / 2;
             ctx.fillText(col.content.toUpperCase(), x, hHeight / 2);
+          } else if (col.type === 'image' && col.content) {
+            const hImg = new window.Image();
+            hImg.src = col.content;
+            await new Promise(r => hImg.onload = r);
+            
+            const maxH = hHeight * 0.7;
+            const aspect = hImg.width / hImg.height;
+            const drawH = maxH;
+            const drawW = drawH * aspect;
+            
+            const drawX = col.align === 'left' ? 40 * exportScale : col.align === 'right' ? canvas.width - drawW - (40 * exportScale) : (canvas.width - drawW) / 2;
+            ctx.drawImage(hImg, drawX, (hHeight - drawH) / 2, drawW, drawH);
           }
         }
       }
@@ -229,20 +265,17 @@ export default function CollageEditor() {
 
         const sTop = (section.top / 100) * canvas.height;
         const sHeight = (section.height / 100) * canvas.height;
-        
-        // El espaciado se calcula en píxeles del canvas
-        // En el UI es 'cm' (basado en 1cm = aprox 37px en pantalla), aquí escalamos
         const pad = (spacing * 37.8) * uiToCanvasRatio;
 
-        const cols = sImgs.length > 1 ? 2 : 1;
-        const rows = Math.ceil(sImgs.length / cols);
-        const cellW = (canvas.width - (pad * (cols + 1))) / cols;
-        const cellH = (sHeight - (pad * (rows + 1))) / rows;
+        const colsCount = sImgs.length > 1 ? 2 : 1;
+        const rowsCount = Math.ceil(sImgs.length / colsCount);
+        const cellW = (canvas.width - (pad * (colsCount + 1))) / colsCount;
+        const cellH = (sHeight - (pad * (rowsCount + 1))) / rowsCount;
 
         for (let i = 0; i < sImgs.length; i++) {
           const imgData = sImgs[i];
-          const colIdx = i % cols;
-          const rowIdx = Math.floor(i / cols);
+          const colIdx = i % colsCount;
+          const rowIdx = Math.floor(i / colsCount);
 
           const xPos = pad + (colIdx * (cellW + pad));
           const yPos = sTop + pad + (rowIdx * (cellH + pad));
@@ -256,7 +289,6 @@ export default function CollageEditor() {
           ctx.rect(xPos, yPos, cellW, cellH);
           ctx.clip();
 
-          // Lógica 'Contain' exacta
           const imgAspect = img.width / img.height;
           const cellAspect = cellW / cellH;
           let drawW, drawH;
@@ -269,11 +301,8 @@ export default function CollageEditor() {
             drawW = cellH * imgAspect;
           }
 
-          // Aplicar Zoom
           const finalW = drawW * imgData.zoom;
           const finalH = drawH * imgData.zoom;
-
-          // Aplicar Desplazamiento escalado
           const offX = imgData.offsetX * uiToCanvasRatio;
           const offY = imgData.offsetY * uiToCanvasRatio;
 
@@ -289,11 +318,10 @@ export default function CollageEditor() {
       link.download = `Collage_${Date.now()}.jpg`;
       link.href = canvas.toDataURL('image/jpeg', 0.92);
       link.click();
-      
-      toast({ title: "Collage Exportado", description: "La imagen se ha guardado en tu dispositivo." });
+      toast({ title: "Collage Exportado", description: "La imagen se ha guardado con éxito." });
     } catch (e) {
       console.error(e);
-      toast({ variant: 'destructive', title: "Error", description: "No se pudo generar la imagen final." });
+      toast({ variant: 'destructive', title: "Error", description: "No se pudo generar la imagen." });
     } finally {
       setIsExporting(false);
     }
@@ -336,28 +364,48 @@ export default function CollageEditor() {
         {hasHeader && (
           <div className="space-y-4 bg-muted/50 p-3 rounded-xl">
              <div className="space-y-2">
-                <Label className="text-[9px] font-black uppercase text-muted-foreground">Altura Cabecera</Label>
+                <Label className="text-[9px] font-black uppercase text-muted-foreground">Altura de Cabecera</Label>
                 <Slider value={[headerHeight]} onValueChange={v => setHeaderHeight(v[0])} min={5} max={30} />
              </div>
-             {headerColumns.map((col, idx) => (
-               <div key={col.id} className="space-y-2 pt-2 border-t">
-                  <Input 
-                    placeholder="Texto de cabecera..." 
-                    value={col.content} 
-                    onChange={e => {
-                      const newCols = [...headerColumns];
-                      newCols[idx].content = e.target.value;
-                      setHeaderColumns(newCols);
-                    }}
-                    className="h-8 text-xs font-bold"
-                  />
-                  <div className="flex gap-1">
-                    <Button size="icon" variant={col.align === 'left' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => {const c=[...headerColumns]; c[idx].align='left'; setHeaderColumns(c);}}><AlignLeft className="h-3 w-3"/></Button>
-                    <Button size="icon" variant={col.align === 'center' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => {const c=[...headerColumns]; c[idx].align='center'; setHeaderColumns(c);}}><AlignCenter className="h-3 w-3"/></Button>
-                    <Button size="icon" variant={col.align === 'right' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => {const c=[...headerColumns]; c[idx].align='right'; setHeaderColumns(c);}}><AlignRight className="h-3 w-3"/></Button>
-                  </div>
-               </div>
-             ))}
+             <div className="space-y-3">
+               {headerColumns.map((col) => (
+                 <div key={col.id} className="p-2 bg-background rounded-lg border border-border space-y-2 relative group">
+                    <button onClick={() => removeHeaderColumn(col.id)} className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><X className="h-2 w-2"/></button>
+                    <div className="flex items-center justify-between gap-2">
+                       <div className="flex gap-1 bg-muted p-0.5 rounded-md">
+                          <Button size="icon" variant={col.type === 'text' ? 'default' : 'ghost'} className="h-6 w-6 rounded-sm" onClick={() => updateHeaderColumn(col.id, { type: 'text' })}><Type className="h-3 w-3"/></Button>
+                          <Button size="icon" variant={col.type === 'image' ? 'default' : 'ghost'} className="h-6 w-6 rounded-sm" onClick={() => updateHeaderColumn(col.id, { type: 'image' })}><ImageIcon className="h-3 w-3"/></Button>
+                       </div>
+                       <div className="flex gap-1">
+                          <Button size="icon" variant={col.align === 'left' ? 'secondary' : 'ghost'} className="h-5 w-5" onClick={() => updateHeaderColumn(col.id, { align: 'left' })}><AlignLeft className="h-2.5 w-2.5"/></Button>
+                          <Button size="icon" variant={col.align === 'center' ? 'secondary' : 'ghost'} className="h-5 w-5" onClick={() => updateHeaderColumn(col.id, { align: 'center' })}><AlignCenter className="h-2.5 w-2.5"/></Button>
+                          <Button size="icon" variant={col.align === 'right' ? 'secondary' : 'ghost'} className="h-5 w-5" onClick={() => updateHeaderColumn(col.id, { align: 'right' })}><AlignRight className="h-2.5 w-2.5"/></Button>
+                       </div>
+                    </div>
+                    {col.type === 'text' ? (
+                      <Input 
+                        placeholder="Texto..." 
+                        value={col.content} 
+                        onChange={e => updateHeaderColumn(col.id, { content: e.target.value })}
+                        className="h-7 text-[10px] font-bold"
+                      />
+                    ) : (
+                      <div className="space-y-2">
+                        {col.content ? (
+                          <div className="relative w-full aspect-video rounded border overflow-hidden bg-muted">
+                            <img src={col.content} className="w-full h-full object-contain" alt="Header img" />
+                            <Button size="icon" variant="destructive" className="absolute top-1 right-1 h-5 w-5 rounded-full" onClick={() => updateHeaderColumn(col.id, { content: '' })}><X className="h-3 w-3"/></Button>
+                          </div>
+                        ) : (
+                          <Button variant="outline" className="w-full h-7 text-[9px] font-black border-dashed" onClick={() => document.getElementById(`header-img-${col.id}`)?.click()}>Subir Logo</Button>
+                        )}
+                        <input type="file" id={`header-img-${col.id}`} accept="image/*" className="hidden" onChange={(e) => handleHeaderImageUpload(col.id, e)} />
+                      </div>
+                    )}
+                 </div>
+               ))}
+               <Button variant="outline" className="w-full h-8 text-[9px] font-black border-dashed gap-1" onClick={addHeaderColumn}><Plus className="h-3 w-3" />Añadir Sección</Button>
+             </div>
           </div>
         )}
       </div>
@@ -446,15 +494,21 @@ export default function CollageEditor() {
               background: activeGradient !== 'none' ? activeGradient : bgColor
             }}
           >
-            {/* Header Rendering */}
+            {/* Modular Header Rendering */}
             {hasHeader && (
               <div 
                 className="absolute top-0 left-0 w-full flex items-center px-4 overflow-hidden z-30"
                 style={{ height: `${headerHeight}%` }}
               >
                 {headerColumns.map(col => (
-                  <div key={col.id} className={cn("flex-1", col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left')}>
-                    <span className={cn("text-[11px] font-black uppercase tracking-widest leading-none", (bgColor === '#000000' || activeGradient.includes('#232526')) ? 'text-white' : 'text-foreground')}>{col.content}</span>
+                  <div key={col.id} className={cn("flex-1 h-full flex items-center", col.align === 'center' ? 'justify-center text-center' : col.align === 'right' ? 'justify-end text-right' : 'justify-start text-left')}>
+                    {col.type === 'text' ? (
+                      <span className={cn("text-[11px] font-black uppercase tracking-widest leading-none", (bgColor === '#000000' || activeGradient.includes('#232526')) ? 'text-white' : 'text-foreground')}>
+                        {col.content}
+                      </span>
+                    ) : (
+                      col.content && <img src={col.content} className="max-h-[70%] w-auto object-contain" alt="H" />
+                    )}
                   </div>
                 ))}
               </div>
@@ -503,8 +557,6 @@ export default function CollageEditor() {
                               draggable={false}
                             />
                             
-                            <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/10 transition-colors pointer-events-none" />
-                            
                             {selectedImageId === img.id && (
                               <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-[2px] animate-in fade-in duration-200">
                                 <div className="bg-background/95 p-2 rounded-xl shadow-2xl flex flex-col gap-3 w-[80%] pointer-events-auto">
@@ -543,12 +595,6 @@ export default function CollageEditor() {
               );
             })}
           </div>
-          
-          <div className="mt-8 bg-card/80 backdrop-blur-md px-6 py-3 rounded-2xl border border-border shadow-xl animate-fade-in flex items-center gap-6">
-              <div className="flex flex-col"><span className="text-[8px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">Área Activa</span><span className="text-xs font-black text-primary">Sección {activeSection}</span></div>
-              <Separator orientation="vertical" className="h-8" />
-              <div className="flex flex-col"><span className="text-[8px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">Total Fotos</span><span className="text-xs font-black text-foreground">{images.length}</span></div>
-          </div>
         </div>
 
         <aside className="hidden lg:flex w-80 bg-card border-l border-border flex-col shrink-0 shadow-2xl z-20">
@@ -579,7 +625,6 @@ export default function CollageEditor() {
         </div>
       </main>
 
-      {/* Onboarding Wizard */}
       <Dialog open={showConfig} onOpenChange={setShowConfig}>
         <DialogContent className="max-w-md rounded-3xl p-8 border-none shadow-2xl">
           <DialogHeader className="space-y-3">
