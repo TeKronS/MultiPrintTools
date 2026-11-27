@@ -726,23 +726,25 @@ export default function CollageEditor() {
           </div>
         </aside>
 
-        <div className="lg:hidden fixed bottom-6 left-6 right-6 z-[100] flex gap-3 pointer-events-auto justify-end">
-          {images.length > 0 && (
-            <div className="flex-1">
-              <Button className="w-full h-14 bg-primary hover:bg-primary/90 text-white font-black rounded-2xl shadow-xl shadow-primary/20 uppercase tracking-widest text-sm gap-3 border-4 border-white/10" onClick={handleExport} disabled={isExporting}>{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}{isExporting ? "..." : "Exportar"}</Button>
-            </div>
-          )}
-          <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-            <Button size="icon" className="h-14 w-14 shrink-0 rounded-full shadow-2xl bg-slate-800 text-white hover:bg-slate-900 transition-all active:scale-95 border-4 border-white" onClick={() => setIsMenuOpen(true)}>
-              <Settings2 className="h-6 w-6" />
-            </Button>
-            <SheetContent side="right" className="w-[85%] sm:w-[400px] p-0 bg-background/95 backdrop-blur-xl shadow-2xl overflow-hidden flex flex-col z-[200]" onOpenAutoFocus={(e) => e.preventDefault()}>
-              <SheetHeader className="sr-only"><SheetTitle>Ajustes</SheetTitle></SheetHeader>
-              <div className="p-4 bg-primary/5 border-b shrink-0"><Button className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-black rounded-xl shadow-lg transition-all active:scale-95 text-xs uppercase tracking-widest gap-2" onClick={handleExport} disabled={images.length === 0 || isExporting}>{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}{isExporting ? "..." : t.exportJpg}</Button></div>
-              <div className="flex-1 overflow-y-auto relative">{renderSectionContent(true)}</div>
-            </SheetContent>
-          </Sheet>
-        </div>
+        {!showConfig && (
+          <div className="lg:hidden fixed bottom-6 left-6 right-6 z-[100] flex gap-3 pointer-events-auto justify-end">
+            {images.length > 0 && (
+              <div className="flex-1">
+                <Button className="w-full h-14 bg-primary hover:bg-primary/90 text-white font-black rounded-2xl shadow-xl shadow-primary/20 uppercase tracking-widest text-sm gap-3 border-4 border-white/10" onClick={handleExport} disabled={isExporting}>{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}{isExporting ? "..." : "Exportar"}</Button>
+              </div>
+            )}
+            <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+              <Button size="icon" className="h-14 w-14 shrink-0 rounded-full shadow-2xl bg-slate-800 text-white hover:bg-slate-900 transition-all active:scale-95 border-4 border-white" onClick={() => setIsMenuOpen(true)}>
+                <Settings2 className="h-6 w-6" />
+              </Button>
+              <SheetContent side="right" className="w-[85%] sm:w-[400px] p-0 bg-background/95 backdrop-blur-xl shadow-2xl overflow-hidden flex flex-col z-[200]" onOpenAutoFocus={(e) => e.preventDefault()}>
+                <SheetHeader className="sr-only"><SheetTitle>Ajustes</SheetTitle></SheetHeader>
+                <div className="p-4 bg-primary/5 border-b shrink-0"><Button className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-black rounded-xl shadow-lg transition-all active:scale-95 text-xs uppercase tracking-widest gap-2" onClick={handleExport} disabled={images.length === 0 || isExporting}>{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}{isExporting ? "..." : t.exportJpg}</Button></div>
+                <div className="flex-1 overflow-y-auto relative">{renderSectionContent(true)}</div>
+              </SheetContent>
+            </Sheet>
+          </div>
+        )}
       </main>
 
       <Dialog open={showConfig} onOpenChange={setShowConfig}>
@@ -791,3 +793,4 @@ export default function CollageEditor() {
     </div>
   );
 }
+
