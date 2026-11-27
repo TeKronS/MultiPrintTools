@@ -213,7 +213,6 @@ export default function CollageEditor() {
     setHeaderColumns(prev => prev.map(c => {
       if (c.id === id) {
         const next = { ...c, ...updates };
-        // If type changed to image and it was text, clear content to avoid showing "Nuevo" as image src
         if (updates.type === 'image' && c.type === 'text') next.content = '';
         if (updates.type === 'text' && c.type === 'image') next.content = 'TEXTO';
         return next;
@@ -302,7 +301,6 @@ export default function CollageEditor() {
     if (!previewRef.current) return;
     const rect = previewRef.current.getBoundingClientRect();
 
-    // 1. Dragging Header Height
     if (isDraggingHeaderHeightSplitter) {
       const mouseY = e.clientY - rect.top;
       const mouseYPercent = Math.max(5, Math.min(40, (mouseY / rect.height) * 100));
@@ -310,7 +308,6 @@ export default function CollageEditor() {
       return;
     }
 
-    // 2. Dragging Section Splitter
     if (isDraggingSplitter !== null) {
       const mouseY = e.clientY - rect.top;
       const mouseYPercent = (mouseY / rect.height) * 100;
@@ -330,21 +327,16 @@ export default function CollageEditor() {
       return;
     }
 
-    // 3. Dragging Header Column Splitter
     if (isDraggingHeaderColSplitter !== null) {
       const mouseX = e.clientX - rect.left;
       const mouseXPercent = (mouseX / rect.width) * 100;
-      
       const col1 = headerColumns[isDraggingHeaderColSplitter];
       const col2 = headerColumns[isDraggingHeaderColSplitter + 1];
-      
       let col1Start = 0;
       for (let i = 0; i < isDraggingHeaderColSplitter; i++) col1Start += headerColumns[i].weight;
-      
       const totalWeightPair = col1.weight + col2.weight;
       const dragPosInPair = mouseXPercent - col1Start;
       const ratio = Math.max(0.1, Math.min(0.9, dragPosInPair / totalWeightPair));
-      
       const newCols = [...headerColumns];
       newCols[isDraggingHeaderColSplitter].weight = totalWeightPair * ratio;
       newCols[isDraggingHeaderColSplitter + 1].weight = totalWeightPair * (1 - ratio);
@@ -604,7 +596,6 @@ export default function CollageEditor() {
                       )
                     )}
 
-                    {/* Column Splitter (Horizontal) */}
                     {idx < headerColumns.length - 1 && (
                       <div 
                         className="absolute top-0 right-0 w-4 h-full translate-x-1/2 cursor-ew-resize z-40 flex items-center justify-center group/colsplit"
@@ -620,7 +611,6 @@ export default function CollageEditor() {
                   </div>
                 ))}
 
-                {/* Header Height Splitter (Bottom of header) */}
                 <div 
                   className="absolute bottom-0 left-0 w-full h-4 translate-y-1/2 cursor-ns-resize z-50 flex items-center justify-center group/hsplit"
                   onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); setIsDraggingHeaderHeightSplitter(true); }}
@@ -677,11 +667,10 @@ export default function CollageEditor() {
                     </div>
                   )}
 
-                  {/* Section Splitter (Vertical) */}
                   {idx < sectionsLayout.length - 1 && (
                     <div 
                       className="absolute bottom-0 left-0 w-full h-8 translate-y-1/2 flex items-center justify-center cursor-ns-resize z-[100] group/splitter pointer-events-auto"
-                      onMouseDown={(e) => handleSplitterMouseDown(idx, e)}
+                      onMouseDown={(e) => { e.preventDefault(); setIsDraggingSplitter(idx); }}
                     >
                       <div className="w-[40px] h-1.5 bg-primary/20 rounded-full group-hover/splitter:bg-primary transition-colors flex items-center justify-center shadow-xl">
                          <div className="w-1 h-1 bg-white rounded-full mx-0.5" />
@@ -707,7 +696,6 @@ export default function CollageEditor() {
 
         {!showConfig && (
           <div className="lg:hidden fixed bottom-6 left-6 right-6 z-[100] flex gap-3 pointer-events-auto justify-end">
-            {(images.length > 0 || hasHeader) && <div className="flex-1"><Button className="w-full h-14 bg-primary hover:bg-primary/90 text-white font-black rounded-2xl shadow-xl shadow-primary/20 uppercase tracking-widest text-sm gap-3 border-4 border-white/10" onClick={handleExport} disabled={isExporting}>{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}{isExporting ? "..." : "Exportar"}</Button></div>}
             <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
               <Button size="icon" className="h-14 w-14 shrink-0 rounded-full shadow-2xl bg-slate-800 text-white hover:bg-slate-900 transition-all active:scale-95 border-4 border-white" onClick={() => setIsMenuOpen(true)}><Settings2 className="h-6 w-6" /></Button>
               <SheetContent side="right" className="w-[85%] sm:w-[400px] p-0 bg-background/95 backdrop-blur-xl shadow-2xl overflow-hidden flex flex-col z-[200]" onOpenAutoFocus={(e) => e.preventDefault()}>
@@ -755,9 +743,4 @@ export default function CollageEditor() {
       </Dialog>
     </div>
   );
-
-  function handleSplitterMouseDown(idx: number, e: React.MouseEvent) {
-    e.preventDefault();
-    setIsDraggingSplitter(idx);
-  }
 }
