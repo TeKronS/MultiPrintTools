@@ -72,7 +72,7 @@ export const translations = {
     comingSoon: 'Coming Soon',
     popular: 'Flagship',
     // Collage
-    collageTitle: 'Collage Pro',
+    collageTitle: 'Quick Collage',
     collageDesc: 'Create professional photo mosaics with sections, headers and custom gradients.',
     format: 'Format',
     square: 'Square (1:1)',
@@ -324,7 +324,7 @@ export const translations = {
     comingSoon: 'Próximamente',
     popular: 'Estrella',
     // Collage
-    collageTitle: 'Collage Pro',
+    collageTitle: 'Collage Rápido',
     collageDesc: 'Crea mosaicos de fotos profesionales con secciones, cabeceras y degradados personalizados.',
     format: 'Formato',
     square: 'Cuadrado (1:1)',
