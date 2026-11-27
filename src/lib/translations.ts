@@ -1,4 +1,5 @@
 
+
 export type Language = 'en' | 'es';
 
 export const translations = {
@@ -508,3 +509,4 @@ export const translations = {
     contactButton: 'Ver Portafolio del Desarrollador'
   }
 };
+

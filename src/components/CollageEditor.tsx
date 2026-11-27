@@ -25,7 +25,13 @@ import {
   Instagram,
   Download,
   Loader2,
-  GripVertical
+  GripVertical,
+  Maximize2,
+  Move,
+  Text as TextIcon,
+  AlignLeft,
+  AlignCenter,
+  AlignRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -43,52 +49,25 @@ import {
   SheetDescription
 } from "@/components/ui/sheet";
 import { 
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Language, translations } from "@/lib/translations";
 import { LanguageSelector } from "./LanguageSelector";
 import { ThemeToggle } from "./ThemeToggle";
 import logo from "@/app/icono.png";
 import { cn } from "@/lib/utils";
-
-// Lógica de empaquetado para collage: Intenta llenar un área dada con N imágenes
-class CollagePacker {
-  width: number;
-  height: number;
-  spacing: number;
-  freeRects: { x: number; y: number; w: number; h: number }[];
-
-  constructor(w: number, h: number, spacing: number) {
-    this.width = w;
-    this.height = h;
-    this.spacing = spacing;
-    this.freeRects = [{ x: 0, y: 0, w: w, h: h }];
-  }
-
-  // A diferencia de la plancha de stickers, aquí queremos que la foto se estire/ajuste a un hueco
-  // Por lo que buscamos el mejor rectángulo libre y lo dividimos
-  pack() {
-    if (this.freeRects.length === 0) return null;
-    
-    // Tomamos el rectángulo más grande disponible
-    const bestIdx = this.freeRects.reduce((prev, curr, idx, arr) => 
-      (curr.w * curr.h > arr[prev].w * arr[prev].h) ? idx : prev, 0);
-    
-    const rect = this.freeRects.splice(bestIdx, 1)[0];
-    
-    // Para collage, dividimos el rectángulo en dos si hay espacio, o lo tomamos entero
-    // Aquí implementamos una lógica de "llenado" secuencial simple
-    return rect;
-  }
-}
 
 interface CollageImage {
   id: string;
@@ -97,6 +76,15 @@ interface CollageImage {
   zoom: number;
   offsetX: number;
   offsetY: number;
+  file: File;
+}
+
+interface HeaderColumn {
+  id: string;
+  type: 'text' | 'image';
+  content: string;
+  align: 'left' | 'center' | 'right';
+  width: number; // %
 }
 
 const ASPECT_RATIOS = [
@@ -123,14 +111,20 @@ export default function CollageEditor() {
   const t = translations[lang];
   const { toast } = useToast();
 
+  // Estados de Configuración
+  const [showConfig, setShowConfig] = useState(true);
   const [aspectRatio, setAspectRatio] = useState(ASPECT_RATIOS[0]);
   const [hasHeader, setHasHeader] = useState(false);
-  const [headerHeight, setHeaderHeight] = useState(15); // % de la altura total
   const [numSections, setNumSections] = useState(1);
-  const [sectionSplits, setSectionSplits] = useState<number[]>([50]); // % de división entre secciones
+  
+  // Estados de Diseño
+  const [headerHeight, setHeaderHeight] = useState(12);
+  const [headerColumns, setHeaderColumns] = useState<HeaderColumn[]>([]);
+  const [sectionSplits, setSectionSplits] = useState<number[]>([50, 50, 50]); 
   const [images, setImages] = useState<CollageImage[]>([]);
   const [activeSection, setActiveSection] = useState(1);
-  const [spacing, setSpacing] = useState(0.5);
+  const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
+  const [spacing, setSpacing] = useState(0.2);
   const [bgColor, setBgColor] = useState('#ffffff');
   const [activeGradient, setActiveGradient] = useState('none');
   
@@ -141,61 +135,169 @@ export default function CollageEditor() {
     setMounted(true);
   }, []);
 
+  const startProject = () => {
+    setShowConfig(false);
+    if (hasHeader) {
+      setHeaderColumns([
+        { id: '1', type: 'text', content: 'TITULO COLLAGE', align: 'center', width: 100 }
+      ]);
+    }
+  };
+
   const handleAddImages = (e: React.ChangeEvent<HTMLInputElement>, sectionId: number) => {
     if (!e.target.files) return;
     const newImgs: CollageImage[] = Array.from(e.target.files).map(file => ({
       id: Math.random().toString(36).substring(2, 9),
       url: URL.createObjectURL(file),
+      file,
       sectionId,
       zoom: 1,
       offsetX: 0,
       offsetY: 0
     }));
     setImages(prev => [...prev, ...newImgs]);
+    setActiveSection(sectionId);
     e.target.value = '';
-  };
-
-  const clearSection = (sectionId: number) => {
-    setImages(prev => prev.filter(img => img.sectionId !== sectionId));
-  };
-
-  const removeImage = (id: string) => {
-    setImages(prev => prev.filter(img => img.id !== id));
   };
 
   const updateImageTransform = (id: string, updates: Partial<CollageImage>) => {
     setImages(prev => prev.map(img => img.id === id ? { ...img, ...updates } : img));
   };
 
-  const handleExport = async () => {
-    setIsExporting(true);
-    // Simulación de exportación para MVP
-    setTimeout(() => {
-      setIsExporting(false);
-      toast({ title: "Collage Exportado", description: "La imagen se ha generado en alta resolución." });
-    }, 1500);
-  };
-
-  // Cálculos de Layout
+  // Lógica de Layout dinámico de secciones
   const sectionsLayout = useMemo(() => {
     const layout = [];
     const baseTop = hasHeader ? headerHeight : 0;
-    const remainingHeight = 100 - baseTop;
+    const availableH = 100 - baseTop;
 
     if (numSections === 1) {
-      layout.push({ id: 1, top: baseTop, height: remainingHeight });
+      layout.push({ id: 1, top: baseTop, height: availableH });
     } else {
       let currentTop = baseTop;
+      // Los splits son % del espacio DISPONIBLE
+      const totalShares = sectionSplits.slice(0, numSections).reduce((a, b) => a + b, 0);
+      
       for (let i = 0; i < numSections; i++) {
-        const h = (i === numSections - 1) 
-          ? (100 - currentTop) 
-          : (sectionSplits[i] || 50) * (remainingHeight / 100);
-        layout.push({ id: i + 1, top: currentTop, height: h });
-        currentTop += h;
+        const share = sectionSplits[i] || 50;
+        const hPercent = (share / totalShares) * availableH;
+        layout.push({ id: i + 1, top: currentTop, height: hPercent });
+        currentTop += hPercent;
       }
     }
     return layout;
   }, [hasHeader, headerHeight, numSections, sectionSplits]);
+
+  const handleExport = async () => {
+    if (images.length === 0) return;
+    setIsExporting(true);
+
+    try {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      const exportScale = 4; // Multiplicador para alta resolución
+      const baseW = 1080;
+      const baseH = baseW / aspectRatio.ratio;
+      canvas.width = baseW * exportScale;
+      canvas.height = baseH * exportScale;
+
+      // 1. Fondo
+      if (activeGradient !== 'none') {
+        const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        // Simplificación de degradados para el canvas (usando colores base del CSS)
+        if (activeGradient.includes('ff9a9e')) { gradient.addColorStop(0, '#ff9a9e'); gradient.addColorStop(1, '#fecfef'); }
+        else if (activeGradient.includes('30cfd0')) { gradient.addColorStop(0, '#30cfd0'); gradient.addColorStop(1, '#330867'); }
+        else { gradient.addColorStop(0, bgColor); gradient.addColorStop(1, '#00000033'); }
+        ctx.fillStyle = gradient;
+      } else {
+        ctx.fillStyle = bgColor;
+      }
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // 2. Cabecera
+      if (hasHeader) {
+        const hHeight = (headerHeight / 100) * canvas.height;
+        ctx.fillStyle = 'rgba(255,255,255,0.1)';
+        ctx.fillRect(0, 0, canvas.width, hHeight);
+        
+        for (const col of headerColumns) {
+          if (col.type === 'text') {
+            ctx.fillStyle = bgColor === '#000000' ? 'white' : 'black';
+            ctx.font = `bold ${40 * exportScale}px sans-serif`;
+            ctx.textAlign = col.align;
+            const x = col.align === 'left' ? 20 * exportScale : col.align === 'right' ? canvas.width - (20 * exportScale) : canvas.width / 2;
+            ctx.fillText(col.content, x, hHeight / 1.5);
+          }
+        }
+      }
+
+      // 3. Secciones e Imágenes
+      for (const section of sectionsLayout) {
+        const sImgs = images.filter(img => img.sectionId === section.id);
+        if (sImgs.length === 0) continue;
+
+        const sTop = (section.top / 100) * canvas.height;
+        const sHeight = (section.height / 100) * canvas.height;
+        const pad = (spacing * 10) * exportScale;
+
+        // Grid simple dentro de la sección
+        const cols = sImgs.length > 1 ? 2 : 1;
+        const rows = Math.ceil(sImgs.length / cols);
+        const cellW = (canvas.width - (pad * (cols + 1))) / cols;
+        const cellH = (sHeight - (pad * (rows + 1))) / rows;
+
+        for (let i = 0; i < sImgs.length; i++) {
+          const imgData = sImgs[i];
+          const colIdx = i % cols;
+          const rowIdx = Math.floor(i / cols);
+
+          const x = pad + (colIdx * (cellW + pad));
+          const y = sTop + pad + (rowIdx * (cellH + pad));
+
+          const img = new window.Image();
+          img.src = imgData.url;
+          await new Promise(r => img.onload = r);
+
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(x, y, cellW, cellH);
+          ctx.clip();
+
+          // Lógica de "Cover" para evitar distorsión
+          const imgAspect = img.width / img.height;
+          const cellAspect = cellW / cellH;
+          let drawW, drawH, drawX, drawY;
+
+          if (imgAspect > cellAspect) {
+            drawH = cellH * imgData.zoom;
+            drawW = drawH * imgAspect;
+          } else {
+            drawW = cellW * imgData.zoom;
+            drawH = drawW / imgAspect;
+          }
+
+          drawX = x + (cellW - drawW) / 2 + (imgData.offsetX * exportScale);
+          drawY = y + (cellH - drawH) / 2 + (imgData.offsetY * exportScale);
+
+          ctx.drawImage(img, drawX, drawY, drawW, drawH);
+          ctx.restore();
+        }
+      }
+
+      const link = document.createElement('a');
+      link.download = `Collage_${Date.now()}.jpg`;
+      link.href = canvas.toDataURL('image/jpeg', 0.95);
+      link.click();
+      
+      toast({ title: "Collage Listo", description: "La imagen se ha descargado correctamente." });
+    } catch (e) {
+      console.error(e);
+      toast({ variant: 'destructive', title: "Error", description: "No se pudo generar la imagen." });
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   if (!mounted) return null;
 
@@ -232,9 +334,30 @@ export default function CollageEditor() {
           <Switch checked={hasHeader} onCheckedChange={setHasHeader} />
         </div>
         {hasHeader && (
-          <div className="space-y-2">
-            <div className="flex justify-between"><Label className="text-[9px] font-black uppercase text-muted-foreground">Altura</Label><span className="text-[10px] font-bold">{headerHeight}%</span></div>
-            <Slider value={[headerHeight]} onValueChange={v => setHeaderHeight(v[0])} min={5} max={30} step={1} />
+          <div className="space-y-4 bg-muted/50 p-3 rounded-xl">
+             <div className="space-y-2">
+                <Label className="text-[9px] font-black uppercase text-muted-foreground">Altura Cabecera</Label>
+                <Slider value={[headerHeight]} onValueChange={v => setHeaderHeight(v[0])} min={5} max={30} />
+             </div>
+             {headerColumns.map((col, idx) => (
+               <div key={col.id} className="space-y-2 pt-2 border-t">
+                  <Input 
+                    placeholder="Texto o Logo URL..." 
+                    value={col.content} 
+                    onChange={e => {
+                      const newCols = [...headerColumns];
+                      newCols[idx].content = e.target.value;
+                      setHeaderColumns(newCols);
+                    }}
+                    className="h-8 text-xs font-bold"
+                  />
+                  <div className="flex gap-1">
+                    <Button size="icon" variant={col.align === 'left' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => {const c=[...headerColumns]; c[idx].align='left'; setHeaderColumns(c);}}><AlignLeft className="h-3 w-3"/></Button>
+                    <Button size="icon" variant={col.align === 'center' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => {const c=[...headerColumns]; c[idx].align='center'; setHeaderColumns(c);}}><AlignCenter className="h-3 w-3"/></Button>
+                    <Button size="icon" variant={col.align === 'right' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => {const c=[...headerColumns]; c[idx].align='right'; setHeaderColumns(c);}}><AlignRight className="h-3 w-3"/></Button>
+                  </div>
+               </div>
+             ))}
           </div>
         )}
       </div>
@@ -246,26 +369,22 @@ export default function CollageEditor() {
           <GripVertical className="h-4 w-4 text-primary" />
           <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t.sections}</h2>
         </div>
-        <div className="flex items-center gap-4">
-          <Select value={numSections.toString()} onValueChange={v => setNumSections(parseInt(v))}>
-            <SelectTrigger className="h-9 font-bold rounded-xl bg-card border-2">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {[1, 2, 3, 4].map(n => <SelectItem key={n} value={n.toString()} className="font-bold">{n} {lang === 'es' ? 'Áreas' : 'Areas'}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
+        <Select value={numSections.toString()} onValueChange={v => setNumSections(parseInt(v))}>
+          <SelectTrigger className="h-9 font-bold rounded-xl bg-card border-2"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {[1, 2, 3, 4].map(n => <SelectItem key={n} value={n.toString()} className="font-bold">{n} {lang === 'es' ? 'Secciones' : 'Sections'}</SelectItem>)}
+          </SelectContent>
+        </Select>
         {numSections > 1 && (
           <div className="space-y-4 pt-2">
-            {sectionSplits.slice(0, numSections - 1).map((val, idx) => (
+            {sectionSplits.slice(0, numSections).map((val, idx) => (
               <div key={idx} className="space-y-1">
-                <div className="flex justify-between"><Label className="text-[9px] font-black uppercase text-muted-foreground">División {idx + 1}-{idx + 2}</Label></div>
+                <Label className="text-[9px] font-black uppercase text-muted-foreground">Tamaño Área {idx + 1}</Label>
                 <Slider value={[val]} onValueChange={v => {
                   const newSplits = [...sectionSplits];
                   newSplits[idx] = v[0];
                   setSectionSplits(newSplits);
-                }} min={10} max={90} step={1} />
+                }} min={10} max={90} />
               </div>
             ))}
           </div>
@@ -281,25 +400,18 @@ export default function CollageEditor() {
         </div>
         <div className="flex flex-wrap gap-2">
           {COLORS.map(c => (
-            <button 
-              key={c} 
-              className={cn("w-6 h-6 rounded-full border border-border transition-transform active:scale-90", bgColor === c && "ring-2 ring-primary")}
-              style={{ backgroundColor: c }}
-              onClick={() => { setBgColor(c); setActiveGradient('none'); }}
-            />
+            <button key={c} className={cn("w-6 h-6 rounded-full border border-border transition-all active:scale-90", bgColor === c && "ring-2 ring-primary")} style={{ backgroundColor: c }} onClick={() => { setBgColor(c); setActiveGradient('none'); }} />
           ))}
         </div>
         <Select value={activeGradient} onValueChange={setActiveGradient}>
-          <SelectTrigger className="h-9 font-bold rounded-xl bg-card border-2">
-            <SelectValue placeholder="Degradados" />
-          </SelectTrigger>
+          <SelectTrigger className="h-9 font-bold rounded-xl bg-card border-2"><SelectValue placeholder="Degradados" /></SelectTrigger>
           <SelectContent>
             {GRADIENTS.map(g => <SelectItem key={g.name} value={g.value} className="font-bold">{g.name}</SelectItem>)}
           </SelectContent>
         </Select>
         <div className="space-y-2 pt-2">
           <div className="flex justify-between"><Label className="text-[9px] font-black uppercase text-muted-foreground">{t.spacing}</Label><span className="text-[10px] font-bold">{spacing} cm</span></div>
-          <Slider value={[spacing]} onValueChange={v => setSpacing(v[0])} min={0} max={2} step={0.1} />
+          <Slider value={[spacing]} onValueChange={v => setSpacing(v[0])} min={0} max={1} step={0.05} />
         </div>
       </div>
     </div>
@@ -307,7 +419,7 @@ export default function CollageEditor() {
 
   return (
     <div className="flex flex-col h-screen bg-background font-body overflow-hidden transition-colors duration-300">
-      <header className="h-16 shrink-0 border-b border-border bg-background/80 backdrop-blur-md flex items-center justify-between px-6 z-50 shadow-sm">
+      <header className="h-16 shrink-0 border-b border-border bg-background/80 backdrop-blur-md flex items-center justify-between px-6 z-50">
         <div className="flex items-center gap-4">
           <Link href="/"><Button variant="ghost" size="sm" className="gap-2 font-bold text-muted-foreground px-2"><ChevronLeft className="h-4 w-4" /><span className="hidden sm:inline text-xs">Inicio</span></Button></Link>
           <div className="flex items-center gap-3">
@@ -333,17 +445,21 @@ export default function CollageEditor() {
               background: activeGradient !== 'none' ? activeGradient : bgColor
             }}
           >
-            {/* Renderizado de Cabecera */}
+            {/* Header Rendering */}
             {hasHeader && (
               <div 
-                className="absolute top-0 left-0 w-full bg-white/10 flex items-center justify-center border-b border-black/5"
+                className="absolute top-0 left-0 w-full bg-white/10 flex items-center px-4 border-b border-black/5 overflow-hidden"
                 style={{ height: `${headerHeight}%` }}
               >
-                <span className="text-[10px] font-black uppercase text-black/20 tracking-[0.3em]">Cabecera</span>
+                {headerColumns.map(col => (
+                  <div key={col.id} className={cn("flex-1", col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left')}>
+                    <span className="text-[10px] font-black uppercase text-foreground/80 tracking-widest leading-none">{col.content}</span>
+                  </div>
+                ))}
               </div>
             )}
 
-            {/* Renderizado de Secciones */}
+            {/* Sections Rendering */}
             {sectionsLayout.map(section => {
               const sectionImages = images.filter(img => img.sectionId === section.id);
               const isActive = activeSection === section.id;
@@ -358,11 +474,10 @@ export default function CollageEditor() {
                   style={{ top: `${section.top}%`, height: `${section.height}%` }}
                   onClick={() => setActiveSection(section.id)}
                 >
-                  {/* Si no hay fotos, mostrar prompt */}
                   {sectionImages.length === 0 ? (
                     <div className="w-full h-full flex flex-col items-center justify-center gap-2">
-                      <PlusCircle className="h-6 w-6 text-muted-foreground/40 group-hover:scale-110 transition-transform" />
-                      <span className="text-[7px] font-black uppercase text-muted-foreground/40 tracking-widest">{t.selectToEdit}</span>
+                      <PlusCircle className="h-6 w-6 text-muted-foreground/30 group-hover:scale-110 transition-transform" />
+                      <span className="text-[7px] font-black uppercase text-muted-foreground/30 tracking-widest">{t.selectToEdit}</span>
                     </div>
                   ) : (
                     <div className="w-full h-full relative" style={{ padding: `${spacing/2}cm` }}>
@@ -371,33 +486,57 @@ export default function CollageEditor() {
                         gridTemplateRows: sectionImages.length > 2 ? `repeat(2, 1fr)` : '1fr'
                       }}>
                         {sectionImages.map(img => (
-                          <div key={img.id} className="relative overflow-hidden bg-black/5 rounded-sm">
+                          <div 
+                            key={img.id} 
+                            className={cn(
+                              "relative overflow-hidden bg-black/5 rounded-sm group/img",
+                              selectedImageId === img.id ? "ring-2 ring-accent z-10" : ""
+                            )}
+                            onClick={(e) => { e.stopPropagation(); setSelectedImageId(img.id); }}
+                          >
                             <img 
                               src={img.url} 
-                              className="w-full h-full object-cover transition-transform"
+                              alt=""
+                              className="w-full h-full object-cover transition-transform select-none"
                               style={{ transform: `scale(${img.zoom}) translate(${img.offsetX}px, ${img.offsetY}px)` }}
+                              draggable={false}
                             />
-                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); removeImage(img.id); }}
-                              className="absolute top-1 right-1 bg-destructive text-white p-1 rounded-md opacity-0 group-hover:opacity-100"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </button>
+                            
+                            <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/10 transition-colors pointer-events-none" />
+                            
+                            {/* Controls if selected */}
+                            {selectedImageId === img.id && (
+                              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-[2px] animate-in fade-in duration-200">
+                                <div className="bg-background/95 p-2 rounded-xl shadow-2xl flex flex-col gap-3 w-[80%]">
+                                   <div className="flex items-center justify-between gap-4">
+                                      <div className="flex flex-col"><span className="text-[7px] font-black uppercase text-muted-foreground">Zoom</span></div>
+                                      <Slider value={[img.zoom]} min={1} max={3} step={0.01} onValueChange={v => updateImageTransform(img.id, { zoom: v[0] })} className="flex-1" />
+                                   </div>
+                                   <div className="grid grid-cols-2 gap-2">
+                                      <Button size="icon" variant="secondary" className="h-8 w-full rounded-lg" onClick={() => setSelectedImageId(null)}><Check className="h-4 w-4"/></Button>
+                                      <Button size="icon" variant="destructive" className="h-8 w-full rounded-lg" onClick={() => { setImages(prev => prev.filter(i => i.id !== img.id)); setSelectedImageId(null); }}><Trash2 className="h-4 w-4"/></Button>
+                                   </div>
+                                   {/* Pan Controls */}
+                                   <div className="flex items-center justify-center gap-2">
+                                      <Button size="icon" variant="outline" className="h-6 w-6" onClick={() => updateImageTransform(img.id, { offsetX: img.offsetX - 10 })}><AlignLeft className="h-3 w-3"/></Button>
+                                      <Button size="icon" variant="outline" className="h-6 w-6" onClick={() => updateImageTransform(img.id, { offsetY: img.offsetY - 10 })}><ChevronDown className="h-3 w-3 rotate-180"/></Button>
+                                      <Button size="icon" variant="outline" className="h-6 w-6" onClick={() => updateImageTransform(img.id, { offsetY: img.offsetY + 10 })}><ChevronDown className="h-3 w-3"/></Button>
+                                      <Button size="icon" variant="outline" className="h-6 w-6" onClick={() => updateImageTransform(img.id, { offsetX: img.offsetX + 10 })}><AlignRight className="h-3 w-3"/></Button>
+                                   </div>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
                     </div>
                   )}
 
-                  {/* Botón flotante para añadir fotos a la sección activa */}
-                  {isActive && (
+                  {/* Add Image Button for active section */}
+                  {isActive && !selectedImageId && (
                     <div className="absolute bottom-2 right-2 flex gap-2">
-                      <Button size="icon" className="h-7 w-7 rounded-full shadow-lg" onClick={() => document.getElementById(`upload-${section.id}`)?.click()}>
+                      <Button size="icon" className="h-8 w-8 rounded-full shadow-lg bg-primary hover:bg-primary/90" onClick={() => document.getElementById(`upload-${section.id}`)?.click()}>
                         <Plus className="h-4 w-4" />
-                      </Button>
-                      <Button variant="secondary" size="icon" className="h-7 w-7 rounded-full shadow-lg" onClick={() => clearSection(section.id)}>
-                        <RefreshCcw className="h-3.5 w-3.5" />
                       </Button>
                       <input type="file" id={`upload-${section.id}`} multiple accept="image/*" className="hidden" onChange={(e) => handleAddImages(e, section.id)} />
                     </div>
@@ -407,12 +546,12 @@ export default function CollageEditor() {
             })}
           </div>
           
-          <div className="mt-8 bg-card/80 backdrop-blur-md px-4 py-2 rounded-2xl border border-border shadow-xl animate-fade-in">
-             <div className="flex items-center gap-4">
-                <div className="flex flex-col"><span className="text-[8px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">Activo</span><span className="text-xs font-black text-primary">Sección {activeSection}</span></div>
-                <Separator orientation="vertical" className="h-6" />
-                <div className="flex flex-col"><span className="text-[8px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">Fotos</span><span className="text-xs font-black text-foreground">{images.length} Totales</span></div>
-             </div>
+          <div className="mt-8 bg-card/80 backdrop-blur-md px-6 py-3 rounded-2xl border border-border shadow-xl animate-fade-in flex items-center gap-6">
+              <div className="flex flex-col"><span className="text-[8px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">Área Activa</span><span className="text-xs font-black text-primary">Sección {activeSection}</span></div>
+              <Separator orientation="vertical" className="h-8" />
+              <div className="flex flex-col"><span className="text-[8px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">Total Fotos</span><span className="text-xs font-black text-foreground">{images.length}</span></div>
+              <Separator orientation="vertical" className="h-8" />
+              <div className="flex flex-col"><span className="text-[8px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">Estilo</span><span className="text-[10px] font-bold text-accent uppercase">{activeGradient !== 'none' ? 'Degradado' : 'Sólido'}</span></div>
           </div>
         </div>
 
@@ -432,34 +571,63 @@ export default function CollageEditor() {
             </div>
           )}
           <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-            <Button 
-              size="icon" 
-              className="h-14 w-14 shrink-0 rounded-full shadow-2xl bg-slate-800 text-white hover:bg-slate-900 transition-all active:scale-95 border-4 border-white"
-              onClick={() => setIsMenuOpen(true)}
-            >
+            <Button size="icon" className="h-14 w-14 shrink-0 rounded-full shadow-2xl bg-slate-800 text-white hover:bg-slate-900 transition-all active:scale-95 border-4 border-white" onClick={() => setIsMenuOpen(true)}>
               <Settings2 className="h-6 w-6" />
             </Button>
             <SheetContent side="right" className="w-[85%] sm:w-[400px] p-0 bg-background/95 backdrop-blur-xl shadow-2xl overflow-hidden flex flex-col z-[200]" onOpenAutoFocus={(e) => e.preventDefault()}>
-              <SheetHeader className="sr-only"><SheetTitle>Ajustes de Collage</SheetTitle><SheetDescription>Configura formato, secciones y estilo</SheetDescription></SheetHeader>
-              
-              <div className="p-4 bg-primary/5 border-b shrink-0">
-                <Button className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-black rounded-xl shadow-lg transition-all active:scale-95 text-xs uppercase tracking-widest gap-2" onClick={handleExport} disabled={images.length === 0 || isExporting}>{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}{isExporting ? "..." : t.exportJpg}</Button>
-              </div>
-
-              <div className="flex-1 overflow-y-auto relative">
-                {renderSectionContent(true)}
-                <Button 
-                  size="icon" 
-                  className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-2xl bg-primary text-white z-[210] border-4 border-white animate-in fade-in zoom-in-95 duration-200"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  <Settings2 className="h-6 w-6" />
-                </Button>
-              </div>
+              <SheetHeader className="sr-only"><SheetTitle>Ajustes</SheetTitle></SheetHeader>
+              <div className="p-4 bg-primary/5 border-b shrink-0"><Button className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-black rounded-xl shadow-lg transition-all active:scale-95 text-xs uppercase tracking-widest gap-2" onClick={handleExport} disabled={images.length === 0 || isExporting}>{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}{isExporting ? "..." : t.exportJpg}</Button></div>
+              <div className="flex-1 overflow-y-auto relative">{renderSectionContent(true)}</div>
             </SheetContent>
           </Sheet>
         </div>
       </main>
+
+      {/* Onboarding Wizard */}
+      <Dialog open={showConfig} onOpenChange={setShowConfig}>
+        <DialogContent className="max-w-md rounded-3xl p-8 border-none shadow-2xl">
+          <DialogHeader className="space-y-3">
+             <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-2"><Layout className="h-6 w-6 text-primary" /></div>
+             <DialogTitle className="text-2xl font-black text-center uppercase tracking-tighter">Configuración Rápida</DialogTitle>
+             <DialogDescription className="text-center font-medium">Define el estilo base para tu nuevo mosaico profesional.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+             <div className="space-y-3">
+                <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Formato del Lienzo</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {ASPECT_RATIOS.map(item => (
+                    <Button key={item.id} variant={aspectRatio.id === item.id ? 'default' : 'outline'} className="h-16 flex-col gap-1 rounded-2xl" onClick={() => setAspectRatio(item)}>
+                      <item.icon className="h-5 w-5" />
+                      <span className="text-[8px] font-black uppercase">{t[item.label as keyof typeof t]}</span>
+                    </Button>
+                  ))}
+                </div>
+             </div>
+             <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-3">
+                   <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">¿Llevará Cabecera?</Label>
+                   <div className="flex items-center gap-3 bg-muted/50 p-2 rounded-xl justify-between">
+                      <span className="text-xs font-bold">{hasHeader ? 'SÍ' : 'NO'}</span>
+                      <Switch checked={hasHeader} onCheckedChange={setHasHeader} />
+                   </div>
+                </div>
+                <div className="space-y-3">
+                   <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Nº de Áreas</Label>
+                   <Select value={numSections.toString()} onValueChange={v => setNumSections(parseInt(v))}>
+                      <SelectTrigger className="h-10 font-black rounded-xl bg-muted/50 border-none"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {[1, 2, 3, 4].map(n => <SelectItem key={n} value={n.toString()} className="font-bold">{n} Secciones</SelectItem>)}
+                      </SelectContent>
+                   </Select>
+                </div>
+             </div>
+          </div>
+          <DialogFooter>
+             <Button className="w-full h-14 bg-primary hover:bg-primary/90 text-white font-black rounded-2xl shadow-xl shadow-primary/20 text-md uppercase tracking-widest gap-2" onClick={startProject}>Empezar Diseño <Check className="h-5 w-5" /></Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
