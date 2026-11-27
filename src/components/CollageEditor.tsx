@@ -24,7 +24,9 @@ import {
   AlignRight,
   Type,
   ImageIcon,
-  X
+  X,
+  Maximize2,
+  LayoutGrid
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -70,13 +72,21 @@ interface CollageImage {
   offsetX: number;
   offsetY: number;
   file: File;
+  aspectRatio: number; // width / height
 }
 
 interface HeaderColumn {
   id: string;
   type: 'text' | 'image';
-  content: string; // text string or image dataUrl
+  content: string; 
   align: 'left' | 'center' | 'right';
+}
+
+interface CellLayout {
+  x: number; // percentage
+  y: number; // percentage
+  w: number; // percentage
+  h: number; // percentage
 }
 
 const ASPECT_RATIOS = [
@@ -96,6 +106,50 @@ const GRADIENTS = [
   { name: 'Forest', value: 'linear-gradient(to right, #11998e, #38ef7d)' },
   { name: 'Luxury', value: 'linear-gradient(135deg, #232526 0%, #414345 100%)' }
 ];
+
+// Helper to calculate smart mosaic layout
+function getMosaicLayout(count: number, sectionRatio: number): CellLayout[] {
+  if (count <= 1) return [{ x: 0, y: 0, w: 100, h: 100 }];
+  
+  if (count === 2) {
+    return sectionRatio > 1 
+      ? [{ x: 0, y: 0, w: 50, h: 100 }, { x: 50, y: 0, w: 50, h: 100 }]
+      : [{ x: 0, y: 0, w: 100, h: 50 }, { x: 0, y: 50, w: 100, h: 50 }];
+  }
+
+  if (count === 3) {
+    return [
+      { x: 0, y: 0, w: 60, h: 100 },
+      { x: 60, y: 0, w: 40, h: 50 },
+      { x: 60, y: 50, w: 40, h: 50 }
+    ];
+  }
+
+  if (count === 4) {
+    return [
+      { x: 0, y: 0, w: 50, h: 50 },
+      { x: 50, y: 0, w: 50, h: 50 },
+      { x: 0, y: 50, w: 50, h: 50 },
+      { x: 50, y: 50, w: 50, h: 50 }
+    ];
+  }
+
+  // Generic grid for 5+ images
+  const cols = Math.ceil(Math.sqrt(count));
+  const rows = Math.ceil(count / cols);
+  const cellW = 100 / cols;
+  const cellH = 100 / rows;
+  const layouts: CellLayout[] = [];
+  for (let i = 0; i < count; i++) {
+    layouts.push({
+      x: (i % cols) * cellW,
+      y: Math.floor(i / cols) * cellH,
+      w: cellW,
+      h: cellH
+    });
+  }
+  return layouts;
+}
 
 export default function CollageEditor() {
   const [mounted, setMounted] = useState(false);
@@ -159,17 +213,27 @@ export default function CollageEditor() {
     }
   };
 
-  const handleAddImages = (e: React.ChangeEvent<HTMLInputElement>, sectionId: number) => {
+  const handleAddImages = async (e: React.ChangeEvent<HTMLInputElement>, sectionId: number) => {
     if (!e.target.files) return;
-    const newImgs: CollageImage[] = Array.from(e.target.files).map(file => ({
-      id: Math.random().toString(36).substring(2, 9),
-      url: URL.createObjectURL(file),
-      file,
-      sectionId,
-      zoom: 1,
-      offsetX: 0,
-      offsetY: 0
+    const files = Array.from(e.target.files);
+    
+    const newImgs: CollageImage[] = await Promise.all(files.map(async file => {
+      const url = URL.createObjectURL(file);
+      const img = new window.Image();
+      img.src = url;
+      await new Promise(r => img.onload = r);
+      return {
+        id: Math.random().toString(36).substring(2, 9),
+        url,
+        file,
+        sectionId,
+        zoom: 1,
+        offsetX: 0,
+        offsetY: 0,
+        aspectRatio: img.width / img.height
+      };
     }));
+
     setImages(prev => [...prev, ...newImgs]);
     setActiveSection(sectionId);
     e.target.value = '';
@@ -177,6 +241,36 @@ export default function CollageEditor() {
 
   const updateImageTransform = (id: string, updates: Partial<CollageImage>) => {
     setImages(prev => prev.map(img => img.id === id ? { ...img, ...updates } : img));
+  };
+
+  // Function to auto-fill all images in a section
+  const autoFillSection = (sectionId: number, layouts: CellLayout[], sectionW: number, sectionH: number) => {
+    const sectionImages = images.filter(img => img.sectionId === sectionId);
+    const updatedImages = images.map(img => {
+      if (img.sectionId !== sectionId) return img;
+      
+      const idx = sectionImages.findIndex(si => si.id === img.id);
+      if (idx === -1) return img;
+      
+      const layout = layouts[idx];
+      const cellW = (layout.w / 100) * sectionW;
+      const cellH = (layout.h / 100) * sectionH;
+      const cellRatio = cellW / cellH;
+      
+      // Calculate zoom to cover
+      let zoom = 1;
+      if (img.aspectRatio > cellRatio) {
+        // Image is wider than cell, match height
+        zoom = img.aspectRatio / cellRatio;
+      } else {
+        // Image is taller than cell, match width
+        zoom = cellRatio / img.aspectRatio;
+      }
+
+      return { ...img, zoom: Math.max(1, zoom), offsetX: 0, offsetY: 0 };
+    });
+    setImages(updatedImages);
+    toast({ title: lang === 'es' ? "Ajustado" : "Filled", description: lang === 'es' ? "Imágenes adaptadas al espacio." : "Images adapted to area." });
   };
 
   const sectionsLayout = useMemo(() => {
@@ -208,14 +302,13 @@ export default function CollageEditor() {
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      const baseW = 1080;
+      const baseW = 1440; // Increased quality
       const baseH = baseW / aspectRatio.ratio;
-      const exportScale = 2; // Multiplicador para 2K aprox
-      canvas.width = baseW * exportScale;
-      canvas.height = baseH * exportScale;
+      canvas.width = baseW;
+      canvas.height = baseH;
 
-      const uiBaseWidth = 450; 
-      const uiToCanvasRatio = canvas.width / uiBaseWidth;
+      // Scale helper
+      const scale = baseW / 450; 
 
       // 1. Fondo
       if (activeGradient !== 'none') {
@@ -234,11 +327,11 @@ export default function CollageEditor() {
       if (hasHeader) {
         const hHeight = (headerHeight / 100) * canvas.height;
         for (const col of headerColumns) {
-          const x = col.align === 'left' ? 40 * exportScale : col.align === 'right' ? canvas.width - (40 * exportScale) : canvas.width / 2;
+          const x = col.align === 'left' ? 40 * scale : col.align === 'right' ? canvas.width - (40 * scale) : canvas.width / 2;
           
           if (col.type === 'text') {
             ctx.fillStyle = (bgColor === '#000000' || activeGradient.includes('#232526')) ? 'white' : 'black';
-            ctx.font = `black ${40 * exportScale}px sans-serif`;
+            ctx.font = `bold ${32 * scale}px sans-serif`;
             ctx.textAlign = col.align;
             ctx.textBaseline = 'middle';
             ctx.fillText(col.content.toUpperCase(), x, hHeight / 2);
@@ -252,33 +345,33 @@ export default function CollageEditor() {
             const drawH = maxH;
             const drawW = drawH * aspect;
             
-            const drawX = col.align === 'left' ? 40 * exportScale : col.align === 'right' ? canvas.width - drawW - (40 * exportScale) : (canvas.width - drawW) / 2;
+            const drawX = col.align === 'left' ? 40 * scale : col.align === 'right' ? canvas.width - drawW - (40 * scale) : (canvas.width - drawW) / 2;
             ctx.drawImage(hImg, drawX, (hHeight - drawH) / 2, drawW, drawH);
           }
         }
       }
 
-      // 3. Secciones e Imágenes
+      // 3. Secciones e Imágenes con Mosaico
       for (const section of sectionsLayout) {
         const sImgs = images.filter(img => img.sectionId === section.id);
         if (sImgs.length === 0) continue;
 
         const sTop = (section.top / 100) * canvas.height;
         const sHeight = (section.height / 100) * canvas.height;
-        const pad = (spacing * 37.8) * uiToCanvasRatio;
-
-        const colsCount = sImgs.length > 1 ? 2 : 1;
-        const rowsCount = Math.ceil(sImgs.length / colsCount);
-        const cellW = (canvas.width - (pad * (colsCount + 1))) / colsCount;
-        const cellH = (sHeight - (pad * (rowsCount + 1))) / rowsCount;
+        const sWidth = canvas.width;
+        const sRatio = sWidth / sHeight;
+        
+        const pad = (spacing * 37.8) * scale;
+        const mosaic = getMosaicLayout(sImgs.length, sRatio);
 
         for (let i = 0; i < sImgs.length; i++) {
           const imgData = sImgs[i];
-          const colIdx = i % colsCount;
-          const rowIdx = Math.floor(i / colsCount);
-
-          const xPos = pad + (colIdx * (cellW + pad));
-          const yPos = sTop + pad + (rowIdx * (cellH + pad));
+          const layout = mosaic[i];
+          
+          const cellX = (layout.x / 100) * sWidth + pad;
+          const cellY = sTop + (layout.y / 100) * sHeight + pad;
+          const cellW = (layout.w / 100) * sWidth - (pad * 2);
+          const cellH = (layout.h / 100) * sHeight - (pad * 2);
 
           const img = new window.Image();
           img.src = imgData.url;
@@ -286,28 +379,27 @@ export default function CollageEditor() {
 
           ctx.save();
           ctx.beginPath();
-          ctx.rect(xPos, yPos, cellW, cellH);
+          ctx.rect(cellX, cellY, cellW, cellH);
           ctx.clip();
 
-          const imgAspect = img.width / img.height;
-          const cellAspect = cellW / cellH;
+          const cellRatio = cellW / cellH;
           let drawW, drawH;
 
-          if (imgAspect > cellAspect) {
+          if (imgData.aspectRatio > cellRatio) {
             drawW = cellW;
-            drawH = cellW / imgAspect;
+            drawH = cellW / imgData.aspectRatio;
           } else {
             drawH = cellH;
-            drawW = cellH * imgAspect;
+            drawW = cellH * imgData.aspectRatio;
           }
 
           const finalW = drawW * imgData.zoom;
           const finalH = drawH * imgData.zoom;
-          const offX = imgData.offsetX * uiToCanvasRatio;
-          const offY = imgData.offsetY * uiToCanvasRatio;
+          const offX = imgData.offsetX * scale;
+          const offY = imgData.offsetY * scale;
 
-          const drawX = xPos + (cellW - finalW) / 2 + offX;
-          const drawY = yPos + (cellH - finalH) / 2 + offY;
+          const drawX = cellX + (cellW - finalW) / 2 + offX;
+          const drawY = cellY + (cellH - finalH) / 2 + offY;
 
           ctx.drawImage(img, drawX, drawY, finalW, finalH);
           ctx.restore();
@@ -316,9 +408,9 @@ export default function CollageEditor() {
 
       const link = document.createElement('a');
       link.download = `Collage_${Date.now()}.jpg`;
-      link.href = canvas.toDataURL('image/jpeg', 0.92);
+      link.href = canvas.toDataURL('image/jpeg', 0.95);
       link.click();
-      toast({ title: "Collage Exportado", description: "La imagen se ha guardado con éxito." });
+      toast({ title: lang === 'es' ? "Collage Exportado" : "Collage Exported", description: lang === 'es' ? "Guardado correctamente." : "Saved successfully." });
     } catch (e) {
       console.error(e);
       toast({ variant: 'destructive', title: "Error", description: "No se pudo generar la imagen." });
@@ -394,7 +486,7 @@ export default function CollageEditor() {
                         {col.content ? (
                           <div className="relative w-full aspect-video rounded border overflow-hidden bg-muted">
                             <img src={col.content} className="w-full h-full object-contain" alt="Header img" />
-                            <Button size="icon" variant="destructive" className="absolute top-1 right-1 h-5 w-5 rounded-full" onClick={() => updateHeaderColumn(col.id, { content: '' })}><X className="h-3 w-3"/></Button>
+                            <button className="absolute top-1 right-1 h-5 w-5 bg-destructive text-white rounded-full flex items-center justify-center" onClick={() => updateHeaderColumn(col.id, { content: '' })}><X className="h-3 w-3"/></button>
                           </div>
                         ) : (
                           <Button variant="outline" className="w-full h-7 text-[9px] font-black border-dashed" onClick={() => document.getElementById(`header-img-${col.id}`)?.click()}>Subir Logo</Button>
@@ -519,6 +611,11 @@ export default function CollageEditor() {
               const sectionImages = images.filter(img => img.sectionId === section.id);
               const isActive = activeSection === section.id;
               
+              const sectionW_px = 450;
+              const sectionH_px = (section.height / 100) * (450 / aspectRatio.ratio);
+              const sRatio = sectionW_px / sectionH_px;
+              const mosaic = getMosaicLayout(sectionImages.length, sRatio);
+
               return (
                 <div 
                   key={section.id}
@@ -536,33 +633,42 @@ export default function CollageEditor() {
                     </div>
                   ) : (
                     <div className="w-full h-full relative" style={{ padding: `${spacing/2}cm` }}>
-                      <div className="grid h-full gap-1" style={{ 
-                        gridTemplateColumns: sectionImages.length > 1 ? `repeat(2, 1fr)` : '1fr',
-                        gridTemplateRows: sectionImages.length > 2 ? `repeat(2, 1fr)` : '1fr'
-                      }}>
-                        {sectionImages.map(img => (
+                      {sectionImages.map((img, i) => {
+                        const layout = mosaic[i];
+                        const cellPad = spacing * 10; // Simple padding in px approx
+
+                        return (
                           <div 
                             key={img.id} 
                             className={cn(
-                              "relative overflow-hidden bg-black/5 rounded-sm group/img",
+                              "absolute overflow-hidden bg-black/5 rounded-sm group/img",
                               selectedImageId === img.id ? "ring-2 ring-accent z-10" : ""
                             )}
+                            style={{
+                              left: `${layout.x}%`,
+                              top: `${layout.y}%`,
+                              width: `${layout.w}%`,
+                              height: `${layout.h}%`,
+                              padding: `${spacing * 2}px`
+                            }}
                             onClick={(e) => { e.stopPropagation(); setSelectedImageId(img.id); }}
                           >
-                            <img 
-                              src={img.url} 
-                              alt=""
-                              className="w-full h-full object-contain transition-transform select-none"
-                              style={{ transform: `scale(${img.zoom}) translate(${img.offsetX}px, ${img.offsetY}px)` }}
-                              draggable={false}
-                            />
+                            <div className="w-full h-full relative overflow-hidden">
+                              <img 
+                                src={img.url} 
+                                alt=""
+                                className="w-full h-full object-contain transition-transform select-none"
+                                style={{ transform: `scale(${img.zoom}) translate(${img.offsetX}px, ${img.offsetY}px)` }}
+                                draggable={false}
+                              />
+                            </div>
                             
                             {selectedImageId === img.id && (
                               <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-[2px] animate-in fade-in duration-200">
                                 <div className="bg-background/95 p-2 rounded-xl shadow-2xl flex flex-col gap-3 w-[80%] pointer-events-auto">
                                    <div className="flex items-center justify-between gap-4">
                                       <div className="flex flex-col"><span className="text-[7px] font-black uppercase text-muted-foreground">Zoom</span></div>
-                                      <Slider value={[img.zoom]} min={1} max={3} step={0.01} onValueChange={v => updateImageTransform(img.id, { zoom: v[0] })} className="flex-1" />
+                                      <Slider value={[img.zoom]} min={1} max={5} step={0.01} onValueChange={v => updateImageTransform(img.id, { zoom: v[0] })} className="flex-1" />
                                    </div>
                                    <div className="grid grid-cols-2 gap-2">
                                       <Button size="icon" variant="secondary" className="h-8 w-full rounded-lg" onClick={(e) => { e.stopPropagation(); setSelectedImageId(null); }}><Check className="h-4 w-4"/></Button>
@@ -578,13 +684,27 @@ export default function CollageEditor() {
                               </div>
                             )}
                           </div>
-                        ))}
-                      </div>
+                        );
+                      })}
                     </div>
                   )}
 
                   {isActive && !selectedImageId && (
                     <div className="absolute bottom-2 right-2 flex gap-2 z-40">
+                      {sectionImages.length > 0 && (
+                        <Button 
+                          size="icon" 
+                          variant="secondary"
+                          className="h-8 w-8 rounded-full shadow-lg bg-accent text-white" 
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            autoFillSection(section.id, mosaic, sectionW_px, sectionH_px); 
+                          }}
+                          title={lang === 'es' ? "Rellenar Espacios" : "Fill Area"}
+                        >
+                          <Maximize2 className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button size="icon" className="h-8 w-8 rounded-full shadow-lg bg-primary hover:bg-primary/90" onClick={(e) => { e.stopPropagation(); document.getElementById(`upload-${section.id}`)?.click(); }}>
                         <Plus className="h-4 w-4" />
                       </Button>
@@ -628,7 +748,7 @@ export default function CollageEditor() {
       <Dialog open={showConfig} onOpenChange={setShowConfig}>
         <DialogContent className="max-w-md rounded-3xl p-8 border-none shadow-2xl">
           <DialogHeader className="space-y-3">
-             <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-2"><Square className="h-6 w-6 text-primary" /></div>
+             <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-2"><LayoutGrid className="h-6 w-6 text-primary" /></div>
              <DialogTitle className="text-2xl font-black text-center uppercase tracking-tighter">Configuración Rápida</DialogTitle>
              <DialogDescription className="text-center font-medium">Define el estilo base para tu nuevo mosaico profesional.</DialogDescription>
           </DialogHeader>
