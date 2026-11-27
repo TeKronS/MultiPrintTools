@@ -26,7 +26,8 @@ import {
   ImageIcon,
   X,
   Maximize2,
-  LayoutGrid
+  LayoutGrid,
+  ChevronUp
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -109,26 +110,18 @@ const GRADIENTS = [
 
 /**
  * Smart Mosaic Algorithm
- * Decides the best number of columns and rows based on the container aspect ratio
- * to maximize the visual impact of each cell.
  */
 function getMosaicLayout(count: number, sectionRatio: number): CellLayout[] {
   if (count <= 1) return [{ x: 0, y: 0, w: 100, h: 100 }];
 
-  // Find the best grid configuration (cols x rows)
   let bestCols = 1;
   let bestRows = count;
   let minAspectDiff = Infinity;
 
   for (let c = 1; c <= count; c++) {
     const r = Math.ceil(count / c);
-    // Calculate the aspect ratio of a single cell in this grid
     const cellRatio = (sectionRatio * r) / c;
-    
-    // We want cellRatio to be close to 1 (square) or closer to average image ratios
-    // For general purpose, "square-ish" cells are best for dynamic content
     const diff = Math.abs(Math.log(cellRatio)); 
-    
     if (diff < minAspectDiff) {
       minAspectDiff = diff;
       bestCols = c;
@@ -156,6 +149,7 @@ export default function CollageEditor() {
   const [lang, setLang] = useState<Language>('es');
   const t = translations[lang];
   const { toast } = useToast();
+  const previewRef = useRef<HTMLDivElement>(null);
 
   // Configuration
   const [showConfig, setShowConfig] = useState(true);
@@ -176,6 +170,7 @@ export default function CollageEditor() {
   
   const [isExporting, setIsExporting] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isDraggingSplitter, setIsDraggingSplitter] = useState<number | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -247,28 +242,18 @@ export default function CollageEditor() {
     const sectionImages = images.filter(img => img.sectionId === sectionId);
     const updatedImages = images.map(img => {
       if (img.sectionId !== sectionId) return img;
-      
       const idx = sectionImages.findIndex(si => si.id === img.id);
       if (idx === -1) return img;
-      
       const layout = layouts[idx];
       const cellW = (layout.w / 100) * sectionW;
       const cellH = (layout.h / 100) * sectionH;
       const cellRatio = cellW / cellH;
-      
       let zoom = 1;
-      if (img.aspectRatio > cellRatio) {
-        // Image is wider than cell, match height to cover width
-        zoom = img.aspectRatio / cellRatio;
-      } else {
-        // Image is taller than cell, match width to cover height
-        zoom = cellRatio / img.aspectRatio;
-      }
-
+      if (img.aspectRatio > cellRatio) zoom = img.aspectRatio / cellRatio;
+      else zoom = cellRatio / img.aspectRatio;
       return { ...img, zoom: Math.max(1, zoom), offsetX: 0, offsetY: 0 };
     });
     setImages(updatedImages);
-    toast({ title: lang === 'es' ? "Ajuste Inteligente" : "Smart Fill", description: lang === 'es' ? "Espacios rellenados automáticamente." : "Spaces filled automatically." });
   };
 
   const sectionsLayout = useMemo(() => {
@@ -291,23 +276,55 @@ export default function CollageEditor() {
     return layout;
   }, [hasHeader, headerHeight, numSections, sectionSplits]);
 
+  const handleSplitterMouseDown = (idx: number, e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDraggingSplitter(idx);
+  };
+
+  const handleGlobalMouseMove = (e: React.MouseEvent) => {
+    if (isDraggingSplitter === null || !previewRef.current) return;
+    
+    const rect = previewRef.current.getBoundingClientRect();
+    const mouseY = e.clientY - rect.top;
+    const mouseYPercent = (mouseY / rect.height) * 100;
+    
+    const baseTop = hasHeader ? headerHeight : 0;
+    const availableH = 100 - baseTop;
+    
+    if (mouseYPercent <= baseTop || mouseYPercent >= 100) return;
+
+    const totalShares = sectionSplits.slice(0, numSections).reduce((a, b) => a + b, 0);
+    const h1_start = sectionsLayout[isDraggingSplitter].top;
+    const h2_end = sectionsLayout[isDraggingSplitter + 1].top + sectionsLayout[isDraggingSplitter + 1].height;
+    
+    const totalSplitAreaH = h2_end - h1_start;
+    const dragPosInArea = mouseYPercent - h1_start;
+    const ratio = Math.max(0.1, Math.min(0.9, dragPosInArea / totalSplitAreaH));
+    
+    const pairTotalShare = sectionSplits[isDraggingSplitter] + sectionSplits[isDraggingSplitter + 1];
+    const newSplits = [...sectionSplits];
+    newSplits[isDraggingSplitter] = pairTotalShare * ratio;
+    newSplits[isDraggingSplitter + 1] = pairTotalShare * (1 - ratio);
+    setSectionSplits(newSplits);
+  };
+
+  const handleGlobalMouseUp = () => {
+    setIsDraggingSplitter(null);
+  };
+
   const handleExport = async () => {
     if (images.length === 0) return;
     setIsExporting(true);
-
     try {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
-
       const baseW = 1920; 
       const baseH = baseW / aspectRatio.ratio;
       canvas.width = baseW;
       canvas.height = baseH;
-
       const scale = baseW / 450; 
 
-      // 1. Background
       if (activeGradient !== 'none') {
         const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
         if (activeGradient.includes('#ff9a9e')) { grad.addColorStop(0, '#ff9a9e'); grad.addColorStop(1, '#fecfef'); }
@@ -320,12 +337,10 @@ export default function CollageEditor() {
       }
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // 2. Modular Header
       if (hasHeader) {
         const hHeight = (headerHeight / 100) * canvas.height;
         for (const col of headerColumns) {
           const x = col.align === 'left' ? 40 * scale : col.align === 'right' ? canvas.width - (40 * scale) : canvas.width / 2;
-          
           if (col.type === 'text') {
             ctx.fillStyle = (bgColor === '#000000' || activeGradient.includes('#232526')) ? 'white' : 'black';
             ctx.font = `bold ${32 * scale}px sans-serif`;
@@ -336,91 +351,67 @@ export default function CollageEditor() {
             const hImg = new window.Image();
             hImg.src = col.content;
             await new Promise(r => hImg.onload = r);
-            
             const maxH = hHeight * 0.7;
             const aspect = hImg.width / hImg.height;
             const drawH = maxH;
             const drawW = drawH * aspect;
-            
             const drawX = col.align === 'left' ? 40 * scale : col.align === 'right' ? canvas.width - drawW - (40 * scale) : (canvas.width - drawW) / 2;
             ctx.drawImage(hImg, drawX, (hHeight - drawH) / 2, drawW, drawH);
           }
         }
       }
 
-      // 3. Sections & Mosaic Images
       for (const section of sectionsLayout) {
         const sImgs = images.filter(img => img.sectionId === section.id);
         if (sImgs.length === 0) continue;
-
         const sTop = (section.top / 100) * canvas.height;
         const sHeight = (section.height / 100) * canvas.height;
         const sWidth = canvas.width;
         const sRatio = sWidth / sHeight;
-        
         const pad = (spacing * 37.8) * scale;
         const mosaic = getMosaicLayout(sImgs.length, sRatio);
-
         for (let i = 0; i < sImgs.length; i++) {
           const imgData = sImgs[i];
           const layout = mosaic[i];
-          
           const cellX = (layout.x / 100) * sWidth + pad;
           const cellY = sTop + (layout.y / 100) * sHeight + pad;
           const cellW = (layout.w / 100) * sWidth - (pad * 2);
           const cellH = (layout.h / 100) * sHeight - (pad * 2);
-
           const img = new window.Image();
           img.src = imgData.url;
           await new Promise(r => img.onload = r);
-
           ctx.save();
           ctx.beginPath();
           ctx.rect(cellX, cellY, cellW, cellH);
           ctx.clip();
-
           const cellRatio = cellW / cellH;
           let drawW, drawH;
-
-          // Uniform scaling logic (object-contain behavior)
-          if (imgData.aspectRatio > cellRatio) {
-            drawW = cellW;
-            drawH = cellW / imgData.aspectRatio;
-          } else {
-            drawH = cellH;
-            drawW = cellH * imgData.aspectRatio;
-          }
-
+          if (imgData.aspectRatio > cellRatio) { drawW = cellW; drawH = cellW / imgData.aspectRatio; }
+          else { drawH = cellH; drawW = cellH * imgData.aspectRatio; }
           const finalW = drawW * imgData.zoom;
           const finalH = drawH * imgData.zoom;
           const offX = imgData.offsetX * scale;
           const offY = imgData.offsetY * scale;
-
           const drawX = cellX + (cellW - finalW) / 2 + offX;
           const drawY = cellY + (cellH - finalH) / 2 + offY;
-
           ctx.drawImage(img, drawX, drawY, finalW, finalH);
           ctx.restore();
         }
       }
 
       const link = document.createElement('a');
-      link.download = `Collage_Quick_${Date.now()}.jpg`;
+      link.download = `Collage_${Date.now()}.jpg`;
       link.href = canvas.toDataURL('image/jpeg', 0.95);
       link.click();
-      toast({ title: lang === 'es' ? "Collage Exportado" : "Collage Exported" });
     } catch (e) {
       console.error(e);
-      toast({ variant: 'destructive', title: "Error", description: "No se pudo generar la imagen." });
     } finally {
       setIsExporting(false);
     }
   };
 
-  if (!mounted) return null;
-
-  const renderSectionContent = (isMobileView?: boolean) => (
-    <div className={cn("space-y-6", isMobileView ? "p-4 pb-24" : "p-4")}>
+  const renderSidebarControls = () => (
+    <div className="space-y-6 p-4">
       <div className="space-y-4">
         <div className="flex items-center gap-2">
           <Square className="h-4 w-4 text-primary" />
@@ -429,11 +420,7 @@ export default function CollageEditor() {
         <div className="grid grid-cols-3 gap-2">
           {ASPECT_RATIOS.map(item => (
             <Button 
-              key={item.id}
-              variant={aspectRatio.id === item.id ? 'default' : 'outline'}
-              className="h-14 flex-col gap-1 rounded-xl"
-              onClick={() => setAspectRatio(item)}
-            >
+              key={item.id} variant={aspectRatio.id === item.id ? 'default' : 'outline'} className="h-14 flex-col gap-1 rounded-xl" onClick={() => setAspectRatio(item)}>
               <item.icon className="h-4 w-4" />
               <span className="text-[8px] font-black uppercase">{t[item.label as keyof typeof t]}</span>
             </Button>
@@ -445,57 +432,41 @@ export default function CollageEditor() {
 
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <AlignLeft className="h-4 w-4 text-primary" />
-            <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t.header}</h2>
-          </div>
+          <div className="flex items-center gap-2"><AlignLeft className="h-4 w-4 text-primary" /><h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t.header}</h2></div>
           <Switch checked={hasHeader} onCheckedChange={setHasHeader} />
         </div>
         {hasHeader && (
-          <div className="space-y-4 bg-muted/50 p-3 rounded-xl">
-             <div className="space-y-2">
-                <Label className="text-[9px] font-black uppercase text-muted-foreground">Altura de Cabecera</Label>
-                <Slider value={[headerHeight]} onValueChange={v => setHeaderHeight(v[0])} min={5} max={30} />
-             </div>
-             <div className="space-y-3">
-               {headerColumns.map((col) => (
-                 <div key={col.id} className="p-2 bg-background rounded-lg border border-border space-y-2 relative group">
-                    <button onClick={() => removeHeaderColumn(col.id)} className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><X className="h-2 w-2"/></button>
-                    <div className="flex items-center justify-between gap-2">
-                       <div className="flex gap-1 bg-muted p-0.5 rounded-md">
-                          <Button size="icon" variant={col.type === 'text' ? 'default' : 'ghost'} className="h-6 w-6 rounded-sm" onClick={() => updateHeaderColumn(col.id, { type: 'text' })}><Type className="h-3 w-3"/></Button>
-                          <Button size="icon" variant={col.type === 'image' ? 'default' : 'ghost'} className="h-6 w-6 rounded-sm" onClick={() => updateHeaderColumn(col.id, { type: 'image' })}><ImageIcon className="h-3 w-3"/></Button>
-                       </div>
-                       <div className="flex gap-1">
-                          <Button size="icon" variant={col.align === 'left' ? 'secondary' : 'ghost'} className="h-5 w-5" onClick={() => updateHeaderColumn(col.id, { align: 'left' })}><AlignLeft className="h-2.5 w-2.5"/></Button>
-                          <Button size="icon" variant={col.align === 'center' ? 'secondary' : 'ghost'} className="h-5 w-5" onClick={() => updateHeaderColumn(col.id, { align: 'center' })}><AlignCenter className="h-2.5 w-2.5"/></Button>
-                          <Button size="icon" variant={col.align === 'right' ? 'secondary' : 'ghost'} className="h-5 w-5" onClick={() => updateHeaderColumn(col.id, { align: 'right' })}><AlignRight className="h-2.5 w-2.5"/></Button>
-                       </div>
-                    </div>
-                    {col.type === 'text' ? (
-                      <Input 
-                        placeholder="Texto..." 
-                        value={col.content} 
-                        onChange={e => updateHeaderColumn(col.id, { content: e.target.value })}
-                        className="h-7 text-[10px] font-bold"
-                      />
-                    ) : (
-                      <div className="space-y-2">
-                        {col.content ? (
-                          <div className="relative w-full aspect-video rounded border overflow-hidden bg-muted">
-                            <img src={col.content} className="w-full h-full object-contain" alt="Header img" />
-                            <button className="absolute top-1 right-1 h-5 w-5 bg-destructive text-white rounded-full flex items-center justify-center" onClick={() => updateHeaderColumn(col.id, { content: '' })}><X className="h-3 w-3"/></button>
-                          </div>
-                        ) : (
-                          <Button variant="outline" className="w-full h-7 text-[9px] font-black border-dashed" onClick={() => document.getElementById(`header-img-${col.id}`)?.click()}>Subir Logo</Button>
-                        )}
-                        <input type="file" id={`header-img-${col.id}`} accept="image/*" className="hidden" onChange={(e) => handleHeaderImageUpload(col.id, e)} />
+          <div className="space-y-3 bg-muted/50 p-3 rounded-xl">
+             <Slider value={[headerHeight]} onValueChange={v => setHeaderHeight(v[0])} min={5} max={30} />
+             {headerColumns.map((col) => (
+                <div key={col.id} className="p-2 bg-background rounded-lg border border-border space-y-2 relative group">
+                   <button onClick={() => removeHeaderColumn(col.id)} className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><X className="h-2 w-2"/></button>
+                   <div className="flex items-center justify-between gap-2">
+                      <div className="flex gap-1 bg-muted p-0.5 rounded-md">
+                        <Button size="icon" variant={col.type === 'text' ? 'default' : 'ghost'} className="h-6 w-6 rounded-sm" onClick={() => updateHeaderColumn(col.id, { type: 'text' })}><Type className="h-3 w-3"/></Button>
+                        <Button size="icon" variant={col.type === 'image' ? 'default' : 'ghost'} className="h-6 w-6 rounded-sm" onClick={() => updateHeaderColumn(col.id, { type: 'image' })}><ImageIcon className="h-3 w-3"/></Button>
                       </div>
-                    )}
-                 </div>
-               ))}
-               <Button variant="outline" className="w-full h-8 text-[9px] font-black border-dashed gap-1" onClick={addHeaderColumn}><Plus className="h-3 w-3" />Añadir Sección</Button>
-             </div>
+                      <div className="flex gap-1">
+                        <Button size="icon" variant={col.align === 'left' ? 'secondary' : 'ghost'} className="h-5 w-5" onClick={() => updateHeaderColumn(col.id, { align: 'left' })}><AlignLeft className="h-2.5 w-2.5"/></Button>
+                        <Button size="icon" variant={col.align === 'center' ? 'secondary' : 'ghost'} className="h-5 w-5" onClick={() => updateHeaderColumn(col.id, { align: 'center' })}><AlignCenter className="h-2.5 w-2.5"/></Button>
+                        <Button size="icon" variant={col.align === 'right' ? 'secondary' : 'ghost'} className="h-5 w-5" onClick={() => updateHeaderColumn(col.id, { align: 'right' })}><AlignRight className="h-2.5 w-2.5"/></Button>
+                      </div>
+                   </div>
+                   {col.type === 'text' ? (
+                     <Input placeholder="Texto..." value={col.content} onChange={e => updateHeaderColumn(col.id, { content: e.target.value })} className="h-7 text-[10px] font-bold" />
+                   ) : (
+                     <div className="space-y-2">
+                       {col.content ? (
+                         <div className="relative w-full aspect-video rounded border overflow-hidden bg-muted"><img src={col.content} className="w-full h-full object-contain" alt="H" /><button className="absolute top-1 right-1 h-5 w-5 bg-destructive text-white rounded-full flex items-center justify-center" onClick={() => updateHeaderColumn(col.id, { content: '' })}><X className="h-3 w-3"/></button></div>
+                       ) : (
+                         <Button variant="outline" className="w-full h-7 text-[9px] font-black border-dashed" onClick={() => document.getElementById(`header-img-${col.id}`)?.click()}>Subir Logo</Button>
+                       )}
+                       <input type="file" id={`header-img-${col.id}`} accept="image/*" className="hidden" onChange={(e) => handleHeaderImageUpload(col.id, e)} />
+                     </div>
+                   )}
+                </div>
+             ))}
+             <Button variant="outline" className="w-full h-8 text-[9px] font-black border-dashed gap-1" onClick={addHeaderColumn}><Plus className="h-3 w-3" />Añadir Sección</Button>
           </div>
         )}
       </div>
@@ -503,39 +474,18 @@ export default function CollageEditor() {
       <Separator />
 
       <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <GripVertical className="h-4 w-4 text-primary" />
-          <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t.sections}</h2>
-        </div>
+        <div className="flex items-center gap-2"><GripVertical className="h-4 w-4 text-primary" /><h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t.sections}</h2></div>
         <Select value={numSections.toString()} onValueChange={v => setNumSections(parseInt(v))}>
           <SelectTrigger className="h-9 font-bold rounded-xl bg-card border-2"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            {[1, 2, 3, 4].map(n => <SelectItem key={n} value={n.toString()} className="font-bold">{n} {lang === 'es' ? 'Secciones' : 'Sections'}</SelectItem>)}
-          </SelectContent>
+          <SelectContent>{[1, 2, 3, 4].map(n => <SelectItem key={n} value={n.toString()} className="font-bold">{n} Secciones</SelectItem>)}</SelectContent>
         </Select>
-        {numSections > 1 && (
-          <div className="space-y-4 pt-2">
-            {sectionSplits.slice(0, numSections).map((val, idx) => (
-              <div key={idx} className="space-y-1">
-                <Label className="text-[9px] font-black uppercase text-muted-foreground">Tamaño Área {idx + 1}</Label>
-                <Slider value={[val]} onValueChange={v => {
-                  const newSplits = [...sectionSplits];
-                  newSplits[idx] = v[0];
-                  setSectionSplits(newSplits);
-                }} min={10} max={90} />
-              </div>
-            ))}
-          </div>
-        )}
+        <p className="text-[9px] text-muted-foreground leading-tight italic">Puedes redimensionar cada área arrastrando las líneas en la previsualización.</p>
       </div>
 
       <Separator />
 
       <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <Palette className="h-4 w-4 text-primary" />
-          <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t.background}</h2>
-        </div>
+        <div className="flex items-center gap-2"><Palette className="h-4 w-4 text-primary" /><h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t.background}</h2></div>
         <div className="flex flex-wrap gap-2">
           {COLORS.map(c => (
             <button key={c} className={cn("w-6 h-6 rounded-full border border-border transition-all active:scale-90", bgColor === c && "ring-2 ring-primary")} style={{ backgroundColor: c }} onClick={() => { setBgColor(c); setActiveGradient('none'); }} />
@@ -543,9 +493,7 @@ export default function CollageEditor() {
         </div>
         <Select value={activeGradient} onValueChange={setActiveGradient}>
           <SelectTrigger className="h-9 font-bold rounded-xl bg-card border-2"><SelectValue placeholder="Degradados" /></SelectTrigger>
-          <SelectContent>
-            {GRADIENTS.map(g => <SelectItem key={g.name} value={g.value} className="font-bold">{g.name}</SelectItem>)}
-          </SelectContent>
+          <SelectContent>{GRADIENTS.map(g => <SelectItem key={g.name} value={g.value} className="font-bold">{g.name}</SelectItem>)}</SelectContent>
         </Select>
         <div className="space-y-2 pt-2">
           <div className="flex justify-between"><Label className="text-[9px] font-black uppercase text-muted-foreground">{t.spacing}</Label><span className="text-[10px] font-bold">{spacing} cm</span></div>
@@ -555,8 +503,10 @@ export default function CollageEditor() {
     </div>
   );
 
+  if (!mounted) return null;
+
   return (
-    <div className="flex flex-col h-screen bg-background font-body overflow-hidden transition-colors duration-300">
+    <div className="flex flex-col h-screen bg-background font-body overflow-hidden transition-colors duration-300" onMouseMove={handleGlobalMouseMove} onMouseUp={handleGlobalMouseUp}>
       <header className="h-16 shrink-0 border-b border-border bg-background/80 backdrop-blur-md flex items-center justify-between px-6 z-50">
         <div className="flex items-center gap-4">
           <Link href="/"><Button variant="ghost" size="sm" className="gap-2 font-bold text-muted-foreground px-2"><ChevronLeft className="h-4 w-4" /><span className="hidden sm:inline text-xs">Inicio</span></Button></Link>
@@ -576,26 +526,17 @@ export default function CollageEditor() {
       <main className="flex-1 flex overflow-hidden relative">
         <div className="flex-1 overflow-y-auto p-4 md:p-12 bg-muted/30 flex flex-col items-center justify-start lg:justify-center relative">
           <div 
+            ref={previewRef}
             id="collage-preview-container"
             className="relative bg-white shadow-[0_40px_100px_-20px_rgba(0,0,0,0.3)] rounded-sm overflow-hidden border border-border"
-            style={{ 
-              width: 'min(90vw, 450px)', 
-              aspectRatio: `${aspectRatio.ratio}`,
-              background: activeGradient !== 'none' ? activeGradient : bgColor
-            }}
+            style={{ width: 'min(90vw, 450px)', aspectRatio: `${aspectRatio.ratio}`, background: activeGradient !== 'none' ? activeGradient : bgColor }}
           >
-            {/* Header */}
             {hasHeader && (
-              <div 
-                className="absolute top-0 left-0 w-full flex items-center px-4 overflow-hidden z-30"
-                style={{ height: `${headerHeight}%` }}
-              >
+              <div className="absolute top-0 left-0 w-full flex items-center px-4 overflow-hidden z-30" style={{ height: `${headerHeight}%` }}>
                 {headerColumns.map(col => (
                   <div key={col.id} className={cn("flex-1 h-full flex items-center", col.align === 'center' ? 'justify-center text-center' : col.align === 'right' ? 'justify-end text-right' : 'justify-start text-left')}>
                     {col.type === 'text' ? (
-                      <span className={cn("text-[11px] font-black uppercase tracking-widest leading-none", (bgColor === '#000000' || activeGradient.includes('#232526')) ? 'text-white' : 'text-foreground')}>
-                        {col.content}
-                      </span>
+                      <span className={cn("text-[11px] font-black uppercase tracking-widest leading-none", (bgColor === '#000000' || activeGradient.includes('#232526')) ? 'text-white' : 'text-foreground')}>{col.content}</span>
                     ) : (
                       col.content && <img src={col.content} className="max-h-[70%] w-auto object-contain" alt="H" />
                     )}
@@ -604,81 +545,35 @@ export default function CollageEditor() {
               </div>
             )}
 
-            {/* Sections */}
-            {sectionsLayout.map(section => {
+            {sectionsLayout.map((section, idx) => {
               const sectionImages = images.filter(img => img.sectionId === section.id);
               const isActive = activeSection === section.id;
-              
               const sectionW_px = 450;
               const sectionH_px = (section.height / 100) * (450 / aspectRatio.ratio);
               const sRatio = sectionW_px / sectionH_px;
-              
-              // Smart Grid calculation
               const mosaic = getMosaicLayout(sectionImages.length, sRatio);
 
               return (
-                <div 
-                  key={section.id}
-                  className={cn(
-                    "absolute left-0 w-full transition-all cursor-pointer group",
-                    isActive ? "ring-2 ring-primary ring-inset z-20" : "hover:bg-black/5"
-                  )}
-                  style={{ top: `${section.top}%`, height: `${section.height}%` }}
-                  onClick={() => setActiveSection(section.id)}
-                >
+                <div key={section.id} className={cn("absolute left-0 w-full transition-all cursor-pointer group", isActive ? "ring-2 ring-primary ring-inset z-20" : "hover:bg-black/5")} style={{ top: `${section.top}%`, height: `${section.height}%` }} onClick={() => setActiveSection(section.id)}>
                   {sectionImages.length === 0 ? (
-                    <div className="w-full h-full flex flex-col items-center justify-center gap-2">
-                      <PlusCircle className="h-6 w-6 text-muted-foreground/30 group-hover:scale-110 transition-transform" />
-                      <span className="text-[7px] font-black uppercase text-muted-foreground/30 tracking-widest">{t.selectToEdit}</span>
-                    </div>
+                    <div className="w-full h-full flex flex-col items-center justify-center gap-2"><PlusCircle className="h-6 w-6 text-muted-foreground/30 group-hover:scale-110 transition-transform" /><span className="text-[7px] font-black uppercase text-muted-foreground/30 tracking-widest">{t.selectToEdit}</span></div>
                   ) : (
                     <div className="w-full h-full relative">
                       {sectionImages.map((img, i) => {
                         const layout = mosaic[i];
-                        const pad = spacing * 5; // Internal spacing in px (approx)
-
+                        const pad = spacing * 5;
                         return (
-                          <div 
-                            key={img.id} 
-                            className={cn(
-                              "absolute overflow-hidden group/img transition-all",
-                              selectedImageId === img.id ? "ring-2 ring-accent z-10" : "hover:bg-black/5"
-                            )}
-                            style={{
-                              left: `${layout.x}%`,
-                              top: `${layout.y}%`,
-                              width: `${layout.w}%`,
-                              height: `${layout.h}%`,
-                              padding: `${pad}px`
-                            }}
-                            onClick={(e) => { e.stopPropagation(); setSelectedImageId(img.id); }}
-                          >
+                          <div key={img.id} className={cn("absolute overflow-hidden group/img transition-all", selectedImageId === img.id ? "ring-2 ring-accent z-10" : "hover:bg-black/5")} style={{ left: `${layout.x}%`, top: `${layout.y}%`, width: `${layout.w}%`, height: `${layout.h}%`, padding: `${pad}px` }} onClick={(e) => { e.stopPropagation(); setSelectedImageId(img.id); }}>
                             <div className="w-full h-full relative overflow-hidden bg-muted/20 rounded-[1px]">
-                              <img 
-                                src={img.url} 
-                                alt=""
-                                className="w-full h-full object-contain transition-transform select-none"
-                                style={{ transform: `scale(${img.zoom}) translate(${img.offsetX}px, ${img.offsetY}px)` }}
-                                draggable={false}
-                              />
+                              <img src={img.url} alt="" className="w-full h-full object-contain transition-transform select-none" style={{ transform: `scale(${img.zoom}) translate(${img.offsetX}px, ${img.offsetY}px)` }} draggable={false} />
                             </div>
-                            
                             {selectedImageId === img.id && (
                               <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-[2px] animate-in fade-in duration-200">
                                 <div className="bg-background/95 p-2 rounded-xl shadow-2xl flex flex-col gap-3 w-[85%] pointer-events-auto">
-                                   <div className="flex items-center justify-between gap-4">
-                                      <span className="text-[7px] font-black uppercase text-muted-foreground">Zoom</span>
-                                      <Slider value={[img.zoom]} min={1} max={5} step={0.01} onValueChange={v => updateImageTransform(img.id, { zoom: v[0] })} className="flex-1" />
-                                   </div>
+                                   <div className="flex items-center justify-between gap-4"><span className="text-[7px] font-black uppercase text-muted-foreground">Zoom</span><Slider value={[img.zoom]} min={1} max={5} step={0.01} onValueChange={v => updateImageTransform(img.id, { zoom: v[0] })} className="flex-1" /></div>
                                    <div className="grid grid-cols-2 gap-2">
                                       <Button size="icon" variant="secondary" className="h-8 w-full rounded-lg" onClick={(e) => { e.stopPropagation(); setSelectedImageId(null); }}><Check className="h-4 w-4"/></Button>
                                       <Button size="icon" variant="destructive" className="h-8 w-full rounded-lg" onClick={(e) => { e.stopPropagation(); setImages(prev => prev.filter(i => i.id !== img.id)); setSelectedImageId(null); }}><Trash2 className="h-4 w-4"/></Button>
-                                   </div>
-                                   <div className="flex items-center justify-center gap-1">
-                                      <Button size="icon" variant="outline" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); updateImageTransform(img.id, { offsetX: img.offsetX - 5 }); }}><AlignLeft className="h-3 w-3"/></Button>
-                                      <Button size="icon" variant="outline" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); updateImageTransform(img.id, { offsetY: img.offsetY - 5 }); }}><ChevronDown className="h-3 w-3 rotate-180"/></Button>
-                                      <Button size="icon" variant="outline" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); updateImageTransform(img.id, { offsetY: img.offsetY + 5 }); }}><ChevronDown className="h-3 w-3"/></Button>
-                                      <Button size="icon" variant="outline" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); updateImageTransform(img.id, { offsetX: img.offsetX + 5 }); }}><AlignRight className="h-3 w-3"/></Button>
                                    </div>
                                 </div>
                               </div>
@@ -691,24 +586,27 @@ export default function CollageEditor() {
 
                   {isActive && !selectedImageId && (
                     <div className="absolute bottom-2 right-2 flex gap-2 z-40">
-                      {sectionImages.length > 0 && (
-                        <Button 
-                          size="icon" 
-                          variant="secondary"
-                          className="h-8 w-8 rounded-full shadow-lg bg-accent text-white" 
-                          onClick={(e) => { 
-                            e.stopPropagation(); 
-                            autoFillSection(section.id, mosaic, sectionW_px, sectionH_px); 
-                          }}
-                          title={lang === 'es' ? "Rellenar Espacios" : "Fill Area"}
-                        >
-                          <Maximize2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                      <Button size="icon" className="h-8 w-8 rounded-full shadow-lg bg-primary hover:bg-primary/90" onClick={(e) => { e.stopPropagation(); document.getElementById(`upload-${section.id}`)?.click(); }}>
-                        <Plus className="h-4 w-4" />
-                      </Button>
+                      {sectionImages.length > 0 && <Button size="icon" variant="secondary" className="h-8 w-8 rounded-full shadow-lg bg-accent text-white" onClick={(e) => { e.stopPropagation(); autoFillSection(section.id, mosaic, sectionW_px, sectionH_px); }}><Maximize2 className="h-4 w-4" /></Button>}
+                      <Button size="icon" className="h-8 w-8 rounded-full shadow-lg bg-primary hover:bg-primary/90" onClick={(e) => { e.stopPropagation(); document.getElementById(`upload-${section.id}`)?.click(); }}><Plus className="h-4 w-4" /></Button>
                       <input type="file" id={`upload-${section.id}`} multiple accept="image/*" className="hidden" onChange={(e) => handleAddImages(e, section.id)} />
+                    </div>
+                  )}
+
+                  {/* Splitter Handle */}
+                  {idx < sectionsLayout.length - 1 && (
+                    <div 
+                      className="absolute bottom-0 left-0 w-full h-8 translate-y-1/2 flex items-center justify-center cursor-ns-resize z-[100] group/splitter pointer-events-auto"
+                      onMouseDown={(e) => handleSplitterMouseDown(idx, e)}
+                    >
+                      <div className="w-[40px] h-1.5 bg-primary/20 rounded-full group-hover/splitter:bg-primary transition-colors flex items-center justify-center shadow-xl">
+                         <div className="w-1 h-1 bg-white rounded-full mx-0.5" />
+                         <div className="w-1 h-1 bg-white rounded-full mx-0.5" />
+                         <div className="w-1 h-1 bg-white rounded-full mx-0.5" />
+                      </div>
+                      <div className="absolute top-1/2 -translate-y-1/2 right-2 flex flex-col items-center gap-0.5 opacity-0 group-hover/splitter:opacity-100 transition-opacity">
+                         <ChevronUp className="h-2 w-2 text-primary" />
+                         <ChevronDown className="h-2 w-2 text-primary" />
+                      </div>
                     </div>
                   )}
                 </div>
@@ -718,29 +616,19 @@ export default function CollageEditor() {
         </div>
 
         <aside className="hidden lg:flex w-80 bg-card border-l border-border flex-col shrink-0 shadow-2xl z-20">
-          <div className="flex-1 overflow-y-auto">{renderSectionContent()}</div>
-          <div className="p-6 border-t bg-muted/50">
-            <Button className="w-full h-14 bg-primary hover:bg-primary/90 text-white font-black rounded-2xl shadow-xl shadow-primary/20 uppercase tracking-widest text-xs gap-3 transition-all active:scale-95" onClick={handleExport} disabled={images.length === 0 || isExporting}>
-              {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}{isExporting ? "Generando..." : t.exportJpg}
-            </Button>
-          </div>
+          <div className="flex-1 overflow-y-auto">{renderSidebarControls()}</div>
+          <div className="p-6 border-t bg-muted/50"><Button className="w-full h-14 bg-primary hover:bg-primary/90 text-white font-black rounded-2xl shadow-xl shadow-primary/20 uppercase tracking-widest text-xs gap-3 transition-all active:scale-95" onClick={handleExport} disabled={images.length === 0 || isExporting}>{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}{isExporting ? "Generando..." : t.exportJpg}</Button></div>
         </aside>
 
         {!showConfig && (
           <div className="lg:hidden fixed bottom-6 left-6 right-6 z-[100] flex gap-3 pointer-events-auto justify-end">
-            {images.length > 0 && (
-              <div className="flex-1">
-                <Button className="w-full h-14 bg-primary hover:bg-primary/90 text-white font-black rounded-2xl shadow-xl shadow-primary/20 uppercase tracking-widest text-sm gap-3 border-4 border-white/10" onClick={handleExport} disabled={isExporting}>{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}{isExporting ? "..." : "Exportar"}</Button>
-              </div>
-            )}
+            {images.length > 0 && <div className="flex-1"><Button className="w-full h-14 bg-primary hover:bg-primary/90 text-white font-black rounded-2xl shadow-xl shadow-primary/20 uppercase tracking-widest text-sm gap-3 border-4 border-white/10" onClick={handleExport} disabled={isExporting}>{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}{isExporting ? "..." : "Exportar"}</Button></div>}
             <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-              <Button size="icon" className="h-14 w-14 shrink-0 rounded-full shadow-2xl bg-slate-800 text-white hover:bg-slate-900 transition-all active:scale-95 border-4 border-white" onClick={() => setIsMenuOpen(true)}>
-                <Settings2 className="h-6 w-6" />
-              </Button>
+              <Button size="icon" className="h-14 w-14 shrink-0 rounded-full shadow-2xl bg-slate-800 text-white hover:bg-slate-900 transition-all active:scale-95 border-4 border-white" onClick={() => setIsMenuOpen(true)}><Settings2 className="h-6 w-6" /></Button>
               <SheetContent side="right" className="w-[85%] sm:w-[400px] p-0 bg-background/95 backdrop-blur-xl shadow-2xl overflow-hidden flex flex-col z-[200]" onOpenAutoFocus={(e) => e.preventDefault()}>
                 <SheetHeader className="sr-only"><SheetTitle>Ajustes</SheetTitle></SheetHeader>
                 <div className="p-4 bg-primary/5 border-b shrink-0"><Button className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-black rounded-xl shadow-lg transition-all active:scale-95 text-xs uppercase tracking-widest gap-2" onClick={handleExport} disabled={images.length === 0 || isExporting}>{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}{isExporting ? "..." : t.exportJpg}</Button></div>
-                <div className="flex-1 overflow-y-auto relative">{renderSectionContent(true)}</div>
+                <div className="flex-1 overflow-y-auto relative">{renderSidebarControls()}</div>
               </SheetContent>
             </Sheet>
           </div>
@@ -759,37 +647,28 @@ export default function CollageEditor() {
                 <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Formato del Lienzo</Label>
                 <div className="grid grid-cols-3 gap-2">
                   {ASPECT_RATIOS.map(item => (
-                    <Button key={item.id} variant={aspectRatio.id === item.id ? 'default' : 'outline'} className="h-16 flex-col gap-1 rounded-2xl" onClick={() => setAspectRatio(item)}>
-                      <item.icon className="h-5 w-5" />
-                      <span className="text-[8px] font-black uppercase">{t[item.label as keyof typeof t]}</span>
-                    </Button>
+                    <Button key={item.id} variant={aspectRatio.id === item.id ? 'default' : 'outline'} className="h-16 flex-col gap-1 rounded-2xl" onClick={() => setAspectRatio(item)}><item.icon className="h-5 w-5" /><span className="text-[8px] font-black uppercase">{t[item.label as keyof typeof t]}</span></Button>
                   ))}
                 </div>
              </div>
              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-3">
                    <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">¿Llevará Cabecera?</Label>
-                   <div className="flex items-center gap-3 bg-muted/50 p-2 rounded-xl justify-between">
-                      <span className="text-xs font-bold">{hasHeader ? 'SÍ' : 'NO'}</span>
-                      <Switch checked={hasHeader} onCheckedChange={setHasHeader} />
-                   </div>
+                   <div className="flex items-center gap-3 bg-muted/50 p-2 rounded-xl justify-between"><span className="text-xs font-bold">{hasHeader ? 'SÍ' : 'NO'}</span><Switch checked={hasHeader} onCheckedChange={setHasHeader} /></div>
                 </div>
                 <div className="space-y-3">
                    <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Nº de Áreas</Label>
                    <Select value={numSections.toString()} onValueChange={v => setNumSections(parseInt(v))}>
                       <SelectTrigger className="h-10 font-black rounded-xl bg-muted/50 border-none"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {[1, 2, 3, 4].map(n => <SelectItem key={n} value={n.toString()} className="font-bold">{n} Secciones</SelectItem>)}
-                      </SelectContent>
+                      <SelectContent>{[1, 2, 3, 4].map(n => <SelectItem key={n} value={n.toString()} className="font-bold">{n} Secciones</SelectItem>)}</SelectContent>
                    </Select>
                 </div>
              </div>
           </div>
-          <DialogFooter>
-             <Button className="w-full h-14 bg-primary hover:bg-primary/90 text-white font-black rounded-2xl shadow-xl shadow-primary/20 text-md uppercase tracking-widest gap-2" onClick={startProject}>Empezar Diseño <Check className="h-5 w-5" /></Button>
-          </DialogFooter>
+          <DialogFooter><Button className="w-full h-14 bg-primary hover:bg-primary/90 text-white font-black rounded-2xl shadow-xl shadow-primary/20 text-md uppercase tracking-widest gap-2" onClick={startProject}>Empezar Diseño <Check className="h-5 w-5" /></Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
   );
 }
+
