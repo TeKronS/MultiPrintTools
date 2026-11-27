@@ -205,9 +205,10 @@ export default function CollageEditor() {
       // 1. Fondo
       if (activeGradient !== 'none') {
         const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-        // Simplificación de degradados para el canvas (usando colores base del CSS)
         if (activeGradient.includes('ff9a9e')) { gradient.addColorStop(0, '#ff9a9e'); gradient.addColorStop(1, '#fecfef'); }
         else if (activeGradient.includes('30cfd0')) { gradient.addColorStop(0, '#30cfd0'); gradient.addColorStop(1, '#330867'); }
+        else if (activeGradient.includes('11998e')) { gradient.addColorStop(0, '#11998e'); gradient.addColorStop(1, '#38ef7d'); }
+        else if (activeGradient.includes('232526')) { gradient.addColorStop(0, '#232526'); gradient.addColorStop(1, '#414345'); }
         else { gradient.addColorStop(0, bgColor); gradient.addColorStop(1, '#00000033'); }
         ctx.fillStyle = gradient;
       } else {
@@ -264,18 +265,24 @@ export default function CollageEditor() {
           ctx.rect(x, y, cellW, cellH);
           ctx.clip();
 
-          // Lógica de "Cover" para evitar distorsión
+          // Lógica de "Contain" para que siempre se vea completa inicialmente
           const imgAspect = img.width / img.height;
           const cellAspect = cellW / cellH;
           let drawW, drawH, drawX, drawY;
 
           if (imgAspect > cellAspect) {
-            drawH = cellH * imgData.zoom;
-            drawW = drawH * imgAspect;
+            // Imagen más ancha proporcionalmente que la celda -> ajustar al ancho
+            drawW = cellW;
+            drawH = cellW / imgAspect;
           } else {
-            drawW = cellW * imgData.zoom;
-            drawH = drawW / imgAspect;
+            // Imagen más alta proporcionalmente que la celda -> ajustar al alto
+            drawH = cellH;
+            drawW = cellH * imgAspect;
           }
+
+          // Aplicar el zoom del usuario sobre las dimensiones ajustadas
+          drawW *= imgData.zoom;
+          drawH *= imgData.zoom;
 
           drawX = x + (cellW - drawW) / 2 + (imgData.offsetX * exportScale);
           drawY = y + (cellH - drawH) / 2 + (imgData.offsetY * exportScale);
@@ -497,7 +504,7 @@ export default function CollageEditor() {
                             <img 
                               src={img.url} 
                               alt=""
-                              className="w-full h-full object-cover transition-transform select-none"
+                              className="w-full h-full object-contain transition-transform select-none"
                               style={{ transform: `scale(${img.zoom}) translate(${img.offsetX}px, ${img.offsetY}px)` }}
                               draggable={false}
                             />
@@ -630,4 +637,3 @@ export default function CollageEditor() {
     </div>
   );
 }
-
