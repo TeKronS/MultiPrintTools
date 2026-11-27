@@ -7,28 +7,18 @@ import Link from "next/link";
 import { 
   ChevronLeft, 
   Settings2,
-  RefreshCcw,
   Plus,
-  Minus,
   Trash2,
   PlusCircle,
-  ImageIcon,
-  Layout,
   Check,
-  RotateCcw,
-  Info,
   ChevronDown,
   Palette,
-  Type,
   Square,
   RectangleVertical,
   Instagram,
   Download,
   Loader2,
   GripVertical,
-  Maximize2,
-  Move,
-  Text as TextIcon,
   AlignLeft,
   AlignCenter,
   AlignRight
@@ -111,16 +101,16 @@ export default function CollageEditor() {
   const t = translations[lang];
   const { toast } = useToast();
 
-  // Estados de Configuración
+  // Configuración
   const [showConfig, setShowConfig] = useState(true);
   const [aspectRatio, setAspectRatio] = useState(ASPECT_RATIOS[0]);
   const [hasHeader, setHasHeader] = useState(false);
   const [numSections, setNumSections] = useState(1);
   
-  // Estados de Diseño
+  // Diseño
   const [headerHeight, setHeaderHeight] = useState(12);
   const [headerColumns, setHeaderColumns] = useState<HeaderColumn[]>([]);
-  const [sectionSplits, setSectionSplits] = useState<number[]>([50, 50, 50]); 
+  const [sectionSplits, setSectionSplits] = useState<number[]>([50, 50, 50, 50]); 
   const [images, setImages] = useState<CollageImage[]>([]);
   const [activeSection, setActiveSection] = useState(1);
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
@@ -164,7 +154,6 @@ export default function CollageEditor() {
     setImages(prev => prev.map(img => img.id === id ? { ...img, ...updates } : img));
   };
 
-  // Lógica de Layout dinámico de secciones
   const sectionsLayout = useMemo(() => {
     const layout = [];
     const baseTop = hasHeader ? headerHeight : 0;
@@ -174,9 +163,7 @@ export default function CollageEditor() {
       layout.push({ id: 1, top: baseTop, height: availableH });
     } else {
       let currentTop = baseTop;
-      // Los splits son % del espacio DISPONIBLE
       const totalShares = sectionSplits.slice(0, numSections).reduce((a, b) => a + b, 0);
-      
       for (let i = 0; i < numSections; i++) {
         const share = sectionSplits[i] || 50;
         const hPercent = (share / totalShares) * availableH;
@@ -196,21 +183,25 @@ export default function CollageEditor() {
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      const exportScale = 4; // Multiplicador para alta resolución
       const baseW = 1080;
       const baseH = baseW / aspectRatio.ratio;
+      const exportScale = 2; // Multiplicador para 2K aprox
       canvas.width = baseW * exportScale;
       canvas.height = baseH * exportScale;
 
+      // Importante: El factor de escala entre el UI (450px) y el Canvas (2160px)
+      // para que los desplazamientos coincidan exactamente.
+      const uiBaseWidth = 450; 
+      const uiToCanvasRatio = canvas.width / uiBaseWidth;
+
       // 1. Fondo
       if (activeGradient !== 'none') {
-        const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-        if (activeGradient.includes('ff9a9e')) { gradient.addColorStop(0, '#ff9a9e'); gradient.addColorStop(1, '#fecfef'); }
-        else if (activeGradient.includes('30cfd0')) { gradient.addColorStop(0, '#30cfd0'); gradient.addColorStop(1, '#330867'); }
-        else if (activeGradient.includes('11998e')) { gradient.addColorStop(0, '#11998e'); gradient.addColorStop(1, '#38ef7d'); }
-        else if (activeGradient.includes('232526')) { gradient.addColorStop(0, '#232526'); gradient.addColorStop(1, '#414345'); }
-        else { gradient.addColorStop(0, bgColor); gradient.addColorStop(1, '#00000033'); }
-        ctx.fillStyle = gradient;
+        const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        if (activeGradient.includes('#ff9a9e')) { grad.addColorStop(0, '#ff9a9e'); grad.addColorStop(1, '#fecfef'); }
+        else if (activeGradient.includes('#30cfd0')) { grad.addColorStop(0, '#30cfd0'); grad.addColorStop(1, '#330867'); }
+        else if (activeGradient.includes('#11998e')) { grad.addColorStop(0, '#11998e'); grad.addColorStop(1, '#38ef7d'); }
+        else if (activeGradient.includes('#232526')) { grad.addColorStop(0, '#232526'); grad.addColorStop(1, '#414345'); }
+        ctx.fillStyle = grad;
       } else {
         ctx.fillStyle = bgColor;
       }
@@ -219,16 +210,14 @@ export default function CollageEditor() {
       // 2. Cabecera
       if (hasHeader) {
         const hHeight = (headerHeight / 100) * canvas.height;
-        ctx.fillStyle = 'rgba(255,255,255,0.1)';
-        ctx.fillRect(0, 0, canvas.width, hHeight);
-        
         for (const col of headerColumns) {
           if (col.type === 'text') {
-            ctx.fillStyle = bgColor === '#000000' ? 'white' : 'black';
-            ctx.font = `bold ${40 * exportScale}px sans-serif`;
+            ctx.fillStyle = (bgColor === '#000000' || activeGradient.includes('#232526')) ? 'white' : 'black';
+            ctx.font = `black ${45 * exportScale}px sans-serif`;
             ctx.textAlign = col.align;
-            const x = col.align === 'left' ? 20 * exportScale : col.align === 'right' ? canvas.width - (20 * exportScale) : canvas.width / 2;
-            ctx.fillText(col.content, x, hHeight / 1.5);
+            ctx.textBaseline = 'middle';
+            const x = col.align === 'left' ? 40 * exportScale : col.align === 'right' ? canvas.width - (40 * exportScale) : canvas.width / 2;
+            ctx.fillText(col.content.toUpperCase(), x, hHeight / 2);
           }
         }
       }
@@ -240,9 +229,11 @@ export default function CollageEditor() {
 
         const sTop = (section.top / 100) * canvas.height;
         const sHeight = (section.height / 100) * canvas.height;
-        const pad = (spacing * 10) * exportScale;
+        
+        // El espaciado se calcula en píxeles del canvas
+        // En el UI es 'cm' (basado en 1cm = aprox 37px en pantalla), aquí escalamos
+        const pad = (spacing * 37.8) * uiToCanvasRatio;
 
-        // Grid simple dentro de la sección
         const cols = sImgs.length > 1 ? 2 : 1;
         const rows = Math.ceil(sImgs.length / cols);
         const cellW = (canvas.width - (pad * (cols + 1))) / cols;
@@ -253,8 +244,8 @@ export default function CollageEditor() {
           const colIdx = i % cols;
           const rowIdx = Math.floor(i / cols);
 
-          const x = pad + (colIdx * (cellW + pad));
-          const y = sTop + pad + (rowIdx * (cellH + pad));
+          const xPos = pad + (colIdx * (cellW + pad));
+          const yPos = sTop + pad + (rowIdx * (cellH + pad));
 
           const img = new window.Image();
           img.src = imgData.url;
@@ -262,45 +253,47 @@ export default function CollageEditor() {
 
           ctx.save();
           ctx.beginPath();
-          ctx.rect(x, y, cellW, cellH);
+          ctx.rect(xPos, yPos, cellW, cellH);
           ctx.clip();
 
-          // Lógica de "Contain" para que siempre se vea completa inicialmente
+          // Lógica 'Contain' exacta
           const imgAspect = img.width / img.height;
           const cellAspect = cellW / cellH;
-          let drawW, drawH, drawX, drawY;
+          let drawW, drawH;
 
           if (imgAspect > cellAspect) {
-            // Imagen más ancha proporcionalmente que la celda -> ajustar al ancho
             drawW = cellW;
             drawH = cellW / imgAspect;
           } else {
-            // Imagen más alta proporcionalmente que la celda -> ajustar al alto
             drawH = cellH;
             drawW = cellH * imgAspect;
           }
 
-          // Aplicar el zoom del usuario sobre las dimensiones ajustadas
-          drawW *= imgData.zoom;
-          drawH *= imgData.zoom;
+          // Aplicar Zoom
+          const finalW = drawW * imgData.zoom;
+          const finalH = drawH * imgData.zoom;
 
-          drawX = x + (cellW - drawW) / 2 + (imgData.offsetX * exportScale);
-          drawY = y + (cellH - drawH) / 2 + (imgData.offsetY * exportScale);
+          // Aplicar Desplazamiento escalado
+          const offX = imgData.offsetX * uiToCanvasRatio;
+          const offY = imgData.offsetY * uiToCanvasRatio;
 
-          ctx.drawImage(img, drawX, drawY, drawW, drawH);
+          const drawX = xPos + (cellW - finalW) / 2 + offX;
+          const drawY = yPos + (cellH - finalH) / 2 + offY;
+
+          ctx.drawImage(img, drawX, drawY, finalW, finalH);
           ctx.restore();
         }
       }
 
       const link = document.createElement('a');
       link.download = `Collage_${Date.now()}.jpg`;
-      link.href = canvas.toDataURL('image/jpeg', 0.95);
+      link.href = canvas.toDataURL('image/jpeg', 0.92);
       link.click();
       
-      toast({ title: "Collage Listo", description: "La imagen se ha descargado correctamente." });
+      toast({ title: "Collage Exportado", description: "La imagen se ha guardado en tu dispositivo." });
     } catch (e) {
       console.error(e);
-      toast({ variant: 'destructive', title: "Error", description: "No se pudo generar la imagen." });
+      toast({ variant: 'destructive', title: "Error", description: "No se pudo generar la imagen final." });
     } finally {
       setIsExporting(false);
     }
@@ -312,7 +305,7 @@ export default function CollageEditor() {
     <div className={cn("space-y-6", isMobileView ? "p-4 pb-24" : "p-4")}>
       <div className="space-y-4">
         <div className="flex items-center gap-2">
-          <Layout className="h-4 w-4 text-primary" />
+          <Square className="h-4 w-4 text-primary" />
           <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t.format}</h2>
         </div>
         <div className="grid grid-cols-3 gap-2">
@@ -335,7 +328,7 @@ export default function CollageEditor() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Type className="h-4 w-4 text-primary" />
+            <AlignLeft className="h-4 w-4 text-primary" />
             <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t.header}</h2>
           </div>
           <Switch checked={hasHeader} onCheckedChange={setHasHeader} />
@@ -349,7 +342,7 @@ export default function CollageEditor() {
              {headerColumns.map((col, idx) => (
                <div key={col.id} className="space-y-2 pt-2 border-t">
                   <Input 
-                    placeholder="Texto o Logo URL..." 
+                    placeholder="Texto de cabecera..." 
                     value={col.content} 
                     onChange={e => {
                       const newCols = [...headerColumns];
@@ -445,6 +438,7 @@ export default function CollageEditor() {
       <main className="flex-1 flex overflow-hidden relative">
         <div className="flex-1 overflow-y-auto p-4 md:p-12 bg-muted/30 flex flex-col items-center justify-start lg:justify-center relative">
           <div 
+            id="collage-preview-container"
             className="relative bg-white shadow-[0_40px_100px_-20px_rgba(0,0,0,0.3)] rounded-sm overflow-hidden border border-border"
             style={{ 
               width: 'min(90vw, 450px)', 
@@ -455,12 +449,12 @@ export default function CollageEditor() {
             {/* Header Rendering */}
             {hasHeader && (
               <div 
-                className="absolute top-0 left-0 w-full bg-white/10 flex items-center px-4 border-b border-black/5 overflow-hidden"
+                className="absolute top-0 left-0 w-full flex items-center px-4 overflow-hidden z-30"
                 style={{ height: `${headerHeight}%` }}
               >
                 {headerColumns.map(col => (
                   <div key={col.id} className={cn("flex-1", col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left')}>
-                    <span className="text-[10px] font-black uppercase text-foreground/80 tracking-widest leading-none">{col.content}</span>
+                    <span className={cn("text-[11px] font-black uppercase tracking-widest leading-none", (bgColor === '#000000' || activeGradient.includes('#232526')) ? 'text-white' : 'text-foreground')}>{col.content}</span>
                   </div>
                 ))}
               </div>
@@ -511,24 +505,22 @@ export default function CollageEditor() {
                             
                             <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/10 transition-colors pointer-events-none" />
                             
-                            {/* Controls if selected */}
                             {selectedImageId === img.id && (
                               <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-[2px] animate-in fade-in duration-200">
-                                <div className="bg-background/95 p-2 rounded-xl shadow-2xl flex flex-col gap-3 w-[80%]">
+                                <div className="bg-background/95 p-2 rounded-xl shadow-2xl flex flex-col gap-3 w-[80%] pointer-events-auto">
                                    <div className="flex items-center justify-between gap-4">
                                       <div className="flex flex-col"><span className="text-[7px] font-black uppercase text-muted-foreground">Zoom</span></div>
                                       <Slider value={[img.zoom]} min={1} max={3} step={0.01} onValueChange={v => updateImageTransform(img.id, { zoom: v[0] })} className="flex-1" />
                                    </div>
                                    <div className="grid grid-cols-2 gap-2">
-                                      <Button size="icon" variant="secondary" className="h-8 w-full rounded-lg" onClick={() => setSelectedImageId(null)}><Check className="h-4 w-4"/></Button>
-                                      <Button size="icon" variant="destructive" className="h-8 w-full rounded-lg" onClick={() => { setImages(prev => prev.filter(i => i.id !== img.id)); setSelectedImageId(null); }}><Trash2 className="h-4 w-4"/></Button>
+                                      <Button size="icon" variant="secondary" className="h-8 w-full rounded-lg" onClick={(e) => { e.stopPropagation(); setSelectedImageId(null); }}><Check className="h-4 w-4"/></Button>
+                                      <Button size="icon" variant="destructive" className="h-8 w-full rounded-lg" onClick={(e) => { e.stopPropagation(); setImages(prev => prev.filter(i => i.id !== img.id)); setSelectedImageId(null); }}><Trash2 className="h-4 w-4"/></Button>
                                    </div>
-                                   {/* Pan Controls */}
                                    <div className="flex items-center justify-center gap-2">
-                                      <Button size="icon" variant="outline" className="h-6 w-6" onClick={() => updateImageTransform(img.id, { offsetX: img.offsetX - 10 })}><AlignLeft className="h-3 w-3"/></Button>
-                                      <Button size="icon" variant="outline" className="h-6 w-6" onClick={() => updateImageTransform(img.id, { offsetY: img.offsetY - 10 })}><ChevronDown className="h-3 w-3 rotate-180"/></Button>
-                                      <Button size="icon" variant="outline" className="h-6 w-6" onClick={() => updateImageTransform(img.id, { offsetY: img.offsetY + 10 })}><ChevronDown className="h-3 w-3"/></Button>
-                                      <Button size="icon" variant="outline" className="h-6 w-6" onClick={() => updateImageTransform(img.id, { offsetX: img.offsetX + 10 })}><AlignRight className="h-3 w-3"/></Button>
+                                      <Button size="icon" variant="outline" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); updateImageTransform(img.id, { offsetX: img.offsetX - 5 }); }}><AlignLeft className="h-3 w-3"/></Button>
+                                      <Button size="icon" variant="outline" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); updateImageTransform(img.id, { offsetY: img.offsetY - 5 }); }}><ChevronDown className="h-3 w-3 rotate-180"/></Button>
+                                      <Button size="icon" variant="outline" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); updateImageTransform(img.id, { offsetY: img.offsetY + 5 }); }}><ChevronDown className="h-3 w-3"/></Button>
+                                      <Button size="icon" variant="outline" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); updateImageTransform(img.id, { offsetX: img.offsetX + 5 }); }}><AlignRight className="h-3 w-3"/></Button>
                                    </div>
                                 </div>
                               </div>
@@ -539,10 +531,9 @@ export default function CollageEditor() {
                     </div>
                   )}
 
-                  {/* Add Image Button for active section */}
                   {isActive && !selectedImageId && (
-                    <div className="absolute bottom-2 right-2 flex gap-2">
-                      <Button size="icon" className="h-8 w-8 rounded-full shadow-lg bg-primary hover:bg-primary/90" onClick={() => document.getElementById(`upload-${section.id}`)?.click()}>
+                    <div className="absolute bottom-2 right-2 flex gap-2 z-40">
+                      <Button size="icon" className="h-8 w-8 rounded-full shadow-lg bg-primary hover:bg-primary/90" onClick={(e) => { e.stopPropagation(); document.getElementById(`upload-${section.id}`)?.click(); }}>
                         <Plus className="h-4 w-4" />
                       </Button>
                       <input type="file" id={`upload-${section.id}`} multiple accept="image/*" className="hidden" onChange={(e) => handleAddImages(e, section.id)} />
@@ -557,8 +548,6 @@ export default function CollageEditor() {
               <div className="flex flex-col"><span className="text-[8px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">Área Activa</span><span className="text-xs font-black text-primary">Sección {activeSection}</span></div>
               <Separator orientation="vertical" className="h-8" />
               <div className="flex flex-col"><span className="text-[8px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">Total Fotos</span><span className="text-xs font-black text-foreground">{images.length}</span></div>
-              <Separator orientation="vertical" className="h-8" />
-              <div className="flex flex-col"><span className="text-[8px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">Estilo</span><span className="text-[10px] font-bold text-accent uppercase">{activeGradient !== 'none' ? 'Degradado' : 'Sólido'}</span></div>
           </div>
         </div>
 
@@ -594,7 +583,7 @@ export default function CollageEditor() {
       <Dialog open={showConfig} onOpenChange={setShowConfig}>
         <DialogContent className="max-w-md rounded-3xl p-8 border-none shadow-2xl">
           <DialogHeader className="space-y-3">
-             <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-2"><Layout className="h-6 w-6 text-primary" /></div>
+             <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-2"><Square className="h-6 w-6 text-primary" /></div>
              <DialogTitle className="text-2xl font-black text-center uppercase tracking-tighter">Configuración Rápida</DialogTitle>
              <DialogDescription className="text-center font-medium">Define el estilo base para tu nuevo mosaico profesional.</DialogDescription>
           </DialogHeader>
