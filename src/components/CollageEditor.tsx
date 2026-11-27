@@ -107,43 +107,43 @@ const GRADIENTS = [
   { name: 'Luxury', value: 'linear-gradient(135deg, #232526 0%, #414345 100%)' }
 ];
 
-// Helper to calculate smart mosaic layout
+/**
+ * Smart Mosaic Algorithm
+ * Decides the best number of columns and rows based on the container aspect ratio
+ * to maximize the visual impact of each cell.
+ */
 function getMosaicLayout(count: number, sectionRatio: number): CellLayout[] {
   if (count <= 1) return [{ x: 0, y: 0, w: 100, h: 100 }];
-  
-  if (count === 2) {
-    return sectionRatio > 1 
-      ? [{ x: 0, y: 0, w: 50, h: 100 }, { x: 50, y: 0, w: 50, h: 100 }]
-      : [{ x: 0, y: 0, w: 100, h: 50 }, { x: 0, y: 50, w: 100, h: 50 }];
+
+  // Find the best grid configuration (cols x rows)
+  let bestCols = 1;
+  let bestRows = count;
+  let minAspectDiff = Infinity;
+
+  for (let c = 1; c <= count; c++) {
+    const r = Math.ceil(count / c);
+    // Calculate the aspect ratio of a single cell in this grid
+    const cellRatio = (sectionRatio * r) / c;
+    
+    // We want cellRatio to be close to 1 (square) or closer to average image ratios
+    // For general purpose, "square-ish" cells are best for dynamic content
+    const diff = Math.abs(Math.log(cellRatio)); 
+    
+    if (diff < minAspectDiff) {
+      minAspectDiff = diff;
+      bestCols = c;
+      bestRows = r;
+    }
   }
 
-  if (count === 3) {
-    return [
-      { x: 0, y: 0, w: 60, h: 100 },
-      { x: 60, y: 0, w: 40, h: 50 },
-      { x: 60, y: 50, w: 40, h: 50 }
-    ];
-  }
-
-  if (count === 4) {
-    return [
-      { x: 0, y: 0, w: 50, h: 50 },
-      { x: 50, y: 0, w: 50, h: 50 },
-      { x: 0, y: 50, w: 50, h: 50 },
-      { x: 50, y: 50, w: 50, h: 50 }
-    ];
-  }
-
-  // Generic grid for 5+ images
-  const cols = Math.ceil(Math.sqrt(count));
-  const rows = Math.ceil(count / cols);
-  const cellW = 100 / cols;
-  const cellH = 100 / rows;
+  const cellW = 100 / bestCols;
+  const cellH = 100 / bestRows;
   const layouts: CellLayout[] = [];
+  
   for (let i = 0; i < count; i++) {
     layouts.push({
-      x: (i % cols) * cellW,
-      y: Math.floor(i / cols) * cellH,
+      x: (i % bestCols) * cellW,
+      y: Math.floor(i / bestCols) * cellH,
       w: cellW,
       h: cellH
     });
@@ -157,13 +157,13 @@ export default function CollageEditor() {
   const t = translations[lang];
   const { toast } = useToast();
 
-  // Configuración
+  // Configuration
   const [showConfig, setShowConfig] = useState(true);
   const [aspectRatio, setAspectRatio] = useState(ASPECT_RATIOS[0]);
   const [hasHeader, setHasHeader] = useState(false);
   const [numSections, setNumSections] = useState(1);
   
-  // Diseño
+  // Design state
   const [headerHeight, setHeaderHeight] = useState(12);
   const [headerColumns, setHeaderColumns] = useState<HeaderColumn[]>([]);
   const [sectionSplits, setSectionSplits] = useState<number[]>([50, 50, 50, 50]); 
@@ -243,7 +243,6 @@ export default function CollageEditor() {
     setImages(prev => prev.map(img => img.id === id ? { ...img, ...updates } : img));
   };
 
-  // Function to auto-fill all images in a section
   const autoFillSection = (sectionId: number, layouts: CellLayout[], sectionW: number, sectionH: number) => {
     const sectionImages = images.filter(img => img.sectionId === sectionId);
     const updatedImages = images.map(img => {
@@ -257,20 +256,19 @@ export default function CollageEditor() {
       const cellH = (layout.h / 100) * sectionH;
       const cellRatio = cellW / cellH;
       
-      // Calculate zoom to cover
       let zoom = 1;
       if (img.aspectRatio > cellRatio) {
-        // Image is wider than cell, match height
+        // Image is wider than cell, match height to cover width
         zoom = img.aspectRatio / cellRatio;
       } else {
-        // Image is taller than cell, match width
+        // Image is taller than cell, match width to cover height
         zoom = cellRatio / img.aspectRatio;
       }
 
       return { ...img, zoom: Math.max(1, zoom), offsetX: 0, offsetY: 0 };
     });
     setImages(updatedImages);
-    toast({ title: lang === 'es' ? "Ajustado" : "Filled", description: lang === 'es' ? "Imágenes adaptadas al espacio." : "Images adapted to area." });
+    toast({ title: lang === 'es' ? "Ajuste Inteligente" : "Smart Fill", description: lang === 'es' ? "Espacios rellenados automáticamente." : "Spaces filled automatically." });
   };
 
   const sectionsLayout = useMemo(() => {
@@ -302,15 +300,14 @@ export default function CollageEditor() {
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      const baseW = 1440; // Increased quality
+      const baseW = 1920; 
       const baseH = baseW / aspectRatio.ratio;
       canvas.width = baseW;
       canvas.height = baseH;
 
-      // Scale helper
       const scale = baseW / 450; 
 
-      // 1. Fondo
+      // 1. Background
       if (activeGradient !== 'none') {
         const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
         if (activeGradient.includes('#ff9a9e')) { grad.addColorStop(0, '#ff9a9e'); grad.addColorStop(1, '#fecfef'); }
@@ -323,7 +320,7 @@ export default function CollageEditor() {
       }
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // 2. Cabecera Modular
+      // 2. Modular Header
       if (hasHeader) {
         const hHeight = (headerHeight / 100) * canvas.height;
         for (const col of headerColumns) {
@@ -351,7 +348,7 @@ export default function CollageEditor() {
         }
       }
 
-      // 3. Secciones e Imágenes con Mosaico
+      // 3. Sections & Mosaic Images
       for (const section of sectionsLayout) {
         const sImgs = images.filter(img => img.sectionId === section.id);
         if (sImgs.length === 0) continue;
@@ -385,6 +382,7 @@ export default function CollageEditor() {
           const cellRatio = cellW / cellH;
           let drawW, drawH;
 
+          // Uniform scaling logic (object-contain behavior)
           if (imgData.aspectRatio > cellRatio) {
             drawW = cellW;
             drawH = cellW / imgData.aspectRatio;
@@ -407,10 +405,10 @@ export default function CollageEditor() {
       }
 
       const link = document.createElement('a');
-      link.download = `Collage_${Date.now()}.jpg`;
+      link.download = `Collage_Quick_${Date.now()}.jpg`;
       link.href = canvas.toDataURL('image/jpeg', 0.95);
       link.click();
-      toast({ title: lang === 'es' ? "Collage Exportado" : "Collage Exported", description: lang === 'es' ? "Guardado correctamente." : "Saved successfully." });
+      toast({ title: lang === 'es' ? "Collage Exportado" : "Collage Exported" });
     } catch (e) {
       console.error(e);
       toast({ variant: 'destructive', title: "Error", description: "No se pudo generar la imagen." });
@@ -586,7 +584,7 @@ export default function CollageEditor() {
               background: activeGradient !== 'none' ? activeGradient : bgColor
             }}
           >
-            {/* Modular Header Rendering */}
+            {/* Header */}
             {hasHeader && (
               <div 
                 className="absolute top-0 left-0 w-full flex items-center px-4 overflow-hidden z-30"
@@ -606,7 +604,7 @@ export default function CollageEditor() {
               </div>
             )}
 
-            {/* Sections Rendering */}
+            {/* Sections */}
             {sectionsLayout.map(section => {
               const sectionImages = images.filter(img => img.sectionId === section.id);
               const isActive = activeSection === section.id;
@@ -614,6 +612,8 @@ export default function CollageEditor() {
               const sectionW_px = 450;
               const sectionH_px = (section.height / 100) * (450 / aspectRatio.ratio);
               const sRatio = sectionW_px / sectionH_px;
+              
+              // Smart Grid calculation
               const mosaic = getMosaicLayout(sectionImages.length, sRatio);
 
               return (
@@ -632,28 +632,28 @@ export default function CollageEditor() {
                       <span className="text-[7px] font-black uppercase text-muted-foreground/30 tracking-widest">{t.selectToEdit}</span>
                     </div>
                   ) : (
-                    <div className="w-full h-full relative" style={{ padding: `${spacing/2}cm` }}>
+                    <div className="w-full h-full relative">
                       {sectionImages.map((img, i) => {
                         const layout = mosaic[i];
-                        const cellPad = spacing * 10; // Simple padding in px approx
+                        const pad = spacing * 5; // Internal spacing in px (approx)
 
                         return (
                           <div 
                             key={img.id} 
                             className={cn(
-                              "absolute overflow-hidden bg-black/5 rounded-sm group/img",
-                              selectedImageId === img.id ? "ring-2 ring-accent z-10" : ""
+                              "absolute overflow-hidden group/img transition-all",
+                              selectedImageId === img.id ? "ring-2 ring-accent z-10" : "hover:bg-black/5"
                             )}
                             style={{
                               left: `${layout.x}%`,
                               top: `${layout.y}%`,
                               width: `${layout.w}%`,
                               height: `${layout.h}%`,
-                              padding: `${spacing * 2}px`
+                              padding: `${pad}px`
                             }}
                             onClick={(e) => { e.stopPropagation(); setSelectedImageId(img.id); }}
                           >
-                            <div className="w-full h-full relative overflow-hidden">
+                            <div className="w-full h-full relative overflow-hidden bg-muted/20 rounded-[1px]">
                               <img 
                                 src={img.url} 
                                 alt=""
@@ -665,16 +665,16 @@ export default function CollageEditor() {
                             
                             {selectedImageId === img.id && (
                               <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-[2px] animate-in fade-in duration-200">
-                                <div className="bg-background/95 p-2 rounded-xl shadow-2xl flex flex-col gap-3 w-[80%] pointer-events-auto">
+                                <div className="bg-background/95 p-2 rounded-xl shadow-2xl flex flex-col gap-3 w-[85%] pointer-events-auto">
                                    <div className="flex items-center justify-between gap-4">
-                                      <div className="flex flex-col"><span className="text-[7px] font-black uppercase text-muted-foreground">Zoom</span></div>
+                                      <span className="text-[7px] font-black uppercase text-muted-foreground">Zoom</span>
                                       <Slider value={[img.zoom]} min={1} max={5} step={0.01} onValueChange={v => updateImageTransform(img.id, { zoom: v[0] })} className="flex-1" />
                                    </div>
                                    <div className="grid grid-cols-2 gap-2">
                                       <Button size="icon" variant="secondary" className="h-8 w-full rounded-lg" onClick={(e) => { e.stopPropagation(); setSelectedImageId(null); }}><Check className="h-4 w-4"/></Button>
                                       <Button size="icon" variant="destructive" className="h-8 w-full rounded-lg" onClick={(e) => { e.stopPropagation(); setImages(prev => prev.filter(i => i.id !== img.id)); setSelectedImageId(null); }}><Trash2 className="h-4 w-4"/></Button>
                                    </div>
-                                   <div className="flex items-center justify-center gap-2">
+                                   <div className="flex items-center justify-center gap-1">
                                       <Button size="icon" variant="outline" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); updateImageTransform(img.id, { offsetX: img.offsetX - 5 }); }}><AlignLeft className="h-3 w-3"/></Button>
                                       <Button size="icon" variant="outline" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); updateImageTransform(img.id, { offsetY: img.offsetY - 5 }); }}><ChevronDown className="h-3 w-3 rotate-180"/></Button>
                                       <Button size="icon" variant="outline" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); updateImageTransform(img.id, { offsetY: img.offsetY + 5 }); }}><ChevronDown className="h-3 w-3"/></Button>
@@ -793,4 +793,3 @@ export default function CollageEditor() {
     </div>
   );
 }
-
