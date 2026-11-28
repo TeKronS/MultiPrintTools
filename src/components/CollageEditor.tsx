@@ -625,8 +625,12 @@ export default function CollageEditor() {
           <div 
             ref={previewRef}
             id="collage-preview-container"
-            className="relative bg-white shadow-[0_40px_100px_-20px_rgba(0,0,0,0.3)] rounded-sm overflow-hidden border border-border"
-            style={{ width: 'min(90vw, 450px)', aspectRatio: `${aspectRatio.ratio}`, background: activeGradient !== 'none' ? activeGradient : bgColor }}
+            className="relative bg-white shadow-[0_40px_100px_-20px_rgba(0,0,0,0.3)] rounded-sm overflow-hidden border border-border shrink-0"
+            style={{ 
+              width: 'min(90vw, 450px)', 
+              aspectRatio: aspectRatio.id.replace(':', ' / '), 
+              background: activeGradient !== 'none' ? activeGradient : bgColor 
+            }}
           >
             {hasHeader && (
               <div className="absolute top-0 left-0 w-full flex items-center px-0 overflow-hidden z-30 group/header" style={{ height: `${headerHeight}%` }}>
@@ -796,4 +800,3 @@ export default function CollageEditor() {
     </div>
   );
 }
-
