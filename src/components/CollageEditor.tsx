@@ -29,7 +29,8 @@ import {
   LayoutGrid,
   ChevronUp,
   ChevronRight,
-  ChevronLeft as ChevronLeftIcon
+  ChevronLeft as ChevronLeftIcon,
+  Info
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -54,6 +55,11 @@ import {
   DialogFooter,
   DialogDescription
 } from "@/components/ui/dialog";
+import { 
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -111,13 +117,15 @@ const GRADIENTS = [
   { name: 'Luxury', value: 'linear-gradient(135deg, #232526 0%, #414345 100%)' }
 ];
 
+const PX_PER_CM_PREVIEW = 20; // 1cm = 20px in 450px preview
+const BASE_EXPORT_WIDTH = 1920;
+
 /**
  * Smart Mosaic Algorithm
  */
 function getMosaicLayout(count: number, sectionRatio: number): CellLayout[] {
   if (count <= 1) return [{ x: 0, y: 0, w: 100, h: 100 }];
 
-  // Simple and effective: choose column/row count that minimizes aspect ratio distortion
   let bestCols = 1;
   let bestRows = count;
   let minAspectDiff = Infinity;
@@ -168,7 +176,7 @@ export default function CollageEditor() {
   const [images, setImages] = useState<CollageImage[]>([]);
   const [activeSection, setActiveSection] = useState(1);
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
-  const [spacing, setSpacing] = useState(0.2);
+  const [spacing, setSpacing] = useState(0.1); // Default to 0.1 cm
   const [bgColor, setBgColor] = useState('#ffffff');
   const [activeGradient, setActiveGradient] = useState('none');
   
@@ -177,9 +185,12 @@ export default function CollageEditor() {
   const [isDraggingSplitter, setIsDraggingSplitter] = useState<number | null>(null);
   const [isDraggingHeaderColSplitter, setIsDraggingHeaderColSplitter] = useState<number | null>(null);
   const [isDraggingHeaderHeightSplitter, setIsDraggingHeaderHeightSplitter] = useState(false);
+  const [isInfoOpen, setIsInfoOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    const savedLang = localStorage.getItem('pref-lang') as Language;
+    if (savedLang === 'en' || savedLang === 'es') setLang(savedLang);
   }, []);
 
   const startProject = () => {
@@ -359,11 +370,12 @@ export default function CollageEditor() {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
-      const baseW = 1920; 
+      const baseW = BASE_EXPORT_WIDTH; 
       const baseH = baseW / aspectRatio.ratio;
       canvas.width = baseW;
       canvas.height = baseH;
       const scale = baseW / 450; 
+      const pad = (spacing * PX_PER_CM_PREVIEW) * scale;
 
       if (activeGradient !== 'none') {
         const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
@@ -415,7 +427,6 @@ export default function CollageEditor() {
         const sHeight = (section.height / 100) * canvas.height;
         const sWidth = canvas.width;
         const sRatio = sWidth / sHeight;
-        const pad = (spacing * 37.8) * scale;
         const mosaic = getMosaicLayout(sImgs.length, sRatio);
         for (let i = 0; i < sImgs.length; i++) {
           const imgData = sImgs[i];
@@ -548,6 +559,44 @@ export default function CollageEditor() {
           <Slider value={[spacing]} onValueChange={v => setSpacing(v[0])} min={0} max={1} step={0.05} />
         </div>
       </div>
+
+      <Separator />
+
+      <Collapsible open={isInfoOpen} onOpenChange={setIsInfoOpen} className="mt-4">
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" className="w-full flex items-center justify-between p-4 bg-primary/5 hover:bg-primary/10 rounded-xl transition-all">
+            <div className="flex items-center gap-2">
+              <Info className="h-4 w-4 text-primary" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-primary">{isInfoOpen ? t.closeInfo : t.learnMore}</span>
+            </div>
+            <ChevronDown className={cn("h-4 w-4 text-primary transition-transform", isInfoOpen ? "rotate-180" : "rotate-0")} />
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-4 pt-4 text-left">
+          <div className="space-y-1">
+            <h3 className="text-[10px] font-black text-foreground uppercase">{t.collageSeoTitle}</h3>
+            <p className="text-[10px] text-muted-foreground font-medium leading-tight">{t.collageSeoIntro}</p>
+          </div>
+          <div className="grid gap-3">
+            <div className="p-2 bg-card border rounded-lg">
+              <h4 className="text-[9px] font-black text-primary uppercase">{lang === 'es' ? 'Layout Dinámico' : 'Dynamic Layout'}</h4>
+              <p className="text-[9px] text-muted-foreground leading-tight">{t.collageSeoFeature1}</p>
+            </div>
+            <div className="p-2 bg-card border rounded-lg">
+              <h4 className="text-[9px] font-black text-primary uppercase">{lang === 'es' ? 'Personalización' : 'Customization'}</h4>
+              <p className="text-[9px] text-muted-foreground leading-tight">{t.collageSeoFeature2}</p>
+            </div>
+            <div className="p-2 bg-card border rounded-lg">
+              <h4 className="text-[9px] font-black text-primary uppercase">{lang === 'es' ? 'Branding' : 'Branding'}</h4>
+              <p className="text-[9px] text-muted-foreground leading-tight">{t.collageSeoFeature3}</p>
+            </div>
+            <div className="p-2 bg-card border rounded-lg">
+              <h4 className="text-[9px] font-black text-primary uppercase">{lang === 'es' ? 'Privacidad' : 'Privacy'}</h4>
+              <p className="text-[9px] text-muted-foreground leading-tight">{t.collageSeoFeature4}</p>
+            </div>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   );
 
@@ -639,7 +688,7 @@ export default function CollageEditor() {
                     <div className="w-full h-full relative">
                       {sectionImages.map((img, i) => {
                         const layout = mosaic[i];
-                        const pad = spacing * 5;
+                        const pad = spacing * PX_PER_CM_PREVIEW;
                         return (
                           <div key={img.id} className={cn("absolute overflow-hidden group/img transition-all", selectedImageId === img.id ? "ring-2 ring-accent z-10" : "hover:bg-black/5")} style={{ left: `${layout.x}%`, top: `${layout.y}%`, width: `${layout.w}%`, height: `${layout.h}%`, padding: `${pad}px` }} onClick={(e) => { e.stopPropagation(); setSelectedImageId(img.id); }}>
                             <div className="w-full h-full relative overflow-hidden bg-muted/20 rounded-[1px]">
@@ -747,3 +796,4 @@ export default function CollageEditor() {
     </div>
   );
 }
+
