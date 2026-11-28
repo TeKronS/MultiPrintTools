@@ -153,7 +153,6 @@ export default function PosterGridEditor() {
       
       const fixedPanels = Math.ceil(((finalOrient === 'landscape' ? targetH_mm : targetW_mm) - overlap_mm) / effectiveFixed);
       
-      // Cálculo preciso del largo necesario sin promediar espacios
       const imageLength = finalOrient === 'landscape' ? targetW_mm : targetH_mm;
       const neededLength = imageLength + ((finalOrient === 'landscape' ? appliedMH : appliedMV) * 20);
       const finalLength = Math.min(MAX_ROLL_LENGTH_MM, Math.max(100, neededLength));
@@ -311,7 +310,6 @@ export default function PosterGridEditor() {
       const finalW_mm = parseNum(targetWidth) * 10;
       const finalH_mm = parseNum(targetHeight) * 10;
       
-      // En modo rollo con 1 panel de largo, eliminamos el centrado que desperdicia espacio
       const offsetX_mm = (isRoll && (orientation === 'landscape' ? cols === 1 : rows === 1)) ? 0 : (totalGridW - finalW_mm) / 2;
       const offsetY_mm = (isRoll && (orientation === 'landscape' ? rows === 1 : cols === 1)) ? 0 : (totalGridH - finalH_mm) / 2;
 
@@ -386,7 +384,8 @@ export default function PosterGridEditor() {
       }
       
       const rollType = isA4Snap ? "A4" : isLetterSnap ? "Carta" : "Personalizado";
-      const cutLengthStr = (customRollLength / 10).toFixed(1);
+      // Añadimos 1cm (10mm) de margen de seguridad al nombre del archivo para el corte
+      const cutLengthStr = ((customRollLength + 10) / 10).toFixed(1);
       const imgW = parseNum(targetWidth).toFixed(1);
       const imgH = parseNum(targetHeight).toFixed(1);
 
