@@ -172,7 +172,7 @@ export default function CollageEditor() {
   // Design state
   const [headerHeight, setHeaderHeight] = useState(12);
   const [headerColumns, setHeaderColumns] = useState<HeaderColumn[]>([]);
-  const [sectionSplits, setSectionSplits] = useState<number[]>([50, 50, 50, 50]); 
+  const [sectionSplits, setSectionSplits] = useState<number[]>(new Array(10).fill(50)); 
   const [images, setImages] = useState<CollageImage[]>([]);
   const [activeSection, setActiveSection] = useState(1);
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
@@ -537,7 +537,7 @@ export default function CollageEditor() {
         <div className="flex items-center gap-2"><GripVertical className="h-4 w-4 text-primary" /><h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t.sections}</h2></div>
         <Select value={numSections.toString()} onValueChange={v => setNumSections(parseInt(v))}>
           <SelectTrigger className="h-9 font-bold rounded-xl bg-card border-2"><SelectValue /></SelectTrigger>
-          <SelectContent>{[1, 2, 3, 4].map(n => <SelectItem key={n} value={n.toString()} className="font-bold">{n} Secciones</SelectItem>)}</SelectContent>
+          <SelectContent>{[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => <SelectItem key={n} value={n.toString()} className="font-bold">{n} Secciones</SelectItem>)}</SelectContent>
         </Select>
       </div>
 
@@ -789,7 +789,7 @@ export default function CollageEditor() {
                    <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Nº de Áreas</Label>
                    <Select value={numSections.toString()} onValueChange={v => setNumSections(parseInt(v))}>
                       <SelectTrigger className="h-10 font-black rounded-xl bg-muted/50 border-none"><SelectValue /></SelectTrigger>
-                      <SelectContent>{[1, 2, 3, 4].map(n => <SelectItem key={n} value={n.toString()} className="font-bold">{n} Secciones</SelectItem>)}</SelectContent>
+                      <SelectContent>{[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => <SelectItem key={n} value={n.toString()} className="font-bold">{n} Secciones</SelectItem>)}</SelectContent>
                    </Select>
                 </div>
              </div>
