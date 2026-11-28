@@ -70,7 +70,7 @@ const PAPER_DIMENSIONS: Record<string, { width: number; height: number; format: 
 
 const DEFAULT_MAX_CM = 200;
 const GIANT_MAX_CM = 1000;
-const MAX_ROLL_LENGTH_MM = 5000;
+const MAX_ROLL_LENGTH_MM = 10000; // Extendemos a 10 metros
 
 export default function PosterGridEditor() {
   const [mounted, setMounted] = useState(false);
@@ -152,7 +152,10 @@ export default function PosterGridEditor() {
       const effectiveFixed = fixedDimPrintable - overlap_mm;
       
       const fixedPanels = Math.ceil(((finalOrient === 'landscape' ? targetH_mm : targetW_mm) - overlap_mm) / effectiveFixed);
-      const neededLength = ((finalOrient === 'landscape' ? targetW_mm : targetH_mm)) + ((finalOrient === 'landscape' ? appliedMH : appliedMV) * 20) + overlap_mm;
+      
+      // Cálculo preciso del largo necesario sin promediar espacios
+      const imageLength = finalOrient === 'landscape' ? targetW_mm : targetH_mm;
+      const neededLength = imageLength + ((finalOrient === 'landscape' ? appliedMH : appliedMV) * 20);
       const finalLength = Math.min(MAX_ROLL_LENGTH_MM, Math.max(100, neededLength));
 
       return { 
@@ -265,6 +268,9 @@ export default function PosterGridEditor() {
     };
   };
 
+  const isLetterSnap = Math.abs(customRollWidth - 215.9) < 1;
+  const isA4Snap = Math.abs(customRollWidth - 210) < 1;
+
   const handleExport = async () => {
     if (!image) return;
     setIsExporting(true);
@@ -273,7 +279,6 @@ export default function PosterGridEditor() {
       img.src = image.url;
       await new Promise((resolve) => img.onload = resolve);
 
-      const paperBase = PAPER_DIMENSIONS[paperSize];
       const isRoll = paperSize.includes('Personalizado');
       
       let paperW, paperH;
@@ -281,6 +286,7 @@ export default function PosterGridEditor() {
         paperW = orientation === 'portrait' ? customRollWidth : customRollLength;
         paperH = orientation === 'portrait' ? customRollLength : customRollWidth;
       } else {
+        const paperBase = PAPER_DIMENSIONS[paperSize];
         paperW = orientation === 'portrait' ? Math.min(paperBase.width, paperBase.height) : Math.max(paperBase.width, paperBase.height);
         paperH = orientation === 'portrait' ? Math.max(paperBase.width, paperBase.height) : Math.min(paperBase.width, paperBase.height);
       }
@@ -304,8 +310,10 @@ export default function PosterGridEditor() {
 
       const finalW_mm = parseNum(targetWidth) * 10;
       const finalH_mm = parseNum(targetHeight) * 10;
-      const offsetX_mm = (totalGridW - finalW_mm) / 2;
-      const offsetY_mm = (totalGridH - finalH_mm) / 2;
+      
+      // En modo rollo con 1 panel de largo, eliminamos el centrado que desperdicia espacio
+      const offsetX_mm = (isRoll && (orientation === 'landscape' ? cols === 1 : rows === 1)) ? 0 : (totalGridW - finalW_mm) / 2;
+      const offsetY_mm = (isRoll && (orientation === 'landscape' ? rows === 1 : cols === 1)) ? 0 : (totalGridH - finalH_mm) / 2;
 
       const targetDPI = 300;
       const outputPxPerMm = targetDPI / 25.4;
@@ -324,6 +332,7 @@ export default function PosterGridEditor() {
           
           const sheetLeft_mm = c * effectiveSheetW;
           const sheetTop_mm = r * effectiveSheetH;
+          
           const drawInSheetX_mm = Math.max(0, offsetX_mm - sheetLeft_mm);
           const drawInSheetY_mm = Math.max(0, offsetY_mm - sheetTop_mm);
           
@@ -376,9 +385,17 @@ export default function PosterGridEditor() {
         }
       }
       
-      const fileName = `PosterGrid_${parseNum(targetWidth)}x${parseNum(targetHeight)}cm_${paperSize.replace(/\s/g, '')}_MultiPrint.pdf`;
+      const rollType = isA4Snap ? "A4" : isLetterSnap ? "Carta" : "Personalizado";
+      const cutLengthStr = (customRollLength / 10).toFixed(1);
+      const imgW = parseNum(targetWidth).toFixed(1);
+      const imgH = parseNum(targetHeight).toFixed(1);
+
+      const fileName = isRoll 
+        ? `Rollo_${rollType}_CORTE_${cutLengthStr}cm_Imagen_${imgW}x${imgH}cm_MultiPrint.pdf`
+        : `PosterGrid_${imgW}x${imgH}cm_${paperSize.replace(/\s/g, '')}_MultiPrint.pdf`;
+        
       pdf.save(fileName);
-      toast({ title: t.export, description: "Documento exportado en alta resolución." });
+      toast({ title: t.export, description: "Documento exportado con medidas técnicas precisas." });
     } catch (e) {
       console.error(e);
       toast({ variant: "destructive", title: "Error", description: "No se pudo generar el PDF." });
@@ -426,8 +443,6 @@ export default function PosterGridEditor() {
   }, [image, rows, cols, overlap, marginV, marginH, paperSize, orientation, targetWidth, targetHeight, customRollWidth, customRollLength]);
 
   const renderSettings = () => {
-    const isLetterSnap = Math.abs(customRollWidth - 215.9) < 1;
-    const isA4Snap = Math.abs(customRollWidth - 210) < 1;
     const isSnapped = isLetterSnap || isA4Snap;
 
     return (
